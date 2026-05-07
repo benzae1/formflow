@@ -2343,20 +2343,3 @@ span[role=link] {
   height: 24px;
   border-radius: 999px;
 }
-
-@media (min-width: 1280px) {
-  .form-builder-frame .formbuilder {
-    display: grid;
-    grid-template-columns: minmax(18rem, 21rem) minmax(0, 1fr);
-    gap: 1.5rem;
-    align-items: start;
-  }
-
-  .form-builder-frame .builder-sidebar_scroll {
-    position: sticky;
-    top: 1rem;
-    max-height: calc(100vh - 8rem);
-    overflow-y: auto;
-    padding-right: 0.35rem;
-  }
-}
