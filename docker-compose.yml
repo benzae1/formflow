@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: formflow-postgres
+    environment:
+      POSTGRES_USER: formflow
+      POSTGRES_PASSWORD: formflow
+      POSTGRES_DB: formflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - formflow_pg:/var/lib/postgresql/data
+
+  temporal:
+    image: temporalio/auto-setup:1.25
+    container_name: formflow-temporal
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=formflow
+      - POSTGRES_PWD=formflow
+      - POSTGRES_SEEDS=postgres
+    ports:
+      - "7233:7233"
+    depends_on:
+      - postgres
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: formflow-temporal-ui
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - "8080:8080"
+    depends_on:
+      - temporal
+
+volumes:
+  formflow_pg:

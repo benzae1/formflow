@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AppRole {
+  admin
+  submitter
+  approver
+  compliance
+}
+
+enum FormStatus {
+  draft
+  published
+  archived
+}
+
+enum FormSensitivity {
+  standard
+  pii
+  sensitive
+}
+
+enum SubmissionStatus {
+  draft
+  submitted
+  in_review
+  needs_revision
+  approved
+  rejected
+  closed
+}
+
+enum ApprovalTaskStatus {
+  pending
+  approved
+  rejected
+  revision_requested
+  cancelled
+}
+
+enum NotificationChannel {
+  email
+  in_app
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  roles         AppRole[] @default([submitter])
+  externalId    String?
+  deactivatedAt DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  formsCreated  Form[]    @relation("FormCreatedBy")
+  workflows     Workflow[]
+  submissions   Submission[]
+  memberships   OrgMembership[]
+}
+
+model Form {
+  id            String          @id @default(uuid())
+  slug          String          @unique
+  title         String
+  schema        Json
+  version       Int             @default(1)
+  status        FormStatus      @default(draft)
+  sensitivity   FormSensitivity @default(standard)
+
+  workflowId    String?
+  workflow      Workflow?       @relation(fields: [workflowId], references: [id])
+
+  parentFormId  String?
+  parentForm    Form?           @relation("ParentChildForms", fields: [parentFormId], references: [id])
+  childForms    Form[]          @relation("ParentChildForms")
+
+  createdById   String
+  createdBy     User            @relation("FormCreatedBy", fields: [createdById], references: [id])
+
+  versions      FormVersion[]
+  submissions   Submission[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model FormVersion {
+  id        String   @id @default(uuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id])
+  version   Int
+  schema    Json
+
+  createdAt DateTime @default(now())
+
+  @@unique([formId, version])
+}
+
+model Workflow {
+  id          String   @id @default(uuid())
+  name        String
+  definition  Json
+  version     Int      @default(1)
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  forms       Form[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Submission {
+  id                  String           @id @default(uuid())
+  formId              String
+  form                Form             @relation(fields: [formId], references: [id])
+
+  formVersion         Int
+  submittedById       String
+  submittedBy         User             @relation(fields: [submittedById], references: [id])
+
+  data                Json
+  status              SubmissionStatus @default(draft)
+  workflowRunId       String?
+
+  parentSubmissionId  String?
+  parentSubmission    Submission?      @relation("ParentChildSubmissions", fields: [parentSubmissionId], references: [id])
+  childSubmissions    Submission[]     @relation("ParentChildSubmissions")
+
+  approvalTasks       ApprovalTask[]
+
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+}
+
+model ApprovalTask {
+  id            String             @id @default(uuid())
+  submissionId  String
+  submission    Submission         @relation(fields: [submissionId], references: [id])
+
+  stageIndex    Int
+  assignedToId  String
+  assignedTo    User               @relation(fields: [assignedToId], references: [id])
+
+  status        ApprovalTaskStatus @default(pending)
+  decisionAt    DateTime?
+  note          String?
+  dueAt         DateTime?
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  title       String
+  body        String
+  linkUrl     String?
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+}
+
+model OrgUnit {
+  id          String    @id @default(uuid())
+  name        String
+  type        String
+  externalId  String    @unique
+
+  parentId    String?
+  parent      OrgUnit?  @relation("OrgTree", fields: [parentId], references: [id])
+  children    OrgUnit[] @relation("OrgTree")
+
+  memberships OrgMembership[]
+}
+
+model OrgMembership {
+  id          String  @id @default(uuid())
+
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+
+  orgUnitId   String
+  orgUnit     OrgUnit @relation(fields: [orgUnitId], references: [id])
+
+  roleInUnit  String?
+  isManager   Boolean @default(false)
+
+  @@unique([userId, orgUnitId])
+}
+
+model Delegation {
+  id             String   @id @default(uuid())
+  approverId     String
+  delegateId     String
+  startsAt       DateTime
+  endsAt         DateTime
+
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  actorId       String?
+  action        String
+  resourceType  String
+  resourceId    String
+  beforeState   Json?
+  afterState    Json?
+  metadata      Json?
+
+  createdAt     DateTime @default(now())
+}
+
