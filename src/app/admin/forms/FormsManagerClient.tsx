@@ -40,6 +40,7 @@ export default function FormsManagerClient({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [slugTouched, setSlugTouched] = useState(false);
   const [formState, setFormState] = useState({
     slug: "",
     title: "",
@@ -64,6 +65,18 @@ export default function FormsManagerClient({
   );
 
   async function createForm() {
+    const normalizedSlug = slugify(formState.slug);
+
+    if (!formState.title.trim()) {
+      setError("Add a form title before creating the form.");
+      return;
+    }
+
+    if (!normalizedSlug) {
+      setError("Add a slug using lowercase letters, numbers, and hyphens.");
+      return;
+    }
+
     setPending(true);
     setError(null);
 
@@ -71,8 +84,8 @@ export default function FormsManagerClient({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        slug: formState.slug,
-        title: formState.title,
+        slug: normalizedSlug,
+        title: formState.title.trim(),
         sensitivity: formState.sensitivity,
         workflowId: formState.workflowId || null,
         parentFormId: formState.parentFormId || null,
@@ -86,12 +99,21 @@ export default function FormsManagerClient({
     setPending(false);
 
     if (!response.ok) {
-      setError("The form could not be created. Check the slug and workflow selection.");
+      const message = await getErrorMessage(response);
+      setError(message);
       return;
     }
 
     const json = (await response.json()) as { form: { id: string } };
     setCreateOpen(false);
+    setFormState({
+      slug: "",
+      title: "",
+      sensitivity: "standard",
+      workflowId: "",
+      parentFormId: "",
+    });
+    setSlugTouched(false);
     router.push(`/admin/forms/${json.form.id}/builder`);
     router.refresh();
   }
@@ -213,17 +235,27 @@ export default function FormsManagerClient({
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <input
                 value={formState.title}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, title: event.target.value }))
-                }
+                onChange={(event) => {
+                  const nextTitle = event.target.value;
+
+                  setFormState((current) => ({
+                    ...current,
+                    title: nextTitle,
+                    slug: slugTouched ? current.slug : slugify(nextTitle),
+                  }));
+                }}
                 placeholder="Form title"
                 className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
               />
               <input
                 value={formState.slug}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, slug: event.target.value }))
-                }
+                onChange={(event) => {
+                  setSlugTouched(true);
+                  setFormState((current) => ({
+                    ...current,
+                    slug: slugify(event.target.value),
+                  }));
+                }}
                 placeholder="form-slug"
                 className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
               />
@@ -277,6 +309,11 @@ export default function FormsManagerClient({
               </select>
             </div>
 
+            <p className="mt-3 text-xs text-[var(--muted)]">
+              Slugs use lowercase letters, numbers, and hyphens. Leave the workflow blank if
+              you want to attach one later.
+            </p>
+
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
@@ -292,4 +329,31 @@ export default function FormsManagerClient({
       ) : null}
     </div>
   );
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+async function getErrorMessage(response: Response) {
+  try {
+    const payload = (await response.json()) as {
+      error?: {
+        message?: string;
+      };
+    };
+
+    if (payload.error?.message) {
+      return payload.error.message;
+    }
+  } catch {
+    return "The form could not be created. Try a different slug or workflow selection.";
+  }
+
+  return "The form could not be created. Try a different slug or workflow selection.";
 }

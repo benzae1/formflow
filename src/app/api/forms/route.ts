@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
-import { apiErrorResponse } from "@/lib/errors";
+import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { createFormSchema } from "@/lib/validation/forms";
 
@@ -27,6 +28,36 @@ export async function POST(req: Request) {
     const user = await requireRole(["admin"]);
     const body = await req.json();
     const input = createFormSchema.parse(body);
+
+    if (input.workflowId) {
+      const workflow = await db.workflow.findUnique({
+        where: { id: input.workflowId },
+        select: { id: true },
+      });
+
+      if (!workflow) {
+        throw new ApiError(
+          "WORKFLOW_NOT_FOUND",
+          "Select a valid workflow or leave the workflow blank for now.",
+          404,
+        );
+      }
+    }
+
+    if (input.parentFormId) {
+      const parentForm = await db.form.findUnique({
+        where: { id: input.parentFormId },
+        select: { id: true },
+      });
+
+      if (!parentForm) {
+        throw new ApiError(
+          "PARENT_FORM_NOT_FOUND",
+          "Select a valid parent form or clear the parent form selection.",
+          404,
+        );
+      }
+    }
 
     const form = await db.form.create({
       data: {
@@ -58,6 +89,37 @@ export async function POST(req: Request) {
 
     return Response.json({ form }, { status: 201 });
   } catch (error) {
+    if (error instanceof ZodError) {
+      const firstIssue = error.issues[0];
+      const message = firstIssue
+        ? `${firstIssue.path.join(".") || "form"}: ${firstIssue.message}`
+        : "The form details are invalid.";
+
+      return apiErrorResponse(new ApiError("INVALID_FORM_INPUT", message, 400));
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        return apiErrorResponse(
+          new ApiError(
+            "FORM_SLUG_TAKEN",
+            "That slug is already in use. Choose a different slug.",
+            409,
+          ),
+        );
+      }
+
+      if (error.code === "P2003") {
+        return apiErrorResponse(
+          new ApiError(
+            "FORM_RELATION_INVALID",
+            "The selected workflow or parent form could not be linked.",
+            400,
+          ),
+        );
+      }
+    }
+
     return apiErrorResponse(error);
   }
 }
