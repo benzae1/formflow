@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "worker": "tsx src/temporal/worker.ts",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
