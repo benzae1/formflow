@@ -1,4 +1,38 @@
-import { NextResponse } from 'next/server'
-export async function GET(){
-  return NextResponse.json({ workflows: [] })
+import { db } from "@/lib/db";
+import { apiErrorResponse } from "@/lib/errors";
+import { requireRole } from "@/lib/permissions";
+import { createWorkflowSchema } from "@/lib/validation/workflows";
+
+export async function GET() {
+  try {
+    await requireRole(["admin"]);
+
+    const workflows = await db.workflow.findMany({
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return Response.json({ workflows });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const user = await requireRole(["admin"]);
+    const body = await req.json();
+    const input = createWorkflowSchema.parse(body);
+
+    const workflow = await db.workflow.create({
+      data: {
+        name: input.name,
+        definition: input.definition,
+        createdById: user.id,
+      },
+    });
+
+    return Response.json({ workflow }, { status: 201 });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }
