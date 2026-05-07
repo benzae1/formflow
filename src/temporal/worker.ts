@@ -1,7 +1,10 @@
+import { loadEnvFile } from "node:process";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as approvalActivities from "./activities/approvalActivities";
 import * as notificationActivities from "./activities/notificationActivities";
 import * as orgActivities from "./activities/orgActivities";
+
+loadEnvFile();
 
 async function run() {
   const connection = await NativeConnection.connect({
