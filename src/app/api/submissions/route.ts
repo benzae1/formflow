@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
 import { requireUser } from "@/lib/permissions";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
+import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { getTemporalClient } from "@/lib/temporal";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
@@ -11,24 +12,8 @@ export async function GET() {
   try {
     const user = await requireUser();
 
-    const isGlobal =
-      user.roles.includes("admin") || user.roles.includes("compliance");
-
     const submissions = await db.submission.findMany({
-      where: isGlobal
-        ? {}
-        : {
-            OR: [
-              { submittedById: user.id },
-              {
-                approvalTasks: {
-                  some: {
-                    assignedToId: user.id,
-                  },
-                },
-              },
-            ],
-          },
+      where: submissionVisibilityWhere(user),
       include: {
         form: true,
         approvalTasks: true,

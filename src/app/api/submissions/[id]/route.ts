@@ -3,6 +3,7 @@ import { apiErrorResponse, ApiError } from "@/lib/errors";
 import { requireUser } from "@/lib/permissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
+import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { getTemporalClient } from "@/lib/temporal";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
 
@@ -16,8 +17,11 @@ export async function PATCH(
     const body = await req.json();
     const input = updateSubmissionSchema.parse(body);
 
-    const submission = await db.submission.findUnique({
-      where: { id },
+    const submission = await db.submission.findFirst({
+      where: {
+        id,
+        ...submissionVisibilityWhere(user),
+      },
       include: {
         form: true,
       },
