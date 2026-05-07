@@ -1,3 +1,1 @@
-export default function FormRenderer(){
-  return null
-}
+export { FormRenderer } from "./FormRenderer";
