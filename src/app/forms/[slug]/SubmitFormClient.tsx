@@ -1,47 +1,121 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FormRenderer } from "@/components/form-renderer/FormRenderer";
+import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
 
 type PublicForm = {
   id: string;
   title: string;
-  schema: Record<string, unknown>;
+  schema: RenderableFormSchema;
 };
 
-export default function SubmitFormClient({ form }: { form: PublicForm }) {
-  async function submit(data: Record<string, unknown>) {
-    const res = await fetch("/api/submissions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        formId: form.id,
-        data,
-        saveAsDraft: false,
-      }),
-    });
+export default function SubmitFormClient({
+  form,
+  submissionId,
+  initialData,
+  existingStatus,
+}: {
+  form: PublicForm;
+  submissionId?: string;
+  initialData?: Record<string, unknown>;
+  existingStatus?: string;
+}) {
+  const [state, setState] = useState<"idle" | "saving" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
 
-    if (!res.ok) {
-      alert("Submission failed.");
+  async function submit(data: Record<string, unknown>) {
+    setState("saving");
+    setMessage(null);
+
+    const response = submissionId
+      ? await fetch(`/api/submissions/${submissionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data,
+            submit: existingStatus === "draft",
+          }),
+        })
+      : await fetch("/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formId: form.id,
+            data,
+            saveAsDraft: false,
+          }),
+        });
+
+    if (!response.ok) {
+      setState("error");
+      setMessage("The submission could not be saved. Please try again.");
       return;
     }
 
-    const json = (await res.json()) as {
+    const json = (await response.json()) as {
       submission: { id: string };
     };
 
-    window.location.href = `/submissions/${json.submission.id}`;
+    setState("idle");
+    setMessage(
+      submissionId
+        ? "Submission updated. Redirecting back to the case file..."
+        : "Submission received. Redirecting to the case file...",
+    );
+
+    setTimeout(() => {
+      router.push(`/submissions/${json.submission.id}`);
+      router.refresh();
+    }, 600);
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-8">
-      <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.18em] text-neutral-500">
-          Public form
-        </p>
-        <h1 className="text-3xl font-semibold text-black">{form.title}</h1>
+    <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+      <header className="rounded-[30px] border border-[var(--line)] bg-[var(--panel)] px-6 py-6 shadow-[var(--shadow-md)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+              {submissionId ? "Edit submission" : "Public form"}
+            </p>
+            <h1 className="mt-3 font-[var(--font-display)] text-4xl">
+              {form.title}
+            </h1>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+              {submissionId
+                ? `This ${existingStatus?.replaceAll("_", " ")} submission is open for edits. Submitting here will ${existingStatus === "draft" ? "launch" : "resume"} the workflow.`
+                : "Complete the published form below to start the approval workflow."}
+            </p>
+          </div>
+          <Link
+            href="/submissions"
+            className="inline-flex rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+          >
+            Back to submissions
+          </Link>
+        </div>
       </header>
 
-      <FormRenderer schema={form.schema} onSubmit={submit} />
+      {message ? (
+        <div
+          className={`rounded-[22px] border px-5 py-4 text-sm ${
+            state === "error"
+              ? "border-[var(--danger)]/20 bg-[var(--danger-soft)] text-[var(--danger)]"
+              : "border-[var(--success)]/20 bg-[var(--success-soft)] text-[var(--success)]"
+          }`}
+        >
+          {message}
+        </div>
+      ) : null}
+
+      <FormRenderer
+        schema={form.schema}
+        initialData={initialData}
+        onSubmit={submit}
+      />
     </main>
   );
 }

@@ -1,3 +1,100 @@
-export default function Page(){
-  return <div>Admin Audit Log</div>
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { requirePageRole } from "@/lib/page-auth";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { formatDateTime } from "@/lib/ui";
+
+type SearchParams = Promise<{
+  action?: string;
+  resourceType?: string;
+}>;
+
+export default async function AuditLogPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  await requirePageRole(["admin", "compliance"]);
+  const filters = await searchParams;
+
+  const logs = await db.auditLog.findMany({
+    where: {
+      action: filters.action ?? undefined,
+      resourceType: filters.resourceType ?? undefined,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 100,
+  });
+
+  const exportParams = new URLSearchParams();
+  if (filters.action) exportParams.set("action", filters.action);
+  if (filters.resourceType) exportParams.set("resourceType", filters.resourceType);
+  exportParams.set("format", "csv");
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Audit trail"
+        title="Sensitive access and control-plane events"
+        description="Compliance and admin can filter the latest audit entries, inspect actor/resource combinations, and export the current slice."
+      >
+        <Link
+          href={`/api/audit-log?${exportParams.toString()}`}
+          className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+        >
+          Export CSV
+        </Link>
+      </PageHeader>
+
+      <form className="flex flex-col gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] lg:flex-row">
+        <input
+          name="action"
+          defaultValue={filters.action ?? ""}
+          placeholder="Action filter"
+          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+        />
+        <input
+          name="resourceType"
+          defaultValue={filters.resourceType ?? ""}
+          placeholder="Resource type"
+          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+        />
+        <button
+          type="submit"
+          className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+        >
+          Filter
+        </button>
+      </form>
+
+      <section className="space-y-3">
+        {logs.map((log) => (
+          <article
+            key={log.id}
+            className="rounded-[26px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]"
+          >
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                  {log.resourceType}
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">{log.action}</h2>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                  Resource {log.resourceId} • Actor {log.actorId ?? "system"} •{" "}
+                  {formatDateTime(log.createdAt)}
+                </p>
+              </div>
+              {log.action === "sensitive.accessed" ? (
+                <span className="rounded-full border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--danger)]">
+                  Sensitive
+                </span>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </section>
+    </div>
+  );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTemporalClient } from "@/lib/temporal";
-import { requireRole } from "@/lib/permissions";
+import { requirePageRole } from "@/lib/page-auth";
 import { db } from "@/lib/db";
 
 type Metric = {
@@ -99,7 +99,7 @@ function SectionCard({ section }: { section: Section }) {
 }
 
 export default async function AdminDashboardPage() {
-  await requireRole(["admin"]);
+  const user = await requirePageRole(["admin", "compliance"]);
 
   const now = new Date();
 
@@ -252,17 +252,25 @@ export default async function AdminDashboardPage() {
     },
   ];
 
+  const visibleSections = user.roles.includes("compliance") && !user.roles.includes("admin")
+    ? sections.filter((section) => ["Submissions", "Audit Log", "Workflow Health"].includes(section.title))
+    : sections;
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,242,208,0.9),_transparent_35%),linear-gradient(180deg,#f7f4ed_0%,#ece4d4_100%)] p-8 text-black">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="space-y-6">
+      <div className="space-y-6">
         <header className="rounded-[32px] border border-black/10 bg-white/75 p-8 shadow-[0_30px_80px_rgba(34,24,8,0.10)] backdrop-blur">
           <p className="text-xs uppercase tracking-[0.38em] text-neutral-500">
-            FormFlow admin
+            {user.roles.includes("compliance") && !user.roles.includes("admin")
+              ? "FormFlow compliance"
+              : "FormFlow admin"}
           </p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-semibold tracking-tight">
-                Operations Dashboard
+                {user.roles.includes("compliance") && !user.roles.includes("admin")
+                  ? "Oversight Dashboard"
+                  : "Operations Dashboard"}
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-neutral-600">
                 A single control surface for form publication, submission flow,
@@ -270,29 +278,31 @@ export default async function AdminDashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 text-sm">
-              <Link
-                href="/admin/forms"
-                className="rounded-full bg-black px-5 py-2.5 font-medium text-white transition hover:bg-neutral-800"
-              >
-                Manage forms
-              </Link>
-              <Link
-                href="/admin/workflows"
-                className="rounded-full border border-black/15 bg-white px-5 py-2.5 font-medium text-black transition hover:bg-neutral-50"
-              >
-                Review workflows
-              </Link>
-            </div>
+            {user.roles.includes("admin") ? (
+              <div className="flex flex-wrap gap-3 text-sm">
+                <Link
+                  href="/admin/forms"
+                  className="rounded-full bg-black px-5 py-2.5 font-medium text-white transition hover:bg-neutral-800"
+                >
+                  Manage forms
+                </Link>
+                <Link
+                  href="/admin/workflows"
+                  className="rounded-full border border-black/15 bg-white px-5 py-2.5 font-medium text-black transition hover:bg-neutral-50"
+                >
+                  Review workflows
+                </Link>
+              </div>
+            ) : null}
           </div>
         </header>
 
         <section className="grid gap-5 xl:grid-cols-2">
-          {sections.map((section) => (
+          {visibleSections.map((section) => (
             <SectionCard key={section.title} section={section} />
           ))}
         </section>
       </div>
-    </main>
+    </div>
   );
 }

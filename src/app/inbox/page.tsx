@@ -1,20 +1,38 @@
-import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { requirePageRole } from "@/lib/page-auth";
 import InboxClient from "./InboxClient";
 
-export default async function InboxPage() {
-  const session = await getSession();
+type SearchParams = Promise<{
+  view?: string;
+}>;
 
-  if (!session?.user) {
-    return <div>Please sign in.</div>;
-  }
-
-  const userId = (session.user as { id: string }).id;
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const user = await requirePageRole(["admin", "approver"]);
+  const filters = await searchParams;
+  const view = filters.view ?? "pending";
+  const now = new Date();
 
   const tasks = await db.approvalTask.findMany({
     where: {
-      assignedToId: userId,
-      status: "pending",
+      assignedToId: user.id,
+      ...(view === "overdue"
+        ? {
+            status: "pending",
+            dueAt: { lt: now },
+          }
+        : view === "completed"
+          ? {
+              status: {
+                in: ["approved", "rejected", "revision_requested"],
+              },
+            }
+          : {
+              status: "pending",
+            }),
     },
     include: {
       submission: {
@@ -28,5 +46,5 @@ export default async function InboxPage() {
     },
   });
 
-  return <InboxClient tasks={tasks} />;
+  return <InboxClient tasks={tasks} view={view} />;
 }

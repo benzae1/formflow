@@ -1,13 +1,60 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
-import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { requireUser } from "@/lib/permissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
-import { submissionVisibilityWhere } from "@/lib/submission-visibility";
+import {
+  auditSubmissionAccess,
+  getVisibleSubmissionById,
+  presentSubmissionForUser,
+} from "@/lib/submissions";
 import { getTemporalClient } from "@/lib/temporal";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
+import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
+
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const user = await requireUser();
+    const { id } = await context.params;
+
+    const submission = await getVisibleSubmissionById({
+      submissionId: id,
+      user,
+    });
+
+    if (!submission) {
+      throw new ApiError("SUBMISSION_NOT_FOUND", "Submission not found.", 404);
+    }
+
+    await auditSubmissionAccess({
+      actorId: user.id,
+      submissionId: submission.id,
+      sensitivity: submission.form.sensitivity,
+      reason: "submission.viewed",
+    });
+
+    return Response.json({
+      submission: presentSubmissionForUser(
+        {
+          ...submission,
+          form: {
+            ...submission.form,
+            schema: submission.form.schema as Record<string, unknown>,
+          },
+          data: submission.data as Record<string, unknown>,
+        },
+        user,
+      ),
+    });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}
 
 export async function PATCH(
   req: Request,
@@ -20,10 +67,7 @@ export async function PATCH(
     const input = updateSubmissionSchema.parse(body);
 
     const submission = await db.submission.findFirst({
-      where: {
-        id,
-        ...submissionVisibilityWhere(user),
-      },
+      where: { id },
       include: {
         form: true,
       },
@@ -53,13 +97,47 @@ export async function PATCH(
     const updated = await db.submission.update({
       where: { id },
       data: {
-        data: encryptedData,
+        data: encryptedData as Prisma.InputJsonValue,
         status:
-          submission.status === "needs_revision"
-            ? "in_review"
-            : submission.status,
+          submission.status === "draft" && input.submit
+            ? "submitted"
+            : submission.status === "needs_revision"
+              ? "in_review"
+              : submission.status,
       },
     });
+
+    if (submission.status === "draft" && input.submit) {
+      if (!submission.form.workflowId) {
+        throw new ApiError(
+          "FORM_HAS_NO_WORKFLOW",
+          "This form has no workflow attached.",
+          409,
+        );
+      }
+
+      const temporal = await getTemporalClient();
+
+      await temporal.workflow.start(approvalWorkflow, {
+        taskQueue: "formflow-approval",
+        workflowId: submission.id,
+        args: [
+          {
+            submissionId: submission.id,
+            formId: submission.form.id,
+            workflowId: submission.form.workflowId,
+            submitterId: user.id,
+          },
+        ],
+      });
+
+      await db.submission.update({
+        where: { id },
+        data: {
+          workflowRunId: submission.id,
+        },
+      });
+    }
 
     if (submission.status === "needs_revision") {
       const temporal = await getTemporalClient();
@@ -76,15 +154,33 @@ export async function PATCH(
       });
     }
 
+    if (submission.status === "draft" && input.submit) {
+      await writeAuditLog({
+        actorId: user.id,
+        action: "submission.created",
+        resourceType: "submission",
+        resourceId: id,
+        beforeState: submission,
+        afterState: updated,
+        metadata: {
+          source: "draft_submitted",
+        },
+      });
+    }
+
     return Response.json({
       submission: {
-        ...updated,
-        data: filterSubmissionDataForUser({
-          schema: submission.form.schema as Record<string, unknown>,
-          data: updated.data as Record<string, unknown>,
-          userRoles: user.roles,
-          isOwner: true,
-        }),
+        ...presentSubmissionForUser(
+          {
+            ...updated,
+            form: {
+              ...submission.form,
+              schema: submission.form.schema as Record<string, unknown>,
+            },
+            data: updated.data as Record<string, unknown>,
+          },
+          user,
+        ),
       },
     });
   } catch (error) {

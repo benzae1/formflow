@@ -1,13 +1,22 @@
 "use client";
 
+import type { ComponentProps, ComponentType } from "react";
 import { Form } from "@formio/react/lib/components/Form";
 import "./formio-renderer.css";
 
-type FormSchema = Record<string, unknown>;
+export type RenderableFormSchema = NonNullable<ComponentProps<typeof Form>["form"]>;
 type FormData = Record<string, unknown>;
+type FormSubmissionData = NonNullable<
+  NonNullable<ComponentProps<typeof Form>["submission"]>["data"]
+>;
+const RenderForm = Form as unknown as ComponentType<{
+  form: RenderableFormSchema;
+  submission?: { data: FormSubmissionData };
+  onSubmit: (submission: { data?: FormSubmissionData }) => void;
+}>;
 
 type Props = {
-  schema: FormSchema;
+  schema: RenderableFormSchema;
   initialData?: FormData;
   onSubmit: (data: FormData) => void;
 };
@@ -15,9 +24,9 @@ type Props = {
 export function FormRenderer({ schema, initialData, onSubmit }: Props) {
   return (
     <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
-      <Form
+      <RenderForm
         form={schema}
-        submission={{ data: initialData ?? {} }}
+        submission={{ data: (initialData ?? {}) as FormSubmissionData }}
         onSubmit={(submission) => {
           onSubmit((submission.data ?? {}) as FormData);
         }}

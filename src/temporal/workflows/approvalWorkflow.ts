@@ -99,6 +99,10 @@ export async function approvalWorkflow(input: {
       continue;
     }
 
+    if (!stage.assignTo) {
+      throw new Error(`No routing target configured for stage ${stage.id}`);
+    }
+
     const assigneeIds = await activities.resolveAssignees(
       stage.assignTo,
       input.submitterId,
@@ -121,21 +125,22 @@ export async function approvalWorkflow(input: {
 
     const reminderHours = stage.sla?.reminderAt ?? [];
 
-    for (const taskId of taskIds) {
-      for (const reminderHour of reminderHours) {
-        void (async () => {
-          await sleep(`${reminderHour} hours`);
-          await activities.sendReminderIfTaskPending(taskId);
-        })();
-      }
+      for (const taskId of taskIds) {
+        for (const reminderHour of reminderHours) {
+          void (async () => {
+            await sleep(`${reminderHour} hours`);
+            await activities.sendReminderIfTaskPending(taskId);
+          })();
+        }
 
-      if (stage.sla?.hours) {
-        void (async () => {
-          await sleep(`${stage.sla.hours} hours`);
-          await activities.markTaskOverdueIfPending(taskId);
-        })();
+        const overdueHours = stage.sla?.hours;
+        if (overdueHours) {
+          void (async () => {
+            await sleep(`${overdueHours} hours`);
+            await activities.markTaskOverdueIfPending(taskId);
+          })();
+        }
       }
-    }
 
     latestDecision = undefined;
 
@@ -152,15 +157,17 @@ export async function approvalWorkflow(input: {
       throw new Error("Approval decision missing.");
     }
 
-    if (decision.decision === "approve") {
+    const resolvedDecision: ApprovalSignal = decision;
+
+    if (resolvedDecision.decision === "approve") {
       await activities.completeTask({
-        taskId: decision.taskId,
+        taskId: resolvedDecision.taskId,
         status: "approved",
-        note: decision.note,
+        note: resolvedDecision.note,
       });
 
       await activities.cancelRemainingTasks(
-        taskIds.filter((id) => id !== decision.taskId),
+        taskIds.filter((id) => id !== resolvedDecision.taskId),
       );
 
       if (stage.onApprove === "close" || stageIndex === stages.length - 1) {
@@ -180,15 +187,15 @@ export async function approvalWorkflow(input: {
       continue;
     }
 
-    if (decision.decision === "reject") {
+    if (resolvedDecision.decision === "reject") {
       await activities.completeTask({
-        taskId: decision.taskId,
+        taskId: resolvedDecision.taskId,
         status: "rejected",
-        note: decision.note,
+        note: resolvedDecision.note,
       });
 
       await activities.cancelRemainingTasks(
-        taskIds.filter((id) => id !== decision.taskId),
+        taskIds.filter((id) => id !== resolvedDecision.taskId),
       );
 
       await activities.setSubmissionStatus({
@@ -204,15 +211,15 @@ export async function approvalWorkflow(input: {
       return;
     }
 
-    if (decision.decision === "request-revision") {
+    if (resolvedDecision.decision === "request-revision") {
       await activities.completeTask({
-        taskId: decision.taskId,
+        taskId: resolvedDecision.taskId,
         status: "revision_requested",
-        note: decision.note,
+        note: resolvedDecision.note,
       });
 
       await activities.cancelRemainingTasks(
-        taskIds.filter((id) => id !== decision.taskId),
+        taskIds.filter((id) => id !== resolvedDecision.taskId),
       );
 
       await activities.setSubmissionStatus({

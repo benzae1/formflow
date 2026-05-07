@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
     const workflow = await db.workflow.create({
       data: {
         name: input.name,
-        definition: input.definition,
+        definition: input.definition as Prisma.InputJsonValue,
         createdById: user.id,
       },
     });

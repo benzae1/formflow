@@ -1,8 +1,19 @@
 import { NextAuthOptions, getServerSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "./db";
+import { AppRole } from "@/domain/roles";
+
+type SessionUser = {
+  id: string;
+  email: string;
+  name?: string | null;
+  roles: AppRole[];
+};
 
 export const authOptions: NextAuthOptions = {
+  pages: {
+    signIn: "/signin",
+  },
   session: {
     strategy: "jwt",
     maxAge: 15 * 60,
@@ -27,22 +38,22 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           roles: user.roles,
-        } as any;
+        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id;
-        token.roles = (user as any).roles;
+        token.id = (user as SessionUser).id;
+        token.roles = (user as SessionUser).roles;
       }
 
       return token;
     },
     async session({ session, token }) {
-      (session.user as any).id = token.id;
-      (session.user as any).roles = token.roles;
+      (session.user as SessionUser).id = token.id as string;
+      (session.user as SessionUser).roles = token.roles as AppRole[];
       return session;
     },
   },
@@ -50,4 +61,25 @@ export const authOptions: NextAuthOptions = {
 
 export function getSession() {
   return getServerSession(authOptions);
+}
+
+export async function getCurrentUser() {
+  const session = await getSession();
+  return (session?.user as SessionUser | undefined) ?? null;
+}
+
+export function getDefaultRouteForRoles(roles: AppRole[]) {
+  if (roles.includes("compliance")) {
+    return "/admin/audit-log";
+  }
+
+  if (roles.includes("admin")) {
+    return "/admin";
+  }
+
+  if (roles.includes("approver")) {
+    return "/inbox";
+  }
+
+  return "/submissions";
 }

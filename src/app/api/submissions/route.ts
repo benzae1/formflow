@@ -1,9 +1,13 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
 import { writeAuditLog } from "@/lib/audit";
-import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { requireUser } from "@/lib/permissions";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
+import {
+  auditSubmissionAccess,
+  presentSubmissionForUser,
+} from "@/lib/submissions";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { getTemporalClient } from "@/lib/temporal";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
@@ -24,46 +28,29 @@ export async function GET() {
     });
 
     await Promise.all(
-      submissions.flatMap((submission) => {
-        const logs = [
-          writeAuditLog({
-            actorId: user.id,
-            action: "submission.viewed",
-            resourceType: "submission",
-            resourceId: submission.id,
-            metadata: {
-              reason: "submission.viewed",
-            },
-          }),
-        ];
-
-        if (submission.form.sensitivity === "sensitive") {
-          logs.push(
-            writeAuditLog({
-              actorId: user.id,
-              action: "sensitive.accessed",
-              resourceType: "submission",
-              resourceId: submission.id,
-              metadata: {
-                reason: "submission.viewed",
-              },
-            }),
-          );
-        }
-
-        return logs;
-      }),
+      submissions.map((submission) =>
+        auditSubmissionAccess({
+          actorId: user.id,
+          submissionId: submission.id,
+          sensitivity: submission.form.sensitivity,
+          reason: "submission.viewed",
+        }),
+      ),
     );
 
-    const visibleSubmissions = submissions.map((submission) => ({
-      ...submission,
-      data: filterSubmissionDataForUser({
-        schema: submission.form.schema as Record<string, unknown>,
-        data: submission.data as Record<string, unknown>,
-        userRoles: user.roles,
-        isOwner: submission.submittedById === user.id,
-      }),
-    }));
+    const visibleSubmissions = submissions.map((submission) =>
+      presentSubmissionForUser(
+        {
+          ...submission,
+          form: {
+            ...submission.form,
+            schema: submission.form.schema as Record<string, unknown>,
+          },
+          data: submission.data as Record<string, unknown>,
+        },
+        user,
+      ),
+    );
 
     return Response.json({ submissions: visibleSubmissions });
   } catch (error) {
@@ -96,7 +83,7 @@ export async function POST(req: Request) {
         formId: form.id,
         formVersion: form.version,
         submittedById: user.id,
-        data,
+        data: data as Prisma.InputJsonValue,
         status: input.saveAsDraft ? "draft" : "submitted",
         parentSubmissionId: input.parentSubmissionId ?? null,
       },
@@ -145,13 +132,17 @@ export async function POST(req: Request) {
     return Response.json(
       {
         submission: {
-          ...submission,
-          data: filterSubmissionDataForUser({
-            schema: form.schema as Record<string, unknown>,
-            data: submission.data as Record<string, unknown>,
-            userRoles: user.roles,
-            isOwner: true,
-          }),
+          ...presentSubmissionForUser(
+            {
+              ...submission,
+              form: {
+                ...form,
+                schema: form.schema as Record<string, unknown>,
+              },
+              data: submission.data as Record<string, unknown>,
+            },
+            user,
+          ),
         },
       },
       { status: 201 },

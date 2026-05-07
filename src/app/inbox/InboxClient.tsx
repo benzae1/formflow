@@ -1,9 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { formatDateTime } from "@/lib/ui";
+
 type InboxTask = {
   id: string;
   submissionId: string;
   createdAt: string | Date;
+  dueAt?: string | Date | null;
+  status: string;
   submission: {
     id: string;
     form: {
@@ -12,107 +22,111 @@ type InboxTask = {
   };
 };
 
-export default function InboxClient({ tasks }: { tasks: InboxTask[] }) {
-  async function decide(
-    submissionId: string,
-    taskId: string,
-    action: "approve" | "reject" | "revise",
-  ) {
-    await fetch(`/api/submissions/${submissionId}/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taskId }),
-    });
+const tabs = [
+  { id: "pending", label: "Pending" },
+  { id: "overdue", label: "Overdue" },
+  { id: "completed", label: "Completed" },
+] as const;
 
-    window.location.reload();
-  }
+export default function InboxClient({
+  tasks,
+  view,
+}: {
+  tasks: InboxTask[];
+  view: string;
+}) {
+  const searchParams = useSearchParams();
+  const currentParams = useMemo(
+    () => new URLSearchParams(searchParams.toString()),
+    [searchParams],
+  );
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f7f4ec_0%,#efe7d7_100%)] p-8 text-black">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <header className="rounded-[28px] border border-black/10 bg-white/80 p-8 shadow-[0_24px_80px_rgba(33,24,10,0.08)] backdrop-blur-sm">
-          <p className="text-xs uppercase tracking-[0.35em] text-amber-800/70">
-            Approver workspace
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-            Approval Inbox
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
-            Review pending submissions and route decisions back through the
-            approval workflow.
-          </p>
-        </header>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Approver workspace"
+        title="Approval inbox"
+        description="Triage the queue, jump into case detail, and only commit a decision when you have the context you need."
+      />
 
-        {tasks.length === 0 ? (
-          <section className="rounded-[28px] border border-dashed border-black/15 bg-white/70 p-10 text-center shadow-sm">
-            <h2 className="text-xl font-medium">No pending tasks</h2>
-            <p className="mt-2 text-sm text-neutral-500">
-              New approval requests will appear here when they are assigned to
-              you.
-            </p>
-          </section>
-        ) : (
-          <section className="space-y-4">
-            {tasks.map((task, index) => (
-              <article
-                key={task.id}
-                className="rounded-[24px] border border-black/10 bg-white p-6 shadow-[0_16px_40px_rgba(20,14,6,0.08)]"
-                style={{
-                  animationDelay: `${index * 80}ms`,
-                }}
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-[0.28em] text-neutral-400">
-                      Pending review
-                    </p>
-                    <h2 className="text-xl font-medium">
-                      {task.submission.form.title}
-                    </h2>
-                    <p className="text-sm text-neutral-500">
-                      Submission {task.submission.id}
-                    </p>
-                  </div>
+      <section className="flex flex-wrap gap-3">
+        {tabs.map((tab) => {
+          const params = new URLSearchParams(currentParams.toString());
+          params.set("view", tab.id);
 
-                  <div className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-amber-900">
-                    Awaiting decision
-                  </div>
+          const active = view === tab.id;
+
+          return (
+            <Link
+              key={tab.id}
+              href={`/inbox?${params.toString()}`}
+              className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                active
+                  ? "bg-[var(--brand)] text-white"
+                  : "border border-black/10 bg-white text-[var(--ink)] hover:border-black/20"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </section>
+
+      {tasks.length === 0 ? (
+        <EmptyState
+          eyebrow="Queue clear"
+          title="No tasks in this view"
+          description="New approval work will appear here as soon as workflow stages resolve to you."
+        />
+      ) : (
+        <section className="grid gap-4 xl:grid-cols-2">
+          {tasks.map((task) => (
+            <article
+              key={task.id}
+              className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+                    {view === "completed" ? "Completed review" : "Approval task"}
+                  </p>
+                  <h2 className="mt-3 text-2xl font-semibold">
+                    {task.submission.form.title}
+                  </h2>
+                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                    Submission {task.submission.id}
+                  </p>
                 </div>
+                <StatusBadge status={task.status} />
+              </div>
 
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <button
-                    className="rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-                    onClick={() =>
-                      decide(task.submissionId, task.id, "approve")
-                    }
-                    type="button"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    className="rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-neutral-50"
-                    onClick={() =>
-                      decide(task.submissionId, task.id, "reject")
-                    }
-                    type="button"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    className="rounded-full border border-amber-300 bg-amber-100 px-5 py-2.5 text-sm font-medium text-amber-950 transition hover:bg-amber-200"
-                    onClick={() =>
-                      decide(task.submissionId, task.id, "revise")
-                    }
-                    type="button"
-                  >
-                    Request revision
-                  </button>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[20px] border border-black/10 bg-white/90 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                    Created
+                  </p>
+                  <p className="mt-2 text-sm">{formatDateTime(task.createdAt)}</p>
                 </div>
-              </article>
-            ))}
-          </section>
-        )}
-      </div>
-    </main>
+                <div className="rounded-[20px] border border-black/10 bg-white/90 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                    Due
+                  </p>
+                  <p className="mt-2 text-sm">{formatDateTime(task.dueAt)}</p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link
+                  href={`/submissions/${task.submissionId}`}
+                  className="inline-flex rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Open submission
+                </Link>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+    </div>
   );
 }

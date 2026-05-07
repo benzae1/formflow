@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
@@ -57,12 +58,26 @@ export async function PUT(
       ? existing.version + 1
       : existing.version;
 
+    const updateData: Prisma.FormUncheckedUpdateInput = {
+      version: nextVersion,
+      ...(input.slug !== undefined ? { slug: input.slug } : {}),
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.schema !== undefined
+        ? { schema: input.schema as Prisma.InputJsonValue }
+        : {}),
+      ...(input.sensitivity !== undefined
+        ? { sensitivity: input.sensitivity }
+        : {}),
+      ...(input.workflowId !== undefined ? { workflowId: input.workflowId } : {}),
+      ...(input.parentFormId !== undefined
+        ? { parentFormId: input.parentFormId }
+        : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+    };
+
     const form = await db.form.update({
       where: { id },
-      data: {
-        ...input,
-        version: nextVersion,
-      },
+      data: updateData,
     });
 
     if (shouldBumpVersion) {
@@ -70,7 +85,7 @@ export async function PUT(
         data: {
           formId: form.id,
           version: form.version,
-          schema: form.schema,
+          schema: form.schema as Prisma.InputJsonValue,
         },
       });
     }

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       data: {
         slug: input.slug,
         title: input.title,
-        schema: input.schema,
+        schema: input.schema as Prisma.InputJsonValue,
         sensitivity: input.sensitivity,
         workflowId: input.workflowId ?? null,
         parentFormId: input.parentFormId ?? null,
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
       data: {
         formId: form.id,
         version: form.version,
-        schema: form.schema,
+        schema: form.schema as Prisma.InputJsonValue,
       },
     });
 

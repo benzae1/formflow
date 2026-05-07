@@ -6,5 +6,5 @@ export function evaluateCondition(
 ) {
   const parser = new Parser();
   const parsed = parser.parse(expression);
-  return Boolean(parsed.evaluate(context));
+  return Boolean(parsed.evaluate(context as never));
 }
