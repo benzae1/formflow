@@ -2298,9 +2298,69 @@ span[role=link] {
   min-height: 74vh;
 }
 
+.form-builder-frame .formbuilder,
+.form-builder-frame .formio-dialog,
+.form-builder-frame .formio-dialog * {
+  font-family: var(--font-sans, "Avenir Next", "Segoe UI", sans-serif);
+}
+
+.form-builder-frame .formbuilder {
+  color: var(--ink, #1f1a14);
+}
+
 .form-builder-frame .builder-sidebar,
 .form-builder-frame .builder-sidebar_scroll {
   max-height: none;
+}
+
+.form-builder-frame .builder-sidebar_search,
+.form-builder-frame .form-control,
+.form-builder-frame .form-select,
+.form-builder-frame input[type="text"],
+.form-builder-frame input[type="search"],
+.form-builder-frame input[type="email"],
+.form-builder-frame input[type="number"],
+.form-builder-frame textarea,
+.form-builder-frame select {
+  border: 1px solid rgba(48, 31, 13, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 253, 249, 0.96);
+  color: var(--ink, #1f1a14);
+  box-shadow: none;
+}
+
+.form-builder-frame .builder-sidebar_search:focus,
+.form-builder-frame .form-control:focus,
+.form-builder-frame .form-select:focus,
+.form-builder-frame input:focus,
+.form-builder-frame textarea:focus,
+.form-builder-frame select:focus {
+  border-color: var(--brand, #1d4c73);
+  box-shadow: 0 0 0 3px rgba(29, 76, 115, 0.14);
+}
+
+.form-builder-frame .builder-sidebar > .card,
+.form-builder-frame .builder-sidebar > .card.card-body,
+.form-builder-frame .builder-sidebar .card,
+.form-builder-frame .panel,
+.form-builder-frame .card {
+  border: 1px solid rgba(48, 31, 13, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 251, 244, 0.78);
+  box-shadow: 0 16px 44px rgba(42, 28, 12, 0.08);
+}
+
+.form-builder-frame .panel-heading,
+.form-builder-frame .card-header {
+  border-bottom: 1px solid rgba(48, 31, 13, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 242, 230, 0.74));
+  color: var(--ink, #1f1a14);
+  font-weight: 600;
+}
+
+.form-builder-frame .panel-body,
+.form-builder-frame .card-body {
+  background: transparent;
 }
 
 .form-builder-frame .builder-sidebar .formcomponent {
@@ -2317,9 +2377,53 @@ span[role=link] {
   margin-top: 0.45rem;
 }
 
+.form-builder-frame .builder-group-button,
+.form-builder-frame .builder-sidebar .btn,
+.form-builder-frame .btn {
+  border-radius: 16px;
+  border-color: rgba(48, 31, 13, 0.12);
+  box-shadow: none;
+}
+
+.form-builder-frame .builder-group-button,
+.form-builder-frame .builder-sidebar .btn-light,
+.form-builder-frame .builder-sidebar .btn-secondary,
+.form-builder-frame .btn-light,
+.form-builder-frame .btn-secondary,
+.form-builder-frame .btn-default {
+  background: rgba(255, 253, 249, 0.96);
+  color: var(--ink, #1f1a14);
+}
+
+.form-builder-frame .builder-group-button:hover,
+.form-builder-frame .builder-sidebar .btn:hover,
+.form-builder-frame .btn:hover {
+  border-color: rgba(48, 31, 13, 0.2);
+  background: rgba(255, 248, 238, 0.98);
+}
+
+.form-builder-frame .btn-primary,
+.form-builder-frame .btn-success {
+  border-color: transparent;
+  background: var(--brand, #1d4c73);
+  color: #fff;
+}
+
+.form-builder-frame .btn-primary:hover,
+.form-builder-frame .btn-success:hover {
+  background: #173d5d;
+  color: #fff;
+}
+
 .form-builder-frame .form-builder-panel,
 .form-builder-frame .formio-builder-form {
   border-radius: 24px;
+}
+
+.form-builder-frame .drag-container {
+  border-color: rgba(48, 31, 13, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .form-builder-frame .drag-container.formio-builder-form,
@@ -2338,8 +2442,56 @@ span[role=link] {
   background: rgba(177, 143, 88, 0.08);
 }
 
+.form-builder-frame .builder-component {
+  border-radius: 18px;
+}
+
+.form-builder-frame .builder-component label,
+.form-builder-frame .control-label,
+.form-builder-frame .form-label {
+  color: var(--ink, #1f1a14);
+  font-weight: 600;
+}
+
+.form-builder-frame .nav-tabs,
+.form-builder-frame .nav.nav-tabs {
+  border-bottom-color: rgba(48, 31, 13, 0.12);
+  gap: 0.35rem;
+}
+
+.form-builder-frame .nav-tabs .nav-link,
+.form-builder-frame .nav.nav-tabs .nav-link,
+.form-builder-frame .nav-tabs > li > a {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--muted, #6d5f52);
+  background: transparent;
+}
+
+.form-builder-frame .nav-tabs .nav-link.active,
+.form-builder-frame .nav.nav-tabs .nav-link.active,
+.form-builder-frame .nav-tabs > li.active > a {
+  border-color: rgba(48, 31, 13, 0.12);
+  background: rgba(255, 253, 249, 0.96);
+  color: var(--ink, #1f1a14);
+}
+
+.form-builder-frame .formio-drop-zone.enabled {
+  opacity: 0.18;
+  background: var(--brand, #1d4c73);
+}
+
 .form-builder-frame .component-btn-group .component-settings-button {
   width: 24px;
   height: 24px;
   border-radius: 999px;
+}
+
+.form-builder-frame .component-settings .formio-dialog-content,
+.form-builder-frame .formio-dialog-content {
+  border: 1px solid rgba(48, 31, 13, 0.12);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(246, 239, 226, 0.98));
+  color: var(--ink, #1f1a14);
+  box-shadow: 0 28px 90px rgba(42, 28, 12, 0.12);
 }
