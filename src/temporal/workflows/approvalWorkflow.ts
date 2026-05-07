@@ -1,1 +1,221 @@
-export async function approvalWorkflow(){ }
+import {
+  condition,
+  defineSignal,
+  proxyActivities,
+  setHandler,
+} from "@temporalio/workflow";
+import type { RoutingTarget, WorkflowDefinition } from "@/domain/workflow";
+
+type ApprovalSignal = {
+  taskId: string;
+  decision: "approve" | "reject" | "request-revision";
+  note?: string;
+};
+
+export const approvalDecisionSignal =
+  defineSignal<[ApprovalSignal]>("approvalDecision");
+
+export const resubmittedSignal = defineSignal("resubmitted");
+
+const activities = proxyActivities<{
+  getWorkflowForSubmission(input: {
+    workflowId: string;
+  }): Promise<WorkflowDefinition>;
+  resolveAssignees(
+    target: RoutingTarget | RoutingTarget[],
+    submitterId: string,
+  ): Promise<string[]>;
+  markSubmissionInReview(submissionId: string): Promise<void>;
+  createApprovalTasks(input: {
+    submissionId: string;
+    stageIndex: number;
+    assigneeIds: string[];
+    dueAt?: string;
+  }): Promise<string[]>;
+  completeTask(input: {
+    taskId: string;
+    status: "approved" | "rejected" | "revision_requested";
+    note?: string;
+  }): Promise<void>;
+  cancelRemainingTasks(taskIds: string[]): Promise<void>;
+  setSubmissionStatus(input: {
+    submissionId: string;
+    status:
+      | "submitted"
+      | "in_review"
+      | "needs_revision"
+      | "approved"
+      | "rejected"
+      | "closed";
+  }): Promise<void>;
+}>({
+  startToCloseTimeout: "30 seconds",
+  retry: {
+    maximumAttempts: 5,
+  },
+});
+
+export async function approvalWorkflow(input: {
+  submissionId: string;
+  formId: string;
+  workflowId: string;
+  submitterId: string;
+}) {
+  let latestDecision: ApprovalSignal | undefined;
+  let resubmitted = false;
+
+  setHandler(approvalDecisionSignal, (decision) => {
+    latestDecision = decision;
+  });
+
+  setHandler(resubmittedSignal, () => {
+    resubmitted = true;
+  });
+
+  const stages = await activities.getWorkflowForSubmission({
+    workflowId: input.workflowId,
+  });
+
+  await activities.markSubmissionInReview(input.submissionId);
+
+  for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
+    const stage = stages[stageIndex];
+
+    if (stage.type === "notification") {
+      continue;
+    }
+
+    if (stage.type === "condition") {
+      continue;
+    }
+
+    if (stage.type !== "approval") {
+      continue;
+    }
+
+    const assigneeIds = await activities.resolveAssignees(
+      stage.assignTo,
+      input.submitterId,
+    );
+
+    if (assigneeIds.length === 0) {
+      throw new Error(`No assignees resolved for stage ${stage.id}`);
+    }
+
+    const dueAt = stage.sla?.hours
+      ? new Date(Date.now() + stage.sla.hours * 60 * 60 * 1000).toISOString()
+      : undefined;
+
+    const taskIds = await activities.createApprovalTasks({
+      submissionId: input.submissionId,
+      stageIndex,
+      assigneeIds,
+      dueAt,
+    });
+
+    latestDecision = undefined;
+
+    await condition(() => {
+      return (
+        latestDecision !== undefined &&
+        taskIds.includes(latestDecision.taskId)
+      );
+    });
+
+    const decision = latestDecision;
+
+    if (!decision) {
+      throw new Error("Approval decision missing.");
+    }
+
+    if (decision.decision === "approve") {
+      await activities.completeTask({
+        taskId: decision.taskId,
+        status: "approved",
+        note: decision.note,
+      });
+
+      await activities.cancelRemainingTasks(
+        taskIds.filter((id) => id !== decision.taskId),
+      );
+
+      if (stage.onApprove === "close" || stageIndex === stages.length - 1) {
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "approved",
+        });
+
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "closed",
+        });
+
+        return;
+      }
+
+      continue;
+    }
+
+    if (decision.decision === "reject") {
+      await activities.completeTask({
+        taskId: decision.taskId,
+        status: "rejected",
+        note: decision.note,
+      });
+
+      await activities.cancelRemainingTasks(
+        taskIds.filter((id) => id !== decision.taskId),
+      );
+
+      await activities.setSubmissionStatus({
+        submissionId: input.submissionId,
+        status: "rejected",
+      });
+
+      await activities.setSubmissionStatus({
+        submissionId: input.submissionId,
+        status: "closed",
+      });
+
+      return;
+    }
+
+    if (decision.decision === "request-revision") {
+      await activities.completeTask({
+        taskId: decision.taskId,
+        status: "revision_requested",
+        note: decision.note,
+      });
+
+      await activities.cancelRemainingTasks(
+        taskIds.filter((id) => id !== decision.taskId),
+      );
+
+      await activities.setSubmissionStatus({
+        submissionId: input.submissionId,
+        status: "needs_revision",
+      });
+
+      resubmitted = false;
+
+      await condition(() => resubmitted);
+
+      await activities.setSubmissionStatus({
+        submissionId: input.submissionId,
+        status: "in_review",
+      });
+
+      stageIndex -= 1;
+    }
+  }
+
+  await activities.setSubmissionStatus({
+    submissionId: input.submissionId,
+    status: "approved",
+  });
+
+  await activities.setSubmissionStatus({
+    submissionId: input.submissionId,
+    status: "closed",
+  });
+}
