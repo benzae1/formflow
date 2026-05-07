@@ -2311,6 +2311,7 @@ span[role=link] {
 .form-builder-frame .builder-sidebar,
 .form-builder-frame .builder-sidebar_scroll {
   max-height: none;
+  min-width: 7.5rem;
 }
 
 .form-builder-frame .builder-sidebar_search,
@@ -2367,9 +2368,12 @@ span[role=link] {
   border: 1px solid rgba(19, 19, 19, 0.08);
   background: rgba(255, 255, 255, 0.92);
   border-radius: 16px;
-  padding: 0.9rem 1rem;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 0.9rem 1.1rem;
   font-size: 0.92rem;
   line-height: 1.35;
+  overflow-wrap: anywhere;
   box-shadow: 0 12px 24px rgba(25, 23, 18, 0.06);
 }
 
@@ -2380,6 +2384,7 @@ span[role=link] {
 .form-builder-frame .builder-group-button,
 .form-builder-frame .builder-sidebar .btn,
 .form-builder-frame .btn {
+  width: 100%;
   border-radius: 16px;
   border-color: rgba(48, 31, 13, 0.12);
   box-shadow: none;

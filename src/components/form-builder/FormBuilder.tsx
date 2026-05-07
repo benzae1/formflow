@@ -15,7 +15,7 @@ type Props = {
 
 export function FormBuilder({ schema, onChange }: Props) {
   return (
-    <div className="form-builder-frame overflow-hidden rounded-[30px] border border-[var(--line)] bg-[var(--panel-strong)] p-3 shadow-[var(--shadow-md)] md:p-5">
+    <div className="form-builder-frame rounded-[30px] border border-[var(--line)] bg-[var(--panel-strong)] p-3 shadow-[var(--shadow-md)] md:p-5">
       <div className="overflow-x-auto">
         <FormioBuilder
           initialForm={schema}
