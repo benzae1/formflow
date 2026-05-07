@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { createWorkflowSchema } from "@/lib/validation/workflows";
@@ -29,6 +30,14 @@ export async function POST(req: Request) {
         definition: input.definition,
         createdById: user.id,
       },
+    });
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "workflow.created",
+      resourceType: "workflow",
+      resourceId: workflow.id,
+      afterState: workflow,
     });
 
     return Response.json({ workflow }, { status: 201 });

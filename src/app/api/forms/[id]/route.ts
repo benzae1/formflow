@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { updateFormSchema } from "@/lib/validation/forms";
@@ -35,7 +36,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole(["admin"]);
+    const user = await requireRole(["admin"]);
 
     const { id } = await context.params;
     const body = await req.json();
@@ -71,6 +72,26 @@ export async function PUT(
           version: form.version,
           schema: form.schema,
         },
+      });
+    }
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "form.updated",
+      resourceType: "form",
+      resourceId: form.id,
+      beforeState: existing,
+      afterState: form,
+    });
+
+    if (existing.status !== "published" && form.status === "published") {
+      await writeAuditLog({
+        actorId: user.id,
+        action: "form.published",
+        resourceType: "form",
+        resourceId: form.id,
+        beforeState: existing,
+        afterState: form,
       });
     }
 

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
 import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { requireUser } from "@/lib/permissions";
@@ -64,6 +65,15 @@ export async function PATCH(
       const temporal = await getTemporalClient();
       const handle = temporal.workflow.getHandle(id);
       await handle.signal("resubmitted");
+
+      await writeAuditLog({
+        actorId: user.id,
+        action: "submission.resubmitted",
+        resourceType: "submission",
+        resourceId: id,
+        beforeState: submission,
+        afterState: updated,
+      });
     }
 
     return Response.json({

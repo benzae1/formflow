@@ -24,19 +24,35 @@ export async function GET() {
     });
 
     await Promise.all(
-      submissions
-        .filter((submission) => submission.form.sensitivity === "sensitive")
-        .map((submission) =>
+      submissions.flatMap((submission) => {
+        const logs = [
           writeAuditLog({
             actorId: user.id,
-            action: "sensitive.accessed",
+            action: "submission.viewed",
             resourceType: "submission",
             resourceId: submission.id,
             metadata: {
               reason: "submission.viewed",
             },
           }),
-        ),
+        ];
+
+        if (submission.form.sensitivity === "sensitive") {
+          logs.push(
+            writeAuditLog({
+              actorId: user.id,
+              action: "sensitive.accessed",
+              resourceType: "submission",
+              resourceId: submission.id,
+              metadata: {
+                reason: "submission.viewed",
+              },
+            }),
+          );
+        }
+
+        return logs;
+      }),
     );
 
     const visibleSubmissions = submissions.map((submission) => ({
@@ -117,6 +133,14 @@ export async function POST(req: Request) {
         },
       });
     }
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "submission.created",
+      resourceType: "submission",
+      resourceId: submission.id,
+      afterState: submission,
+    });
 
     return Response.json(
       {

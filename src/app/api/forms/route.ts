@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { createFormSchema } from "@/lib/validation/forms";
@@ -44,6 +45,14 @@ export async function POST(req: Request) {
         version: form.version,
         schema: form.schema,
       },
+    });
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "form.created",
+      resourceType: "form",
+      resourceId: form.id,
+      afterState: form,
     });
 
     return Response.json({ form }, { status: 201 });
