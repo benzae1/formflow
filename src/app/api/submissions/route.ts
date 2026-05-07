@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
+import { writeAuditLog } from "@/lib/audit";
 import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { requireUser } from "@/lib/permissions";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
@@ -21,6 +22,22 @@ export async function GET() {
       },
       orderBy: { updatedAt: "desc" },
     });
+
+    await Promise.all(
+      submissions
+        .filter((submission) => submission.form.sensitivity === "sensitive")
+        .map((submission) =>
+          writeAuditLog({
+            actorId: user.id,
+            action: "sensitive.accessed",
+            resourceType: "submission",
+            resourceId: submission.id,
+            metadata: {
+              reason: "submission.viewed",
+            },
+          }),
+        ),
+    );
 
     const visibleSubmissions = submissions.map((submission) => ({
       ...submission,
