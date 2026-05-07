@@ -1,4 +1,81 @@
-import { NextResponse } from 'next/server'
-export async function GET(){
-  return NextResponse.json({ form: null })
+import { db } from "@/lib/db";
+import { ApiError, apiErrorResponse } from "@/lib/errors";
+import { requireRole } from "@/lib/permissions";
+import { updateFormSchema } from "@/lib/validation/forms";
+
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireRole(["admin"]);
+
+    const { id } = await context.params;
+
+    const form = await db.form.findUnique({
+      where: { id },
+      include: {
+        workflow: true,
+        versions: true,
+      },
+    });
+
+    if (!form) {
+      throw new ApiError("FORM_NOT_FOUND", "Form not found.", 404);
+    }
+
+    return Response.json({ form });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}
+
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireRole(["admin"]);
+
+    const { id } = await context.params;
+    const body = await req.json();
+    const input = updateFormSchema.parse(body);
+
+    const existing = await db.form.findUnique({ where: { id } });
+
+    if (!existing) {
+      throw new ApiError("FORM_NOT_FOUND", "Form not found.", 404);
+    }
+
+    const shouldBumpVersion =
+      existing.status === "published" &&
+      input.schema &&
+      JSON.stringify(input.schema) !== JSON.stringify(existing.schema);
+
+    const nextVersion = shouldBumpVersion
+      ? existing.version + 1
+      : existing.version;
+
+    const form = await db.form.update({
+      where: { id },
+      data: {
+        ...input,
+        version: nextVersion,
+      },
+    });
+
+    if (shouldBumpVersion) {
+      await db.formVersion.create({
+        data: {
+          formId: form.id,
+          version: form.version,
+          schema: form.schema,
+        },
+      });
+    }
+
+    return Response.json({ form });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }
