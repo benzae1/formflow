@@ -3,6 +3,7 @@ import {
   defineSignal,
   proxyActivities,
   setHandler,
+  sleep,
 } from "@temporalio/workflow";
 import type { RoutingTarget, WorkflowDefinition } from "@/domain/workflow";
 
@@ -48,6 +49,8 @@ const activities = proxyActivities<{
       | "rejected"
       | "closed";
   }): Promise<void>;
+  sendReminderIfTaskPending(taskId: string): Promise<void>;
+  markTaskOverdueIfPending(taskId: string): Promise<void>;
 }>({
   startToCloseTimeout: "30 seconds",
   retry: {
@@ -112,6 +115,24 @@ export async function approvalWorkflow(input: {
       assigneeIds,
       dueAt,
     });
+
+    const reminderHours = stage.sla?.reminderAt ?? [];
+
+    for (const taskId of taskIds) {
+      for (const reminderHour of reminderHours) {
+        void (async () => {
+          await sleep(`${reminderHour} hours`);
+          await activities.sendReminderIfTaskPending(taskId);
+        })();
+      }
+
+      if (stage.sla?.hours) {
+        void (async () => {
+          await sleep(`${stage.sla.hours} hours`);
+          await activities.markTaskOverdueIfPending(taskId);
+        })();
+      }
+    }
 
     latestDecision = undefined;
 
