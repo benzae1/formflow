@@ -84,14 +84,17 @@ export async function approvalWorkflow(input: {
   for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
     const stage = stages[stageIndex];
 
+    // V1: notification stages are ignored until a dedicated execution model is added.
     if (stage.type === "notification") {
       continue;
     }
 
+    // V1: condition stages are intentionally skipped until safe evaluation is wired in.
     if (stage.type === "condition") {
       continue;
     }
 
+    // V1: trigger-form stages are deferred until chained submission creation is wired in.
     if (stage.type !== "approval") {
       continue;
     }

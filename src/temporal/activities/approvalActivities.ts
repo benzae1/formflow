@@ -176,3 +176,39 @@ export async function markTaskOverdueIfPending(taskId: string) {
     });
   }
 }
+
+export async function createChildSubmission(input: {
+  parentSubmissionId: string;
+  childFormId: string;
+  submitterId: string;
+}) {
+  const childForm = await db.form.findUnique({
+    where: { id: input.childFormId },
+  });
+
+  if (!childForm) {
+    throw new Error("Child form not found.");
+  }
+
+  const childSubmission = await db.submission.create({
+    data: {
+      formId: childForm.id,
+      formVersion: childForm.version,
+      submittedById: input.submitterId,
+      data: {},
+      status: "draft",
+      parentSubmissionId: input.parentSubmissionId,
+    },
+  });
+
+  await sendNotification({
+    userId: input.submitterId,
+    type: "child_form_created",
+    title: "Additional form required",
+    body: "Please complete the linked follow-up form.",
+    linkUrl: `/submissions/${childSubmission.id}`,
+    email: true,
+  });
+
+  return childSubmission.id;
+}
