@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
+import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { requireUser } from "@/lib/permissions";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
@@ -21,7 +22,17 @@ export async function GET() {
       orderBy: { updatedAt: "desc" },
     });
 
-    return Response.json({ submissions });
+    const visibleSubmissions = submissions.map((submission) => ({
+      ...submission,
+      data: filterSubmissionDataForUser({
+        schema: submission.form.schema as Record<string, unknown>,
+        data: submission.data as Record<string, unknown>,
+        userRoles: user.roles,
+        isOwner: submission.submittedById === user.id,
+      }),
+    }));
+
+    return Response.json({ submissions: visibleSubmissions });
   } catch (error) {
     return apiErrorResponse(error);
   }
@@ -90,7 +101,20 @@ export async function POST(req: Request) {
       });
     }
 
-    return Response.json({ submission }, { status: 201 });
+    return Response.json(
+      {
+        submission: {
+          ...submission,
+          data: filterSubmissionDataForUser({
+            schema: form.schema as Record<string, unknown>,
+            data: submission.data as Record<string, unknown>,
+            userRoles: user.roles,
+            isOwner: true,
+          }),
+        },
+      },
+      { status: 201 },
+    );
   } catch (error) {
     return apiErrorResponse(error);
   }

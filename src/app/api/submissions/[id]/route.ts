@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
+import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { requireUser } from "@/lib/permissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
@@ -65,7 +66,17 @@ export async function PATCH(
       await handle.signal("resubmitted");
     }
 
-    return Response.json({ submission: updated });
+    return Response.json({
+      submission: {
+        ...updated,
+        data: filterSubmissionDataForUser({
+          schema: submission.form.schema as Record<string, unknown>,
+          data: updated.data as Record<string, unknown>,
+          userRoles: user.roles,
+          isOwner: true,
+        }),
+      },
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }
