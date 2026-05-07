@@ -10,6 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - formflow_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U formflow -d formflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   temporal:
     image: temporalio/auto-setup:1.25
@@ -23,7 +28,9 @@ services:
     ports:
       - "7233:7233"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 
   temporal-ui:
     image: temporalio/ui:latest
@@ -33,7 +40,79 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - temporal
+      temporal:
+        condition: service_started
+    restart: unless-stopped
+
+  init:
+    build:
+      context: .
+    container_name: formflow-init
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://formflow:formflow@postgres:5432/formflow
+      TEMPORAL_ADDRESS: temporal:7233
+      NEXTAUTH_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      [
+        "sh",
+        "-c",
+        "npx prisma migrate deploy && npx prisma db seed"
+      ]
+    restart: "no"
+
+  web:
+    build:
+      context: .
+    container_name: formflow-web
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://formflow:formflow@postgres:5432/formflow
+      TEMPORAL_ADDRESS: temporal:7233
+      NEXTAUTH_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    command:
+      [
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "--hostname",
+        "0.0.0.0",
+        "--port",
+        "3000"
+      ]
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+    container_name: formflow-worker
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://formflow:formflow@postgres:5432/formflow
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+      init:
+        condition: service_completed_successfully
+    command: ["npm", "run", "worker"]
+    restart: unless-stopped
 
 volumes:
   formflow_pg:

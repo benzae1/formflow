@@ -1,0 +1,6 @@
+node_modules
+.next
+.git
+graphify-out
+npm-debug.log
+.env
