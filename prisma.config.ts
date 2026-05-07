@@ -1,4 +1,7 @@
+import { loadEnvFile } from "node:process";
 import { defineConfig, env } from "prisma/config";
+
+loadEnvFile();
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,5 +10,6 @@ export default defineConfig({
   },
   migrations: {
     path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
   },
 });
