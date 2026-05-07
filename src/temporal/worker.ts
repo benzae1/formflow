@@ -4,7 +4,13 @@ import * as approvalActivities from "./activities/approvalActivities";
 import * as notificationActivities from "./activities/notificationActivities";
 import * as orgActivities from "./activities/orgActivities";
 
-loadEnvFile();
+try {
+  loadEnvFile();
+} catch (error) {
+  if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
+    throw error;
+  }
+}
 
 async function run() {
   const connection = await NativeConnection.connect({

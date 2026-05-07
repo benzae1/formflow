@@ -2,7 +2,13 @@ import { loadEnvFile } from "node:process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-loadEnvFile();
+try {
+  loadEnvFile();
+} catch (error) {
+  if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
+    throw error;
+  }
+}
 
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
