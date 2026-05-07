@@ -1,11 +1,45 @@
 import { db } from "@/lib/db";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
-import { encryptSensitiveSubmissionData } from "@/lib/formio-sensitive-fields";
 import { requireUser } from "@/lib/permissions";
+import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
+import { getTemporalClient } from "@/lib/temporal";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
+import type { FormioSchema } from "@/lib/formio-sensitive-fields";
+import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
 
 export async function GET() {
-  return Response.json({ submissions: [] });
+  try {
+    const user = await requireUser();
+
+    const isGlobal =
+      user.roles.includes("admin") || user.roles.includes("compliance");
+
+    const submissions = await db.submission.findMany({
+      where: isGlobal
+        ? {}
+        : {
+            OR: [
+              { submittedById: user.id },
+              {
+                approvalTasks: {
+                  some: {
+                    assignedToId: user.id,
+                  },
+                },
+              },
+            ],
+          },
+      include: {
+        form: true,
+        approvalTasks: true,
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return Response.json({ submissions });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }
 
 export async function POST(req: Request) {
@@ -16,14 +50,15 @@ export async function POST(req: Request) {
 
     const form = await db.form.findUnique({
       where: { id: input.formId },
+      include: { workflow: true },
     });
 
     if (!form || form.status !== "published") {
-      throw new ApiError("FORM_NOT_AVAILABLE", "Form not available.", 404);
+      throw new ApiError("FORM_NOT_AVAILABLE", "Form is not available.", 404);
     }
 
-    const encryptedData = encryptSensitiveSubmissionData(
-      form.schema as Record<string, unknown>,
+    const data = encryptSensitiveSubmissionData(
+      form.schema as unknown as FormioSchema,
       input.data,
     );
 
@@ -32,11 +67,43 @@ export async function POST(req: Request) {
         formId: form.id,
         formVersion: form.version,
         submittedById: user.id,
-        data: encryptedData,
+        data,
         status: input.saveAsDraft ? "draft" : "submitted",
         parentSubmissionId: input.parentSubmissionId ?? null,
       },
     });
+
+    if (!input.saveAsDraft) {
+      if (!form.workflowId) {
+        throw new ApiError(
+          "FORM_HAS_NO_WORKFLOW",
+          "This form has no workflow attached.",
+          409,
+        );
+      }
+
+      const temporal = await getTemporalClient();
+
+      await temporal.workflow.start(approvalWorkflow, {
+        taskQueue: "formflow-approval",
+        workflowId: submission.id,
+        args: [
+          {
+            submissionId: submission.id,
+            formId: form.id,
+            workflowId: form.workflowId,
+            submitterId: user.id,
+          },
+        ],
+      });
+
+      await db.submission.update({
+        where: { id: submission.id },
+        data: {
+          workflowRunId: submission.id,
+        },
+      });
+    }
 
     return Response.json({ submission }, { status: 201 });
   } catch (error) {

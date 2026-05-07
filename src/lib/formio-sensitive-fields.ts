@@ -11,7 +11,7 @@ type FormioComponent = {
   }>;
 };
 
-type FormioSchema = {
+export type FormioSchema = {
   components?: FormioComponent[];
 };
 
