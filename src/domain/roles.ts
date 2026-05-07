@@ -1,4 +1,8 @@
-export const Roles = {
-  ADMIN: 'admin',
-  USER: 'user'
-}
+export type AppRole = "admin" | "submitter" | "approver" | "compliance";
+
+export const ROLE_HIERARCHY: AppRole[] = [
+  "submitter",
+  "approver",
+  "admin",
+  "compliance",
+];
