@@ -119,8 +119,37 @@ export default function BuilderClient({
         ) : null}
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <aside className="space-y-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]">
+      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] px-5 py-4 shadow-[var(--shadow-md)] md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                Builder canvas
+              </p>
+              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                Drag components into a full-width workspace, then use the settings rail to fine-tune routing and metadata.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPreview((current) => !current)}
+              className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+            >
+              {preview ? "Back to builder" : "Preview schema JSON"}
+            </button>
+          </div>
+
+          {preview ? (
+            <pre className="min-h-[72vh] overflow-x-auto rounded-[28px] border border-[var(--line)] bg-[var(--ink)] p-5 font-mono text-sm leading-7 text-white shadow-[var(--shadow-md)]">
+              {JSON.stringify(schema, null, 2)}
+            </pre>
+          ) : (
+            <FormBuilder schema={schema} onChange={setSchema} />
+          )}
+        </section>
+
+        <aside className="space-y-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] 2xl:sticky 2xl:top-6 2xl:self-start">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
               Form settings
@@ -174,26 +203,6 @@ export default function BuilderClient({
             </div>
           </div>
         </aside>
-
-        <section className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setPreview((current) => !current)}
-              className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
-            >
-              {preview ? "Back to builder" : "Preview schema JSON"}
-            </button>
-          </div>
-
-          {preview ? (
-            <pre className="overflow-x-auto rounded-[28px] border border-[var(--line)] bg-[var(--ink)] p-5 font-mono text-sm leading-7 text-white shadow-[var(--shadow-md)]">
-              {JSON.stringify(schema, null, 2)}
-            </pre>
-          ) : (
-            <FormBuilder schema={schema} onChange={setSchema} />
-          )}
-        </section>
       </div>
     </main>
   );

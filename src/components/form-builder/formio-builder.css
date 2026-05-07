@@ -2285,3 +2285,76 @@ span[role=link] {
   border: 2px dashed #919191;
   outline: none !important;
 }
+
+.form-builder-frame {
+  background:
+    radial-gradient(circle at top left, rgba(177, 143, 88, 0.12), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 242, 232, 0.98));
+}
+
+.form-builder-frame .formbuilder {
+  min-height: 74vh;
+}
+
+.form-builder-frame .builder-sidebar,
+.form-builder-frame .builder-sidebar_scroll {
+  max-height: none;
+}
+
+.form-builder-frame .builder-sidebar .formcomponent {
+  border: 1px solid rgba(19, 19, 19, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  box-shadow: 0 12px 24px rgba(25, 23, 18, 0.06);
+}
+
+.form-builder-frame .builder-sidebar .formcomponent + .formcomponent {
+  margin-top: 0.45rem;
+}
+
+.form-builder-frame .form-builder-panel,
+.form-builder-frame .formio-builder-form {
+  border-radius: 24px;
+}
+
+.form-builder-frame .drag-container.formio-builder-form,
+.form-builder-frame .drag-container.formio-builder-form:hover {
+  min-height: 68vh;
+  padding-bottom: 2rem;
+}
+
+.form-builder-frame .builder-component {
+  margin-bottom: 1rem;
+}
+
+.form-builder-frame .builder-component-selected {
+  border-radius: 18px;
+  border-color: rgba(177, 143, 88, 0.85);
+  background: rgba(177, 143, 88, 0.08);
+}
+
+.form-builder-frame .component-btn-group .component-settings-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+}
+
+@media (min-width: 1280px) {
+  .form-builder-frame .formbuilder {
+    display: grid;
+    grid-template-columns: minmax(18rem, 21rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .form-builder-frame .builder-sidebar_scroll {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+    padding-right: 0.35rem;
+  }
+}
