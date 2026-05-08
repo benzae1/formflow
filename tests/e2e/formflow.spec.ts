@@ -121,7 +121,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signInAs(page, "submitter@example.com");
     await page.goto("/admin/forms");
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/submissions$/);
 
     await page.goto("/submissions");
     await page.getByRole("link", { name: title }).click();

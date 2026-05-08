@@ -91,7 +91,20 @@ export default function FormsManagerClient({
         parentFormId: formState.parentFormId || null,
         schema: {
           display: "form",
-          components: [],
+          components: [
+            {
+              type: "textfield",
+              key: "requestTitle",
+              label: "Request title",
+              input: true,
+            },
+            {
+              type: "button",
+              action: "submit",
+              label: "Submit",
+              theme: "primary",
+            },
+          ],
         },
       }),
     });

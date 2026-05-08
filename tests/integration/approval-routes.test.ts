@@ -6,6 +6,9 @@ import {
 } from "../support/fixtures";
 import { parseJson } from "../support/response";
 import { setMockSession } from "../support/vitest.setup";
+import {
+  approvalDecisionSignal,
+} from "../../src/temporal/workflows/approvalWorkflow";
 
 const signalMock = vi.fn();
 
@@ -74,7 +77,7 @@ describe("approval signal routes", () => {
       );
 
       expect(response.status).toBe(200);
-      expect(signalMock).toHaveBeenCalledWith("approvalDecision", {
+      expect(signalMock).toHaveBeenCalledWith(approvalDecisionSignal, {
         taskId,
         decision,
         note: "Reviewed in test",

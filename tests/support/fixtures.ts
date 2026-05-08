@@ -14,6 +14,12 @@ const baseSchema: FormioSchema = {
       label: "Request title",
       input: true,
     },
+    {
+      type: "button",
+      action: "submit",
+      label: "Submit",
+      theme: "primary",
+    },
   ],
 };
 
@@ -36,6 +42,12 @@ const sensitiveSchema: FormioSchema = {
         readRoles: "admin,compliance",
         ownerCanRead: "false",
       },
+    },
+    {
+      type: "button",
+      action: "submit",
+      label: "Submit",
+      theme: "primary",
     },
   ],
 };

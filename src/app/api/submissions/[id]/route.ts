@@ -12,7 +12,10 @@ import {
 } from "@/lib/submissions";
 import { getTemporalClient } from "@/lib/temporal";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
-import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
+import {
+  approvalWorkflow,
+  resubmittedSignal,
+} from "@/temporal/workflows/approvalWorkflow";
 
 export async function GET(
   _req: Request,
@@ -142,7 +145,7 @@ export async function PATCH(
     if (submission.status === "needs_revision") {
       const temporal = await getTemporalClient();
       const handle = temporal.workflow.getHandle(id);
-      await handle.signal("resubmitted");
+      await handle.signal(resubmittedSignal);
 
       await writeAuditLog({
         actorId: user.id,

@@ -3,6 +3,7 @@ import { apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { getTemporalClient } from "@/lib/temporal";
 import { decisionSchema } from "@/lib/validation/submissions";
+import { approvalDecisionSignal } from "@/temporal/workflows/approvalWorkflow";
 
 export async function POST(
   req: Request,
@@ -18,7 +19,7 @@ export async function POST(
     const temporal = await getTemporalClient();
     const handle = temporal.workflow.getHandle(id);
 
-    await handle.signal("approvalDecision", {
+    await handle.signal(approvalDecisionSignal, {
       taskId: input.taskId,
       decision: "request-revision",
       note: input.note,

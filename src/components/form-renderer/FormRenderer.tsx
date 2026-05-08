@@ -2,6 +2,7 @@
 
 import type { ComponentProps, ComponentType } from "react";
 import { Form } from "@formio/react/lib/components/Form";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "./formio-renderer.css";
 
 export type RenderableFormSchema = NonNullable<ComponentProps<typeof Form>["form"]>;

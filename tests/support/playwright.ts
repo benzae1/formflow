@@ -18,9 +18,26 @@ export async function signInAs(
     "submitter@example.com": "/submissions",
   };
 
-  await page.goto("/signin");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByRole("button", { name: "Enter workspace" }).click();
+  const csrfResponse = await page.context().request.get("/api/auth/csrf");
+  const { csrfToken } = (await csrfResponse.json()) as { csrfToken: string };
+
+  const signInResponse = await page.context().request.post(
+    "/api/auth/callback/credentials?json=true",
+    {
+      form: {
+        csrfToken,
+        email,
+        callbackUrl: destinations[email],
+        json: "true",
+      },
+    },
+  );
+
+  if (!signInResponse.ok()) {
+    throw new Error(`Sign-in failed for ${email} with status ${signInResponse.status()}.`);
+  }
+
+  await page.goto(destinations[email]);
   await page.waitForURL(`**${destinations[email]}`);
 }
 

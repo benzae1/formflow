@@ -20,8 +20,8 @@ vi.mock("@/lib/auth", async () => {
 });
 
 (process.env as Record<string, string | undefined>).NODE_ENV = "test";
-process.env.FIELD_ENCRYPTION_KEY ??= "a".repeat(64);
-process.env.DISABLE_EMAIL_DELIVERY ??= "true";
+process.env.FIELD_ENCRYPTION_KEY = "a".repeat(64);
+process.env.DISABLE_EMAIL_DELIVERY = "true";
 
 afterAll(async () => {
   await db.$disconnect();
