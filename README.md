@@ -35,3 +35,28 @@ Open `http://localhost:3000` in your browser.
 ## Prisma 7 Note
 
 This project uses Prisma 7. Connection URLs for Prisma Migrate live in `prisma.config.ts`, not in `prisma/schema.prisma`.
+## Verification
+
+The repo now includes a hybrid verification stack:
+
+- `vitest` integration tests for routes, DB behavior, notifications, and workflow progression
+- `playwright` browser tests for the multi-role admin -> submitter -> approver journey
+
+Recommended flow against the Dockerized stack:
+
+```bash
+docker compose up -d --build
+npm run test:e2e:install
+npm run verify:stack
+```
+
+Useful commands:
+
+```bash
+npm run test:integration
+npm run test:e2e
+npm run verify
+npm run verify:smoke
+```
+
+`verify:stack` waits for the web app, PostgreSQL, and Temporal before running the suite.

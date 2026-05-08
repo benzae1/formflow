@@ -4,15 +4,20 @@ type FormioComponent = {
   key?: string;
   properties?: {
     sensitive?: string;
+    readRoles?: string;
+    ownerCanRead?: string;
+    [key: string]: string | undefined;
   };
   components?: FormioComponent[];
   columns?: Array<{
     components?: FormioComponent[];
   }>;
+  [key: string]: unknown;
 };
 
 export type FormioSchema = {
   components?: FormioComponent[];
+  [key: string]: unknown;
 };
 
 export function getSensitiveFieldKeys(schema: FormioSchema): string[] {

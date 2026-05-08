@@ -12,7 +12,13 @@
     "prisma:studio": "prisma studio",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "verify": "npm run test:integration && npm run test:e2e",
+    "verify:smoke": "npm run lint && npm run build && npm run test:integration && npm run test:e2e -- --grep @smoke",
+    "verify:stack": "node tests/scripts/wait-for-stack.mjs && npm run verify"
   },
   "dependencies": {
     "@formio/core": "^2.6.0",
@@ -38,6 +44,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -46,6 +53,8 @@
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.5"
   }
 }
