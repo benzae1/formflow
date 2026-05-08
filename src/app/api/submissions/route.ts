@@ -78,26 +78,26 @@ export async function POST(req: Request) {
       input.data,
     );
 
-    const submission = await db.submission.create({
+    if (!input.saveAsDraft && !form.workflowId) {
+      throw new ApiError(
+        "FORM_HAS_NO_WORKFLOW",
+        "This form has no workflow attached.",
+        409,
+      );
+    }
+
+    let submission = await db.submission.create({
       data: {
         formId: form.id,
         formVersion: form.version,
         submittedById: user.id,
         data: data as Prisma.InputJsonValue,
-        status: input.saveAsDraft ? "draft" : "submitted",
+        status: "draft",
         parentSubmissionId: input.parentSubmissionId ?? null,
       },
     });
 
     if (!input.saveAsDraft) {
-      if (!form.workflowId) {
-        throw new ApiError(
-          "FORM_HAS_NO_WORKFLOW",
-          "This form has no workflow attached.",
-          409,
-        );
-      }
-
       const temporal = await getTemporalClient();
 
       await temporal.workflow.start(approvalWorkflow, {
@@ -113,9 +113,10 @@ export async function POST(req: Request) {
         ],
       });
 
-      await db.submission.update({
+      submission = await db.submission.update({
         where: { id: submission.id },
         data: {
+          status: "submitted",
           workflowRunId: submission.id,
         },
       });

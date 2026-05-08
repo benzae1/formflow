@@ -96,4 +96,37 @@ describe("approval signal routes", () => {
       expect(payload.ok).toBe(true);
     },
   );
+
+  test("decision routes accept an omitted note", async () => {
+    const { approver } = await seedBaseUsers();
+    const submissionId = crypto.randomUUID();
+    const taskId = crypto.randomUUID();
+
+    setMockSession(approver);
+
+    const response = await approveRoute(
+      new Request(`http://localhost/api/submissions/${submissionId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+        }),
+      }),
+      { params: Promise.resolve({ id: submissionId }) },
+    );
+
+    expect(response.status).toBe(200);
+
+    const auditLog = await db.auditLog.findFirstOrThrow({
+      where: {
+        resourceType: "submission",
+        resourceId: submissionId,
+        action: "submission.approved",
+      },
+    });
+
+    expect(auditLog.metadata).toEqual({
+      taskId,
+    });
+  });
 });

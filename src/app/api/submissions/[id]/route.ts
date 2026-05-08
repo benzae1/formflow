@@ -97,28 +97,22 @@ export async function PATCH(
       input.data,
     );
 
-    const updated = await db.submission.update({
+    if (submission.status === "draft" && input.submit && !submission.form.workflowId) {
+      throw new ApiError(
+        "FORM_HAS_NO_WORKFLOW",
+        "This form has no workflow attached.",
+        409,
+      );
+    }
+
+    let updated = await db.submission.update({
       where: { id },
       data: {
         data: encryptedData as Prisma.InputJsonValue,
-        status:
-          submission.status === "draft" && input.submit
-            ? "submitted"
-            : submission.status === "needs_revision"
-              ? "in_review"
-              : submission.status,
       },
     });
 
     if (submission.status === "draft" && input.submit) {
-      if (!submission.form.workflowId) {
-        throw new ApiError(
-          "FORM_HAS_NO_WORKFLOW",
-          "This form has no workflow attached.",
-          409,
-        );
-      }
-
       const temporal = await getTemporalClient();
 
       await temporal.workflow.start(approvalWorkflow, {
@@ -134,9 +128,10 @@ export async function PATCH(
         ],
       });
 
-      await db.submission.update({
+      updated = await db.submission.update({
         where: { id },
         data: {
+          status: "submitted",
           workflowRunId: submission.id,
         },
       });
