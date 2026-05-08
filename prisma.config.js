@@ -1,5 +1,5 @@
-import { loadEnvFile } from "node:process";
-import { defineConfig, env } from "prisma/config";
+const { loadEnvFile } = require("node:process");
+const { defineConfig, env } = require("prisma/config");
 
 try {
   loadEnvFile();
@@ -9,7 +9,7 @@ try {
   }
 }
 
-export default defineConfig({
+module.exports = defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
     url: env("DATABASE_URL"),
