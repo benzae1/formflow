@@ -62,6 +62,7 @@ model User {
   formsCreated  Form[]    @relation("FormCreatedBy")
   workflows     Workflow[]
   submissions   Submission[]
+  approvalTasks ApprovalTask[]
   memberships   OrgMembership[]
 }
 
