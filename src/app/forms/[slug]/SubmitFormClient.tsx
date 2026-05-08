@@ -31,24 +31,32 @@ export default function SubmitFormClient({
     setState("saving");
     setMessage(null);
 
-    const response = submissionId
-      ? await fetch(`/api/submissions/${submissionId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            data,
-            submit: existingStatus === "draft",
-          }),
-        })
-      : await fetch("/api/submissions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            formId: form.id,
-            data,
-            saveAsDraft: false,
-          }),
-        });
+    let response: Response;
+
+    try {
+      response = submissionId
+        ? await fetch(`/api/submissions/${submissionId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              data,
+              submit: existingStatus === "draft",
+            }),
+          })
+        : await fetch("/api/submissions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              formId: form.id,
+              data,
+              saveAsDraft: false,
+            }),
+          });
+    } catch {
+      setState("error");
+      setMessage("The submission could not be saved. Please try again.");
+      return;
+    }
 
     if (!response.ok) {
       setState("error");

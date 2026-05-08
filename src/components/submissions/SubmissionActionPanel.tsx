@@ -50,24 +50,28 @@ export function SubmissionActionPanel({
     setPending(true);
     setError(null);
 
-    const response = await fetch(`/api/submissions/${submissionId}/${decision}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        taskId: pendingTask.id,
-        note: note || undefined,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/submissions/${submissionId}/${decision}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: pendingTask.id,
+          note: note || undefined,
+        }),
+      });
 
-    setPending(false);
+      if (!response.ok) {
+        setError("Decision could not be recorded.");
+        return;
+      }
 
-    if (!response.ok) {
+      router.push("/inbox");
+      router.refresh();
+    } catch {
       setError("Decision could not be recorded.");
-      return;
+    } finally {
+      setPending(false);
     }
-
-    router.push("/inbox");
-    router.refresh();
   }
 
   return (

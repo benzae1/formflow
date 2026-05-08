@@ -2,7 +2,6 @@
 
 import type { ComponentProps, ComponentType } from "react";
 import { Form } from "@formio/react/lib/components/Form";
-import "bootstrap/dist/css/bootstrap.min.css";
 import "./formio-renderer.css";
 
 export type RenderableFormSchema = NonNullable<ComponentProps<typeof Form>["form"]>;
@@ -13,13 +12,13 @@ type FormSubmissionData = NonNullable<
 const RenderForm = Form as unknown as ComponentType<{
   form: RenderableFormSchema;
   submission?: { data: FormSubmissionData };
-  onSubmit: (submission: { data?: FormSubmissionData }) => void;
+  onSubmit: (submission: { data?: FormSubmissionData }) => Promise<void> | void;
 }>;
 
 type Props = {
   schema: RenderableFormSchema;
   initialData?: FormData;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: FormData) => Promise<void> | void;
 };
 
 export function FormRenderer({ schema, initialData, onSubmit }: Props) {
@@ -29,7 +28,7 @@ export function FormRenderer({ schema, initialData, onSubmit }: Props) {
         form={schema}
         submission={{ data: (initialData ?? {}) as FormSubmissionData }}
         onSubmit={(submission) => {
-          onSubmit((submission.data ?? {}) as FormData);
+          return onSubmit((submission.data ?? {}) as FormData);
         }}
       />
     </div>
