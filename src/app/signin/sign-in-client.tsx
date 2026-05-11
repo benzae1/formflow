@@ -278,9 +278,10 @@ export default function SignInClient() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [dark, setDark] = useState(false);
-  const [accentColor] = useState(
-    () => HAUSFARBEN[Math.floor(Math.random() * HAUSFARBEN.length)],
-  );
+  const [accentColor, setAccentColor] = useState<string | null>(null);
+  useEffect(() => {
+    setAccentColor(HAUSFARBEN[Math.floor(Math.random() * HAUSFARBEN.length)]);
+  }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
