@@ -5,8 +5,8 @@ import {
   setHandler,
   sleep,
 } from "@temporalio/workflow";
-import type { RoutingTarget, WorkflowDefinition } from "@/domain/workflow";
-import { evaluateCondition } from "@/lib/workflow-conditions";
+import type { RoutingTarget, WorkflowDefinition } from "../../domain/workflow";
+import { evaluateCondition } from "../../lib/workflow-conditions";
 
 type ApprovalSignal = {
   taskId: string;
