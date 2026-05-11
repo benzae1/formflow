@@ -61,8 +61,18 @@ export default function SubmitFormClient({
     }
 
     if (!response.ok) {
+      let detail = "";
+      try {
+        const errJson = (await response.json()) as { error?: { message?: string; code?: string } };
+        if (errJson.error?.message) {
+          detail = ` (${errJson.error.code ?? response.status}: ${errJson.error.message})`;
+        }
+      } catch {
+        detail = ` (HTTP ${response.status})`;
+      }
+      console.error("[SubmitForm] API error:", response.status, detail);
       setState("error");
-      setMessage("The submission could not be saved. Please try again.");
+      setMessage(`The submission could not be saved.${detail}`);
       return;
     }
 

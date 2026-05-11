@@ -14,6 +14,9 @@ export function apiErrorResponse(error: unknown) {
   }
 
   if (error instanceof ApiError) {
+    if (error.status >= 500) {
+      console.error(`[API ${error.status}] ${error.code}: ${error.message}`, error);
+    }
     return Response.json(
       {
         error: {
@@ -26,7 +29,7 @@ export function apiErrorResponse(error: unknown) {
     );
   }
 
-  console.error(error);
+  console.error("[API 500] Unhandled error:", error);
 
   return Response.json(
     {
