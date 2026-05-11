@@ -2020,3 +2020,99 @@ span[role=link] {
 .hidden {
   display: none !important;
 }
+
+/* ── Flat / Bauhaus overrides for the renderer frame ── */
+.form-renderer-frame,
+.form-renderer-frame * {
+  font-family: var(--font-sans, "Barlow Semi Condensed", "Segoe UI", sans-serif);
+}
+
+.form-renderer-frame .form-control,
+.form-renderer-frame .form-select,
+.form-renderer-frame input[type="text"],
+.form-renderer-frame input[type="email"],
+.form-renderer-frame input[type="number"],
+.form-renderer-frame input[type="password"],
+.form-renderer-frame input[type="date"],
+.form-renderer-frame input[type="datetime-local"],
+.form-renderer-frame input[type="tel"],
+.form-renderer-frame input[type="url"],
+.form-renderer-frame textarea,
+.form-renderer-frame select {
+  border-radius: 0;
+  border: 1px solid #000;
+  background: #fff;
+  box-shadow: none;
+}
+
+.form-renderer-frame .form-control:focus,
+.form-renderer-frame .form-select:focus,
+.form-renderer-frame input:focus,
+.form-renderer-frame textarea:focus,
+.form-renderer-frame select:focus {
+  border-color: var(--brand, #00677F);
+  box-shadow: none;
+  outline: none;
+}
+
+.form-renderer-frame .btn {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.form-renderer-frame .btn-primary {
+  background: var(--brand, #00677F);
+  border-color: transparent;
+  border-radius: 0;
+}
+
+.form-renderer-frame .btn-primary:hover {
+  background: #005568;
+  border-color: transparent;
+}
+
+.form-renderer-frame .btn-secondary,
+.form-renderer-frame .btn-default,
+.form-renderer-frame .btn-light {
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 0;
+  color: #000;
+}
+
+.form-renderer-frame .card,
+.form-renderer-frame .panel {
+  border-radius: 0;
+  border: 1px solid #000;
+  box-shadow: none;
+}
+
+.form-renderer-frame .card-header,
+.form-renderer-frame .panel-heading {
+  border-radius: 0;
+  background: #faf8f3;
+}
+
+.form-renderer-frame .input-group-text {
+  border-radius: 0;
+  border: 1px solid #000;
+}
+
+.form-renderer-frame .choices__inner {
+  border-radius: 0;
+  border: 1px solid #000;
+  background: #fff;
+}
+
+.form-renderer-frame .choices__list--dropdown,
+.form-renderer-frame .choices__list[aria-expanded] {
+  border-radius: 0;
+  border: 1px solid #000;
+}
+
+.form-renderer-frame label,
+.form-renderer-frame .control-label,
+.form-renderer-frame .form-label {
+  font-weight: 600;
+  color: #000;
+}
