@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { mutationHeaders } from "@/lib/mutation-headers";
 
 export default function OrgSyncButton() {
   const [pending, setPending] = useState(false);
@@ -9,7 +10,10 @@ export default function OrgSyncButton() {
 
   async function sync() {
     setPending(true);
-    await fetch("/api/org/sync", { method: "POST" });
+    await fetch("/api/org/sync", {
+      method: "POST",
+      headers: mutationHeaders,
+    });
     setPending(false);
     router.refresh();
   }
