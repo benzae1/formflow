@@ -1,8 +1,7 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import { db } from "@/lib/db";
 import { requirePageRole } from "@/lib/page-auth";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDateTime } from "@/lib/ui";
+import AdminUsersClient from "./AdminUsersClient";
 
 export default async function AdminUsersPage() {
   await requirePageRole(["admin"]);
@@ -21,91 +20,56 @@ export default async function AdminUsersPage() {
       },
     }),
     db.delegation.findMany({
+      include: {
+        delegate: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
       orderBy: {
         startsAt: "desc",
       },
     }),
   ]);
 
+  const delegateOptions = users
+    .filter(
+      (user) =>
+        !user.deactivatedAt &&
+        (user.roles.includes("approver") || user.roles.includes("admin")),
+    )
+    .map((user) => ({
+      id: user.id,
+      name: user.name ?? user.email,
+      email: user.email,
+    }));
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Directory"
         title="Users and routing context"
-        description="Review who is active in the system, which org units they belong to, and how delegation windows affect task assignment."
+        description="Review who is active, adjust role coverage, and set delegation windows so routing stays reliable."
       />
 
-      <section className="space-y-3">
-        {users.map((user) => {
-          const outgoingDelegations = delegations.filter(
-            (delegation) => delegation.approverId === user.id,
-          );
-
-          return (
-            <article
-              key={user.id}
-              className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]"
-            >
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold">
-                    {user.name ?? user.email}
-                  </h2>
-                  <p className="mt-2 text-sm text-[var(--muted)]">{user.email}</p>
-                  <p className="mt-2 text-sm text-[var(--muted)]">
-                    Updated {formatDateTime(user.updatedAt)}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {user.roles.map((role) => (
-                    <StatusBadge key={role} status={role} />
-                  ))}
-                  {user.deactivatedAt ? <StatusBadge status="archived" /> : null}
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                <div className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
-                    Org memberships
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    {user.memberships.length === 0 ? (
-                      <p className="text-sm text-[var(--muted)]">No memberships synced.</p>
-                    ) : (
-                      user.memberships.map((membership) => (
-                        <p key={membership.id} className="text-sm leading-7 text-[var(--ink)]">
-                          {membership.orgUnit.name} • {membership.roleInUnit ?? "member"}
-                          {membership.isManager ? " • manager" : ""}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
-                    Delegation
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    {outgoingDelegations.length === 0 ? (
-                      <p className="text-sm text-[var(--muted)]">No active delegation records.</p>
-                    ) : (
-                      outgoingDelegations.map((delegation) => (
-                        <p key={delegation.id} className="text-sm leading-7 text-[var(--ink)]">
-                          Delegate {delegation.delegateId} • {formatDateTime(delegation.startsAt)} to{" "}
-                          {formatDateTime(delegation.endsAt)}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </section>
+      <AdminUsersClient
+        users={users.map((user) => ({
+          ...user,
+          updatedAt: user.updatedAt.toISOString(),
+          deactivatedAt: user.deactivatedAt?.toISOString() ?? null,
+        }))}
+        delegations={delegations.map((delegation) => ({
+          id: delegation.id,
+          approverId: delegation.approverId,
+          delegateId: delegation.delegateId,
+          delegateName: delegation.delegate.name ?? delegation.delegate.email,
+          startsAt: delegation.startsAt.toISOString(),
+          endsAt: delegation.endsAt.toISOString(),
+        }))}
+        delegateOptions={delegateOptions}
+      />
     </div>
   );
 }

@@ -1,13 +1,15 @@
 import { Prisma } from "@prisma/client";
 import { db } from "./db";
 
-function normalizeAuditValue(value: unknown): Prisma.InputJsonValue | undefined {
+function normalizeAuditValue(
+  value: unknown,
+): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
   if (value === undefined) {
     return undefined;
   }
 
   if (value === null) {
-    return null;
+    return Prisma.JsonNull;
   }
 
   if (typeof value === "string" || typeof value === "boolean") {

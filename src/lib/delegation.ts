@@ -9,6 +9,9 @@ export async function resolveDelegateOrSelf(userId: string) {
       startsAt: { lte: now },
       endsAt: { gte: now },
     },
+    orderBy: {
+      startsAt: "desc",
+    },
   });
 
   return delegation?.delegateId ?? userId;
