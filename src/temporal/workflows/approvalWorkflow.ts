@@ -6,6 +6,7 @@ import {
   sleep,
 } from "@temporalio/workflow";
 import type { RoutingTarget, WorkflowDefinition } from "@/domain/workflow";
+import { evaluateCondition } from "@/lib/workflow-conditions";
 
 type ApprovalSignal = {
   taskId: string;
@@ -19,9 +20,6 @@ export const approvalDecisionSignal =
 export const resubmittedSignal = defineSignal("resubmitted");
 
 const activities = proxyActivities<{
-  getWorkflowForSubmission(input: {
-    workflowId: string;
-  }): Promise<WorkflowDefinition>;
   resolveAssignees(
     target: RoutingTarget | RoutingTarget[],
     submitterId: string,
@@ -51,6 +49,28 @@ const activities = proxyActivities<{
   }): Promise<void>;
   sendReminderIfTaskPending(taskId: string): Promise<void>;
   markTaskOverdueIfPending(taskId: string): Promise<void>;
+  sendStageNotification(input: {
+    submissionId: string;
+    userIds: string[];
+    stageName: string;
+  }): Promise<void>;
+  notifySubmitterOfRevision(input: {
+    submissionId: string;
+    submitterId: string;
+    note?: string;
+  }): Promise<void>;
+  notifySubmitterOfOutcome(input: {
+    submissionId: string;
+    submitterId: string;
+    outcome: "approved" | "rejected";
+    note?: string;
+  }): Promise<void>;
+  getSubmissionWorkflowContext(submissionId: string): Promise<Record<string, unknown>>;
+  createChildSubmission(input: {
+    parentSubmissionId: string;
+    childFormId: string;
+    submitterId: string;
+  }): Promise<string>;
 }>({
   startToCloseTimeout: "30 seconds",
   retry: {
@@ -62,6 +82,8 @@ export async function approvalWorkflow(input: {
   submissionId: string;
   formId: string;
   workflowId: string;
+  workflowVersion: number;
+  workflowDefinition: WorkflowDefinition;
   submitterId: string;
 }) {
   let latestDecision: ApprovalSignal | undefined;
@@ -75,26 +97,101 @@ export async function approvalWorkflow(input: {
     resubmitted = true;
   });
 
-  const stages = await activities.getWorkflowForSubmission({
-    workflowId: input.workflowId,
-  });
+  const stages = input.workflowDefinition;
 
   await activities.markSubmissionInReview(input.submissionId);
 
   for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
     const stage = stages[stageIndex];
 
-    // V1: notification stages are ignored until a dedicated execution model is added.
     if (stage.type === "notification") {
+      if (!stage.assignTo) {
+        throw new Error(`No routing target configured for stage ${stage.id}`);
+      }
+
+      const userIds = await activities.resolveAssignees(
+        stage.assignTo,
+        input.submitterId,
+      );
+
+      if (userIds.length > 0) {
+        await activities.sendStageNotification({
+          submissionId: input.submissionId,
+          userIds,
+          stageName: stage.name,
+        });
+      }
+
       continue;
     }
 
-    // V1: condition stages are intentionally skipped until safe evaluation is wired in.
     if (stage.type === "condition") {
+      const workflowContext = await activities.getSubmissionWorkflowContext(
+        input.submissionId,
+      );
+      const matches = (stage.conditions ?? []).every((item) =>
+        evaluateCondition(item.expression, workflowContext),
+      );
+
+      if (matches) {
+        continue;
+      }
+
+      const falseBranch = stage.onReject;
+
+      if (falseBranch === "return-to-submitter") {
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "needs_revision",
+        });
+        await activities.notifySubmitterOfRevision({
+          submissionId: input.submissionId,
+          submitterId: input.submitterId,
+        });
+        resubmitted = false;
+        await condition(() => resubmitted);
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "in_review",
+        });
+        stageIndex -= 1;
+        continue;
+      }
+
+      if (typeof falseBranch === "object" && falseBranch?.goTo) {
+        stageIndex = jumpToStage(stages, falseBranch.goTo);
+        continue;
+      }
+
+      if (falseBranch === "close") {
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "rejected",
+        });
+        await activities.notifySubmitterOfOutcome({
+          submissionId: input.submissionId,
+          submitterId: input.submitterId,
+          outcome: "rejected",
+        });
+        return;
+      }
+
       continue;
     }
 
-    // V1: trigger-form stages are deferred until chained submission creation is wired in.
+    if (stage.type === "trigger-form") {
+      if (!stage.childFormId) {
+        throw new Error(`No child form configured for stage ${stage.id}`);
+      }
+
+      await activities.createChildSubmission({
+        parentSubmissionId: input.submissionId,
+        childFormId: stage.childFormId,
+        submitterId: input.submitterId,
+      });
+      continue;
+    }
+
     if (stage.type !== "approval") {
       continue;
     }
@@ -125,22 +222,22 @@ export async function approvalWorkflow(input: {
 
     const reminderHours = stage.sla?.reminderAt ?? [];
 
-      for (const taskId of taskIds) {
-        for (const reminderHour of reminderHours) {
-          void (async () => {
-            await sleep(`${reminderHour} hours`);
-            await activities.sendReminderIfTaskPending(taskId);
-          })();
-        }
-
-        const overdueHours = stage.sla?.hours;
-        if (overdueHours) {
-          void (async () => {
-            await sleep(`${overdueHours} hours`);
-            await activities.markTaskOverdueIfPending(taskId);
-          })();
-        }
+    for (const taskId of taskIds) {
+      for (const reminderHour of reminderHours) {
+        void (async () => {
+          await sleep(`${reminderHour} hours`);
+          await activities.sendReminderIfTaskPending(taskId);
+        })();
       }
+
+      const overdueHours = stage.sla?.hours;
+      if (overdueHours) {
+        void (async () => {
+          await sleep(`${overdueHours} hours`);
+          await activities.markTaskOverdueIfPending(taskId);
+        })();
+      }
+    }
 
     latestDecision = undefined;
 
@@ -175,12 +272,11 @@ export async function approvalWorkflow(input: {
           submissionId: input.submissionId,
           status: "approved",
         });
-
-        await activities.setSubmissionStatus({
+        await activities.notifySubmitterOfOutcome({
           submissionId: input.submissionId,
-          status: "closed",
+          submitterId: input.submitterId,
+          outcome: "approved",
         });
-
         return;
       }
 
@@ -198,16 +294,41 @@ export async function approvalWorkflow(input: {
         taskIds.filter((id) => id !== resolvedDecision.taskId),
       );
 
+      if (stage.onReject === "return-to-submitter") {
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "needs_revision",
+        });
+        await activities.notifySubmitterOfRevision({
+          submissionId: input.submissionId,
+          submitterId: input.submitterId,
+          note: resolvedDecision.note,
+        });
+        resubmitted = false;
+        await condition(() => resubmitted);
+        await activities.setSubmissionStatus({
+          submissionId: input.submissionId,
+          status: "in_review",
+        });
+        stageIndex -= 1;
+        continue;
+      }
+
+      if (typeof stage.onReject === "object" && stage.onReject?.goTo) {
+        stageIndex = jumpToStage(stages, stage.onReject.goTo);
+        continue;
+      }
+
       await activities.setSubmissionStatus({
         submissionId: input.submissionId,
         status: "rejected",
       });
-
-      await activities.setSubmissionStatus({
+      await activities.notifySubmitterOfOutcome({
         submissionId: input.submissionId,
-        status: "closed",
+        submitterId: input.submitterId,
+        outcome: "rejected",
+        note: resolvedDecision.note,
       });
-
       return;
     }
 
@@ -225,6 +346,11 @@ export async function approvalWorkflow(input: {
       await activities.setSubmissionStatus({
         submissionId: input.submissionId,
         status: "needs_revision",
+      });
+      await activities.notifySubmitterOfRevision({
+        submissionId: input.submissionId,
+        submitterId: input.submitterId,
+        note: resolvedDecision.note,
       });
 
       resubmitted = false;
@@ -244,9 +370,19 @@ export async function approvalWorkflow(input: {
     submissionId: input.submissionId,
     status: "approved",
   });
-
-  await activities.setSubmissionStatus({
+  await activities.notifySubmitterOfOutcome({
     submissionId: input.submissionId,
-    status: "closed",
+    submitterId: input.submitterId,
+    outcome: "approved",
   });
+}
+
+function jumpToStage(stages: WorkflowDefinition, stageId: string) {
+  const index = stages.findIndex((stage) => stage.id === stageId);
+
+  if (index === -1) {
+    throw new Error(`Workflow stage "${stageId}" does not exist.`);
+  }
+
+  return index - 1;
 }

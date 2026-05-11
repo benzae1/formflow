@@ -60,39 +60,52 @@ async function resolveSingleTarget(
 }
 
 async function resolveOrgTarget(value: string, submitterId: string) {
-  if (value === "submitter.manager") {
-    const submitterMembership = await db.orgMembership.findFirst({
-      where: { userId: submitterId },
-      include: {
-        orgUnit: {
-          include: {
-            memberships: true,
+  const submitterMembership = await db.orgMembership.findFirst({
+    where: { userId: submitterId },
+    include: {
+      orgUnit: {
+        include: {
+          memberships: true,
+          parent: {
+            include: {
+              memberships: true,
+              parent: {
+                include: {
+                  memberships: true,
+                },
+              },
+            },
           },
         },
       },
-    });
+    },
+  });
 
+  if (value === "submitter.manager") {
     const manager = submitterMembership?.orgUnit.memberships.find(
-      (m) => m.isManager && m.userId !== submitterId,
+      (membership) => membership.isManager && membership.userId !== submitterId,
     );
 
     return manager ? [manager.userId] : [];
   }
 
-  if (value === "department.head") {
-    const submitterMembership = await db.orgMembership.findFirst({
-      where: { userId: submitterId },
-      include: {
-        orgUnit: {
-          include: {
-            memberships: true,
-          },
-        },
-      },
-    });
+  if (value === "submitter.skip-level") {
+    const skipLevelManager = submitterMembership?.orgUnit.parent?.memberships.find(
+      (membership) => membership.isManager,
+    );
 
-    const head = submitterMembership?.orgUnit.memberships.find(
-      (m) => m.roleInUnit === "head",
+    return skipLevelManager ? [skipLevelManager.userId] : [];
+  }
+
+  if (value === "department.head") {
+    const department =
+      submitterMembership?.orgUnit.type === "department"
+        ? submitterMembership.orgUnit
+        : submitterMembership?.orgUnit.parent;
+
+    const head = department?.memberships.find(
+      (membership) =>
+        membership.roleInUnit === "head" || membership.isManager,
     );
 
     return head ? [head.userId] : [];

@@ -35,15 +35,16 @@ export async function sendNotification(input: {
 
   if (canSendEmail) {
     try {
+      const linkUrl = toAbsoluteAppUrl(input.linkUrl);
       await resend.emails.send({
         from: "FormFlow <notifications@example.com>",
         to: user.email,
         subject: input.title,
         html: `
-          <p>${input.body}</p>
+          <p>${escapeHtml(input.body)}</p>
           ${
-            input.linkUrl
-              ? `<p><a href="${input.linkUrl}">Open in FormFlow</a></p>`
+            linkUrl
+              ? `<p><a href="${escapeHtml(linkUrl)}">Open in FormFlow</a></p>`
               : ""
           }
         `,
@@ -52,4 +53,26 @@ export async function sendNotification(input: {
       console.error("Failed to send email notification.", error);
     }
   }
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function toAbsoluteAppUrl(linkUrl?: string) {
+  if (!linkUrl) {
+    return null;
+  }
+
+  const appUrl = process.env.NEXTAUTH_URL?.trim() || process.env.APP_URL?.trim();
+  if (!appUrl) {
+    return linkUrl.startsWith("/") ? linkUrl : null;
+  }
+
+  return new URL(linkUrl, appUrl).toString();
 }

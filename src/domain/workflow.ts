@@ -15,6 +15,7 @@ export type WorkflowStage = {
   name: string;
   type: WorkflowStageType;
   assignTo?: RoutingTarget | RoutingTarget[];
+  childFormId?: string;
   conditions?: RoutingCondition[];
   sla?: {
     hours: number;

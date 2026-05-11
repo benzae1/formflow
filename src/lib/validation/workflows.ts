@@ -28,6 +28,7 @@ export const workflowStageSchema = z.object({
   name: z.string(),
   type: z.enum(["approval", "notification", "trigger-form", "condition"]),
   assignTo: z.union([routingTargetSchema, z.array(routingTargetSchema)]).optional(),
+  childFormId: z.string().uuid().optional(),
   conditions: z.array(z.object({ expression: z.string() })).optional(),
   sla: z
     .object({
@@ -41,8 +42,32 @@ export const workflowStageSchema = z.object({
       z.literal("close"),
       z.literal("return-to-submitter"),
       z.object({ goTo: z.string() }),
-    ])
-    .optional(),
+      ])
+      .optional(),
+}).superRefine((stage, context) => {
+  if ((stage.type === "approval" || stage.type === "notification") && !stage.assignTo) {
+    context.addIssue({
+      code: "custom",
+      message: `${stage.type} stages require assignTo.`,
+      path: ["assignTo"],
+    });
+  }
+
+  if (stage.type === "condition" && (!stage.conditions || stage.conditions.length === 0)) {
+    context.addIssue({
+      code: "custom",
+      message: "Condition stages require at least one expression.",
+      path: ["conditions"],
+    });
+  }
+
+  if (stage.type === "trigger-form" && !stage.childFormId) {
+    context.addIssue({
+      code: "custom",
+      message: "Trigger-form stages require childFormId.",
+      path: ["childFormId"],
+    });
+  }
 });
 
 export const createWorkflowSchema = z.object({
