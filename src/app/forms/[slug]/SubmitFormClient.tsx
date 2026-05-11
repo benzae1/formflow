@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FormRenderer } from "@/components/form-renderer/FormRenderer";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
+import { mutationHeaders } from "@/lib/mutation-headers";
 
 type PublicForm = {
   id: string;
@@ -25,9 +26,10 @@ export default function SubmitFormClient({
 }) {
   const [state, setState] = useState<"idle" | "saving" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [latestData, setLatestData] = useState<Record<string, unknown>>(initialData ?? {});
   const router = useRouter();
 
-  async function submit(data: Record<string, unknown>) {
+  async function submit(data: Record<string, unknown>, options?: { saveAsDraft?: boolean }) {
     setState("saving");
     setMessage(null);
 
@@ -37,19 +39,19 @@ export default function SubmitFormClient({
       response = submissionId
         ? await fetch(`/api/submissions/${submissionId}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...mutationHeaders },
             body: JSON.stringify({
               data,
-              submit: existingStatus === "draft",
+              submit: options?.saveAsDraft ? false : existingStatus === "draft",
             }),
           })
         : await fetch("/api/submissions", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...mutationHeaders },
             body: JSON.stringify({
               formId: form.id,
               data,
-              saveAsDraft: false,
+              saveAsDraft: options?.saveAsDraft ?? false,
             }),
           });
     } catch {
@@ -70,7 +72,9 @@ export default function SubmitFormClient({
 
     setState("idle");
     setMessage(
-      submissionId
+      options?.saveAsDraft
+        ? "Draft saved. Redirecting to the case file..."
+        : submissionId
         ? "Submission updated. Redirecting back to the case file..."
         : "Submission received. Redirecting to the case file...",
     );
@@ -80,6 +84,12 @@ export default function SubmitFormClient({
       router.refresh();
     }, 600);
   }
+
+  async function saveDraft() {
+    await submit(latestData, { saveAsDraft: true });
+  }
+
+  const canSaveDraft = !submissionId || existingStatus === "draft";
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -122,8 +132,22 @@ export default function SubmitFormClient({
       <FormRenderer
         schema={form.schema}
         initialData={initialData}
-        onSubmit={submit}
+        onChange={setLatestData}
+        onSubmit={(data) => submit(data)}
       />
+
+      {canSaveDraft ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={saveDraft}
+            disabled={state === "saving"}
+            className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03] disabled:opacity-60"
+          >
+            Save draft
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }
