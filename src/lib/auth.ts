@@ -2,6 +2,7 @@ import { NextAuthOptions, getServerSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "./db";
 import { AppRole } from "@/domain/roles";
+import { authenticateLdapUser, isLdapConfigured } from "./ldap";
 
 type SessionUser = {
   id: string;
@@ -22,9 +23,44 @@ export const authOptions: NextAuthOptions = {
     Credentials({
       name: "Credentials",
       credentials: {
+        uid: { label: "User ID", type: "text" },
         email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (isLdapConfigured() && credentials?.uid && credentials.password) {
+          const profile = await authenticateLdapUser(credentials.uid, credentials.password);
+
+          if (!profile) return null;
+
+          const user = await db.user.upsert({
+            where: { email: profile.email },
+            update: {
+              name: profile.name,
+              roles: profile.roles,
+              externalId: profile.uid,
+              deactivatedAt: null,
+            },
+            create: {
+              email: profile.email,
+              name: profile.name,
+              roles: profile.roles,
+              externalId: profile.uid,
+            },
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            roles: user.roles,
+          };
+        }
+
+        if (process.env.NODE_ENV === "production") {
+          return null;
+        }
+
         if (!credentials?.email) return null;
 
         const user = await db.user.findUnique({

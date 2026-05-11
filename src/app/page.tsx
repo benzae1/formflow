@@ -95,13 +95,13 @@ export default async function Home() {
               Development access
             </p>
             <h2 className="mt-5 font-[var(--font-display)] text-4xl">
-              Seeded role logins are ready.
+              Directory roles are ready.
             </h2>
             <div className="mt-6 space-y-3 text-sm leading-7 text-white/78">
+              <p>LDAP users sign in with their directory UID and password.</p>
               <p>`admin@example.com` for publishing and operations.</p>
               <p>`approver@example.com` for decision queue testing.</p>
               <p>`submitter@example.com` for end-user submission flows.</p>
-              <p>Authentication is email-only in this MVP pass.</p>
             </div>
           </div>
         </section>

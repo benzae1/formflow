@@ -23,6 +23,8 @@ const seededAccounts = [
 ];
 
 export default function SignInClient() {
+  const [uid, setUid] = useState("");
+  const [password, setPassword] = useState("");
   const [email, setEmail] = useState("admin@example.com");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -40,6 +42,8 @@ export default function SignInClient() {
     setError(null);
 
     const result = await signIn("credentials", {
+      uid,
+      password,
       email,
       redirect: false,
       callbackUrl,
@@ -48,7 +52,7 @@ export default function SignInClient() {
     setPending(false);
 
     if (!result?.ok) {
-      setError("That email is not active in the current environment.");
+      setError("Those credentials are not active in the current environment.");
       return;
     }
 
@@ -67,8 +71,8 @@ export default function SignInClient() {
             Step into the right role and pick up the queue.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--muted)]">
-            This MVP uses email-only development authentication. Pick one of
-            the seeded identities or enter the email manually.
+            Sign in with your directory account. Local development can still
+            use one of the seeded identities when LDAP is not configured.
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -76,7 +80,11 @@ export default function SignInClient() {
               <button
                 key={account.email}
                 type="button"
-                onClick={() => setEmail(account.email)}
+                onClick={() => {
+                  setEmail(account.email);
+                  setUid("");
+                  setPassword("");
+                }}
                 className="rounded-[24px] border border-black/10 bg-white/82 p-5 text-left transition hover:-translate-y-0.5 hover:border-black/20"
               >
                 <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] ${account.accent}`}>
@@ -95,7 +103,34 @@ export default function SignInClient() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             <label className="block">
               <span className="text-sm font-semibold text-[var(--ink)]">
-                Email address
+                User ID
+              </span>
+              <input
+                type="text"
+                value={uid}
+                onChange={(event) => setUid(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
+                placeholder="sowa2176"
+                autoComplete="username"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-[var(--ink)]">
+                Password
+              </span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
+                autoComplete="current-password"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-semibold text-[var(--ink)]">
+                Development email
               </span>
               <input
                 type="email"
@@ -103,7 +138,6 @@ export default function SignInClient() {
                 onChange={(event) => setEmail(event.target.value)}
                 className="mt-2 w-full rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
                 placeholder="you@example.com"
-                required
               />
             </label>
 

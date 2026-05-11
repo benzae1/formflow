@@ -18,11 +18,28 @@ This starts:
 - Temporal worker in its own container
 - Prisma migration and seed steps in the `init` container
 
-The development seed creates these email-only sign-ins:
+When LDAP is not configured, the development seed creates these email-only sign-ins:
 
 - `admin@example.com`
 - `approver@example.com`
 - `submitter@example.com`
+
+For LDAP sign-in, configure the directory in `.env`:
+
+```bash
+LDAP_URLS="ldap://141.54.170.18:389,ldap://141.54.29.3:389"
+LDAP_BASE_DNS="o=uni-we,o=uni"
+LDAP_ADMIN_UIDS="sowa2176"
+LDAP_APPROVER_UIDS=""
+LDAP_COMPLIANCE_UIDS=""
+LDAP_ROLE_ATTRIBUTE=""
+LDAP_ROLE_ATTRIBUTE_MAP=""
+```
+
+The app searches for a unique `uid`, binds as that DN with the submitted password,
+then upserts the LDAP user into FormFlow. Every LDAP user receives `submitter`;
+additional roles come from the UID allowlists above or from
+`LDAP_ROLE_ATTRIBUTE_MAP` entries like `formflow-admin=admin`.
 
 Open `http://localhost:3000` in your browser.
 
