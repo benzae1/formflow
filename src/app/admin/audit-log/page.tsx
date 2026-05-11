@@ -4,9 +4,13 @@ import { requirePageRole } from "@/lib/page-auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatDateTime } from "@/lib/ui";
 
+const PAGE_SIZE = 50;
+
 type SearchParams = Promise<{
   action?: string;
   resourceType?: string;
+  actorId?: string;
+  cursor?: string;
 }>;
 
 export default async function AuditLogPage({
@@ -17,20 +21,27 @@ export default async function AuditLogPage({
   await requirePageRole(["admin", "compliance"]);
   const filters = await searchParams;
 
+  const where = {
+    action: filters.action ?? undefined,
+    resourceType: filters.resourceType ?? undefined,
+    actorId: filters.actorId ?? undefined,
+  };
+
   const logs = await db.auditLog.findMany({
-    where: {
-      action: filters.action ?? undefined,
-      resourceType: filters.resourceType ?? undefined,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 100,
+    where,
+    orderBy: { createdAt: "desc" },
+    take: PAGE_SIZE + 1,
+    ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
   });
+
+  const hasNextPage = logs.length > PAGE_SIZE;
+  const page = hasNextPage ? logs.slice(0, PAGE_SIZE) : logs;
+  const nextCursor = hasNextPage ? page[page.length - 1]?.id : null;
 
   const exportParams = new URLSearchParams();
   if (filters.action) exportParams.set("action", filters.action);
   if (filters.resourceType) exportParams.set("resourceType", filters.resourceType);
+  if (filters.actorId) exportParams.set("actorId", filters.actorId);
   exportParams.set("format", "csv");
 
   return (
@@ -61,6 +72,12 @@ export default async function AuditLogPage({
           placeholder="Resource type"
           className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         />
+        <input
+          name="actorId"
+          defaultValue={filters.actorId ?? ""}
+          placeholder="Actor ID"
+          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+        />
         <button
           type="submit"
           className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
@@ -70,7 +87,7 @@ export default async function AuditLogPage({
       </form>
 
       <section className="space-y-3">
-        {logs.map((log) => (
+        {page.map((log) => (
           <article
             key={log.id}
             className="rounded-[26px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]"
@@ -95,6 +112,22 @@ export default async function AuditLogPage({
           </article>
         ))}
       </section>
+
+      {nextCursor ? (
+        <div className="flex justify-center">
+          <Link
+            href={`/admin/audit-log?${new URLSearchParams({
+              ...(filters.action ? { action: filters.action } : {}),
+              ...(filters.resourceType ? { resourceType: filters.resourceType } : {}),
+              ...(filters.actorId ? { actorId: filters.actorId } : {}),
+              cursor: nextCursor,
+            }).toString()}`}
+            className="rounded-full border border-[var(--line)] bg-[var(--panel)] px-6 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+          >
+            Load next {PAGE_SIZE}
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

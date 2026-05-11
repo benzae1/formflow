@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 
+const PAGE_SIZE = 50;
+
 export async function GET(req: Request) {
   try {
     await requireRole(["admin", "compliance"]);
@@ -10,23 +12,27 @@ export async function GET(req: Request) {
 
     const action = searchParams.get("action") ?? undefined;
     const resourceType = searchParams.get("resourceType") ?? undefined;
+    const actorId = searchParams.get("actorId") ?? undefined;
+    const cursor = searchParams.get("cursor") ?? undefined;
     const format = searchParams.get("format");
 
+    const where = { action, resourceType, actorId };
+
     const logs = await db.auditLog.findMany({
-      where: {
-        action,
-        resourceType,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 100,
+      where,
+      orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
+
+    const hasNextPage = logs.length > PAGE_SIZE;
+    const page = hasNextPage ? logs.slice(0, PAGE_SIZE) : logs;
+    const nextCursor = hasNextPage ? page[page.length - 1]?.id : null;
 
     if (format === "csv") {
       const lines = [
         ["createdAt", "action", "resourceType", "resourceId", "actorId"].join(","),
-        ...logs.map((log) =>
+        ...page.map((log) =>
           [
             log.createdAt.toISOString(),
             log.action,
@@ -47,7 +53,7 @@ export async function GET(req: Request) {
       });
     }
 
-    return Response.json({ logs });
+    return Response.json({ logs: page, nextCursor });
   } catch (error) {
     return apiErrorResponse(error);
   }
