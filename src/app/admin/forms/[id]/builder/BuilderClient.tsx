@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FormBuilder } from "@/components/form-builder/FormBuilder";
+import dynamic from "next/dynamic";
 import type { FormBuilderSchema } from "@/components/form-builder/FormBuilder";
+
+const FormBuilder = dynamic(
+  () => import("@/components/form-builder/FormBuilder").then((m) => ({ default: m.FormBuilder })),
+  { ssr: false, loading: () => <div className="border border-[var(--line-strong)] bg-white p-8 text-sm text-[var(--muted)]">Loading builder…</div> },
+);
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { mutationHeaders } from "@/lib/mutation-headers";
 import {

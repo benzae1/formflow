@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FormRenderer } from "@/components/form-renderer/FormRenderer";
+import dynamic from "next/dynamic";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
+
+const FormRenderer = dynamic(
+  () => import("@/components/form-renderer/FormRenderer").then((m) => ({ default: m.FormRenderer })),
+  { ssr: false, loading: () => <div className="border border-[var(--line-strong)] bg-white p-8 text-sm text-[var(--muted)]">Loading form…</div> },
+);
 import { mutationHeaders } from "@/lib/mutation-headers";
 
 type PublicForm = {
