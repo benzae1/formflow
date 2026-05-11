@@ -9,6 +9,7 @@ type SearchParams = Promise<{
   status?: string;
   sensitivity?: string;
   formId?: string;
+  includeSensitive?: string;
 }>;
 
 export default async function AdminSubmissionsPage({
@@ -18,6 +19,7 @@ export default async function AdminSubmissionsPage({
 }) {
   await requirePageRole(["admin", "compliance"]);
   const filters = await searchParams;
+  const includeSensitive = filters.includeSensitive === "true";
 
   const [forms, submissions] = await Promise.all([
     db.form.findMany({
@@ -27,6 +29,13 @@ export default async function AdminSubmissionsPage({
     }),
     db.submission.findMany({
       where: {
+        ...(!includeSensitive && !filters.sensitivity
+          ? {
+              form: {
+                sensitivity: "standard" as const,
+              },
+            }
+          : {}),
         ...(filters.status ? { status: filters.status as never } : {}),
         ...(filters.formId ? { formId: filters.formId } : {}),
         ...(filters.sensitivity
@@ -58,7 +67,7 @@ export default async function AdminSubmissionsPage({
       <PageHeader
         eyebrow="Global submissions"
         title="Submission console"
-        description="A shared read surface for admin and compliance to inspect active and completed work across every published form."
+        description="A shared read surface for admin and compliance to inspect active and completed work across every published form, with PII and sensitive work opt-in for list views."
       />
 
       <form className="flex flex-col gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] lg:flex-row">
@@ -96,6 +105,16 @@ export default async function AdminSubmissionsPage({
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm text-[var(--ink)]">
+          <input
+            type="checkbox"
+            name="includeSensitive"
+            value="true"
+            defaultChecked={includeSensitive}
+            className="h-4 w-4 rounded border-black/20"
+          />
+          <span>Include PII and sensitive</span>
+        </label>
         <button
           type="submit"
           className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"

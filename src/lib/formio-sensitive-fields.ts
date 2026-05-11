@@ -1,49 +1,15 @@
 import { encryptValue } from "@/lib/encryption";
+import { FormioSchema, visitFormioComponents } from "./formio-schema";
 
-type FormioComponent = {
-  key?: string;
-  properties?: {
-    sensitive?: string;
-    readRoles?: string;
-    ownerCanRead?: string;
-    [key: string]: string | undefined;
-  };
-  components?: FormioComponent[];
-  columns?: Array<{
-    components?: FormioComponent[];
-  }>;
-  [key: string]: unknown;
-};
-
-export type FormioSchema = {
-  components?: FormioComponent[];
-  [key: string]: unknown;
-};
+export type { FormioSchema } from "./formio-schema";
 
 export function getSensitiveFieldKeys(schema: FormioSchema): string[] {
   const keys: string[] = [];
-
-  function walk(components?: FormioComponent[]) {
-    if (!components) return;
-
-    for (const component of components) {
-      if (component.key && component.properties?.sensitive === "true") {
-        keys.push(component.key);
-      }
-
-      if (component.components) {
-        walk(component.components);
-      }
-
-      if (component.columns) {
-        for (const column of component.columns) {
-          walk(column.components);
-        }
-      }
+  visitFormioComponents(schema, (component) => {
+    if (component.key && component.properties?.sensitive === "true") {
+      keys.push(component.key);
     }
-  }
-
-  walk(schema.components);
+  });
 
   return keys;
 }

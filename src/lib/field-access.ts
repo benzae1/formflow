@@ -1,7 +1,8 @@
 import { decryptValue } from "./encryption";
+import { FormioSchema, visitFormioComponents } from "./formio-schema";
 
 type FieldAccessInput = {
-  schema: Record<string, unknown>;
+  schema: FormioSchema;
   data: Record<string, unknown>;
   userRoles: string[];
   isOwner: boolean;
@@ -55,46 +56,21 @@ function maybeDecrypt(value: unknown) {
   return value;
 }
 
-function collectFieldRules(schema: Record<string, unknown>) {
+function collectFieldRules(schema: FormioSchema) {
   const rules: Record<string, FieldRule> = {};
-
-  function walk(components?: Array<Record<string, unknown>>) {
-    if (!components) return;
-
-    for (const component of components) {
-      if (typeof component.key === "string") {
-        const properties =
-          typeof component.properties === "object" && component.properties
-            ? (component.properties as Record<string, string>)
-            : undefined;
-
-        rules[component.key] = {
-          roles: properties?.readRoles
-            ? properties.readRoles.split(",").map((role) => role.trim())
-            : [],
-          ownerCanRead: properties?.ownerCanRead !== "false",
-        };
-      }
-
-      if (Array.isArray(component.components)) {
-        walk(component.components as Array<Record<string, unknown>>);
-      }
-
-      if (Array.isArray(component.columns)) {
-        for (const col of component.columns as Array<Record<string, unknown>>) {
-          if (Array.isArray(col.components)) {
-            walk(col.components as Array<Record<string, unknown>>);
-          }
-        }
-      }
+  visitFormioComponents(schema, (component) => {
+    if (typeof component.key !== "string") {
+      return;
     }
-  }
 
-  walk(
-    Array.isArray(schema.components)
-      ? (schema.components as Array<Record<string, unknown>>)
-      : undefined,
-  );
+    const properties = component.properties;
+    rules[component.key] = {
+      roles: properties?.readRoles
+        ? properties.readRoles.split(",").map((role) => role.trim()).filter(Boolean)
+        : [],
+      ownerCanRead: properties?.ownerCanRead !== "false",
+    };
+  });
 
   return rules;
 }

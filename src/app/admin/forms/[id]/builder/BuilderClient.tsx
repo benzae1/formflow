@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { FormBuilder } from "@/components/form-builder/FormBuilder";
 import type { FormBuilderSchema } from "@/components/form-builder/FormBuilder";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { mutationHeaders } from "@/lib/mutation-headers";
+import {
+  collectFormFieldSettings,
+  type FormioSchema,
+  updateFormFieldSettings,
+} from "@/lib/formio-schema";
 
 type BuilderForm = {
   id: string;
@@ -39,6 +45,7 @@ export default function BuilderClient({
   const [preview, setPreview] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
+  const fieldSettings = collectFormFieldSettings(schema as FormioSchema);
 
   async function save(status?: "draft" | "published" | "archived") {
     setSaving(true);
@@ -46,7 +53,7 @@ export default function BuilderClient({
 
     const response = await fetch(`/api/forms/${form.id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...mutationHeaders },
       body: JSON.stringify({
         title,
         slug,
@@ -175,14 +182,101 @@ export default function BuilderClient({
         </div>
 
         <div className="rounded-[24px] border border-black/10 bg-white/90 p-4">
-          <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
-            Field access tips
-          </p>
-          <div className="mt-3 grid gap-2 text-sm leading-7 text-[var(--muted)] lg:grid-cols-2">
-            <p>Use Form.io component custom properties to set `sensitive`, `readRoles`, and `ownerCanRead`.</p>
-            <p>Schema changes on published forms will create new form versions automatically.</p>
+            <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+              Field access tips
+            </p>
+            <div className="mt-3 grid gap-2 text-sm leading-7 text-[var(--muted)] lg:grid-cols-2">
+              <p>Use the field settings panel below to control encryption and read access by role.</p>
+              <p>Schema changes on published forms will create new form versions automatically.</p>
+            </div>
           </div>
-        </div>
+
+        {fieldSettings.length > 0 ? (
+          <div className="rounded-[24px] border border-black/10 bg-white/90 p-4">
+            <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+              Field access settings
+            </p>
+            <div className="mt-4 space-y-4">
+              {fieldSettings.map((field) => (
+                <article
+                  key={field.key}
+                  className="rounded-[20px] border border-black/10 bg-[var(--canvas)] p-4"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">
+                        {field.label}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                        {field.key}
+                      </p>
+                    </div>
+                    <div className="grid gap-3 lg:min-w-[24rem]">
+                      <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                        <input
+                          type="checkbox"
+                          checked={field.sensitive}
+                          onChange={(event) =>
+                            setSchema((current) =>
+                              updateFormFieldSettings(
+                                current as FormioSchema,
+                                field.key,
+                                {
+                                  sensitive: event.target.checked,
+                                },
+                              ) as FormBuilderSchema,
+                            )
+                          }
+                        />
+                        Encrypt this field at rest
+                      </label>
+                      <label className="grid gap-2 text-sm text-[var(--ink)]">
+                        <span>Read roles</span>
+                        <input
+                          value={field.readRoles.join(", ")}
+                          onChange={(event) =>
+                            setSchema((current) =>
+                              updateFormFieldSettings(
+                                current as FormioSchema,
+                                field.key,
+                                {
+                                  readRoles: event.target.value
+                                    .split(",")
+                                    .map((role) => role.trim())
+                                    .filter(Boolean),
+                                },
+                              ) as FormBuilderSchema,
+                            )
+                          }
+                          placeholder="admin, compliance"
+                          className="rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
+                        <input
+                          type="checkbox"
+                          checked={field.ownerCanRead}
+                          onChange={(event) =>
+                            setSchema((current) =>
+                              updateFormFieldSettings(
+                                current as FormioSchema,
+                                field.key,
+                                {
+                                  ownerCanRead: event.target.checked,
+                                },
+                              ) as FormBuilderSchema,
+                            )
+                          }
+                        />
+                        Submitter can read their own value
+                      </label>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">

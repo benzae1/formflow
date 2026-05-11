@@ -9,7 +9,19 @@ function getKey() {
     throw new Error("FIELD_ENCRYPTION_KEY is missing.");
   }
 
-  return Buffer.from(raw, "hex");
+  if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+    throw new Error(
+      "FIELD_ENCRYPTION_KEY must be a 32-byte key encoded as 64 hex characters.",
+    );
+  }
+
+  const key = Buffer.from(raw, "hex");
+
+  if (key.length !== 32) {
+    throw new Error("FIELD_ENCRYPTION_KEY must decode to exactly 32 bytes.");
+  }
+
+  return key;
 }
 
 export function encryptValue(value: unknown) {
