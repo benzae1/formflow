@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Semi_Condensed } from "next/font/google";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 
 const barlow = Barlow_Semi_Condensed({

@@ -103,16 +103,16 @@ export default function SubmitFormClient({
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      <header className="rounded-[30px] border border-[var(--line)] bg-[var(--panel)] px-6 py-6 shadow-[var(--shadow-md)]">
+      <header className="border border-[var(--line-strong)] bg-white px-6 py-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
               {submissionId ? "Edit submission" : "Public form"}
             </p>
-            <h1 className="mt-3 font-[var(--font-display)] text-4xl">
+            <h1 className="mt-2 text-4xl font-bold">
               {form.title}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+            <p className="mt-2 text-sm text-[var(--muted)]">
               {submissionId
                 ? `This ${existingStatus?.replaceAll("_", " ")} submission is open for edits. Submitting here will ${existingStatus === "draft" ? "launch" : "resume"} the workflow.`
                 : "Complete the published form below to start the approval workflow."}
@@ -120,7 +120,7 @@ export default function SubmitFormClient({
           </div>
           <Link
             href="/submissions"
-            className="inline-flex rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+            className="inline-flex border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
           >
             Back to submissions
           </Link>
@@ -129,10 +129,10 @@ export default function SubmitFormClient({
 
       {message ? (
         <div
-          className={`rounded-[22px] border px-5 py-4 text-sm ${
+          className={`border px-5 py-4 text-sm ${
             state === "error"
-              ? "border-[var(--danger)]/20 bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--success)]/20 bg-[var(--success-soft)] text-[var(--success)]"
+              ? "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]"
+              : "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]"
           }`}
         >
           {message}
@@ -152,7 +152,7 @@ export default function SubmitFormClient({
             type="button"
             onClick={saveDraft}
             disabled={state === "saving"}
-            className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03] disabled:opacity-60"
+            className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
           >
             Save draft
           </button>

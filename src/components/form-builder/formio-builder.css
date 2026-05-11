@@ -2288,9 +2288,7 @@ span[role=link] {
 }
 
 .form-builder-frame {
-  background:
-    radial-gradient(circle at top left, rgba(177, 143, 88, 0.12), transparent 26rem),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 242, 232, 0.98));
+  background: #fff;
 }
 
 .form-builder-frame .formbuilder {
@@ -2300,11 +2298,11 @@ span[role=link] {
 .form-builder-frame .formbuilder,
 .form-builder-frame .formio-dialog,
 .form-builder-frame .formio-dialog * {
-  font-family: var(--font-sans, "Avenir Next", "Segoe UI", sans-serif);
+  font-family: var(--font-sans, "Barlow Semi Condensed", "Segoe UI", sans-serif);
 }
 
 .form-builder-frame .formbuilder {
-  color: var(--ink, #1f1a14);
+  color: var(--ink, #000);
 }
 
 .form-builder-frame .builder-sidebar,
@@ -2322,10 +2320,10 @@ span[role=link] {
 .form-builder-frame input[type="number"],
 .form-builder-frame textarea,
 .form-builder-frame select {
-  border: 1px solid rgba(48, 31, 13, 0.12);
-  border-radius: 16px;
-  background: rgba(255, 253, 249, 0.96);
-  color: var(--ink, #1f1a14);
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
   box-shadow: none;
 }
 
@@ -2335,8 +2333,9 @@ span[role=link] {
 .form-builder-frame input:focus,
 .form-builder-frame textarea:focus,
 .form-builder-frame select:focus {
-  border-color: var(--brand, #1d4c73);
-  box-shadow: 0 0 0 3px rgba(29, 76, 115, 0.14);
+  border-color: var(--brand, #00677F);
+  box-shadow: none;
+  outline: none;
 }
 
 .form-builder-frame .builder-sidebar > .card,
@@ -2344,18 +2343,19 @@ span[role=link] {
 .form-builder-frame .builder-sidebar .card,
 .form-builder-frame .panel,
 .form-builder-frame .card {
-  border: 1px solid rgba(48, 31, 13, 0.12);
-  border-radius: 22px;
-  background: rgba(255, 251, 244, 0.78);
-  box-shadow: 0 16px 44px rgba(42, 28, 12, 0.08);
+  border: 1px solid #e6e6e6;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
 }
 
 .form-builder-frame .panel-heading,
 .form-builder-frame .card-header {
-  border-bottom: 1px solid rgba(48, 31, 13, 0.1);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 242, 230, 0.74));
-  color: var(--ink, #1f1a14);
+  border-bottom: 1px solid #e6e6e6;
+  background: #faf8f3;
+  color: #000;
   font-weight: 600;
+  border-radius: 0;
 }
 
 .form-builder-frame .panel-body,
@@ -2364,28 +2364,28 @@ span[role=link] {
 }
 
 .form-builder-frame .builder-sidebar .formcomponent {
-  border: 1px solid rgba(19, 19, 19, 0.08);
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 16px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  border-radius: 0;
   width: 100%;
-  min-height: 3.75rem;
-  padding: 0.9rem 1.1rem;
-  font-size: 0.92rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
-  box-shadow: 0 12px 24px rgba(25, 23, 18, 0.06);
+  box-shadow: none;
 }
 
 .form-builder-frame .builder-sidebar .formcomponent + .formcomponent {
-  margin-top: 0.45rem;
+  margin-top: 0.2rem;
 }
 
 .form-builder-frame .builder-group-button,
 .form-builder-frame .builder-sidebar .btn,
 .form-builder-frame .btn {
   width: 100%;
-  border-radius: 16px;
-  border-color: rgba(48, 31, 13, 0.12);
+  border-radius: 0;
+  border-color: #e6e6e6;
   box-shadow: none;
 }
 
@@ -2395,39 +2395,35 @@ span[role=link] {
 .form-builder-frame .btn-light,
 .form-builder-frame .btn-secondary,
 .form-builder-frame .btn-default {
-  background: rgba(255, 253, 249, 0.96);
-  color: var(--ink, #1f1a14);
+  background: #fff;
+  color: #000;
 }
 
 .form-builder-frame .builder-group-button:hover,
 .form-builder-frame .builder-sidebar .btn:hover,
 .form-builder-frame .btn:hover {
-  border-color: rgba(48, 31, 13, 0.2);
-  background: rgba(255, 248, 238, 0.98);
+  border-color: #000;
+  background: #faf8f3;
 }
 
 .form-builder-frame .btn-primary,
 .form-builder-frame .btn-success {
   border-color: transparent;
-  background: var(--brand, #1d4c73);
+  background: var(--brand, #00677F);
   color: #fff;
+  border-radius: 0;
 }
 
 .form-builder-frame .btn-primary:hover,
 .form-builder-frame .btn-success:hover {
-  background: #173d5d;
+  background: #005568;
   color: #fff;
 }
 
-.form-builder-frame .form-builder-panel,
-.form-builder-frame .formio-builder-form {
-  border-radius: 24px;
-}
-
 .form-builder-frame .drag-container {
-  border-color: rgba(48, 31, 13, 0.12);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.5);
+  border-color: #e6e6e6;
+  border-radius: 0;
+  background: #fff;
 }
 
 .form-builder-frame .drag-container.formio-builder-form,
@@ -2438,64 +2434,61 @@ span[role=link] {
 
 .form-builder-frame .builder-component {
   margin-bottom: 1rem;
+  border-radius: 0;
 }
 
 .form-builder-frame .builder-component-selected {
-  border-radius: 18px;
-  border-color: rgba(177, 143, 88, 0.85);
-  background: rgba(177, 143, 88, 0.08);
-}
-
-.form-builder-frame .builder-component {
-  border-radius: 18px;
+  border-radius: 0;
+  border-color: var(--brand, #00677F);
+  background: rgba(0, 103, 127, 0.06);
 }
 
 .form-builder-frame .builder-component label,
 .form-builder-frame .control-label,
 .form-builder-frame .form-label {
-  color: var(--ink, #1f1a14);
+  color: #000;
   font-weight: 600;
 }
 
 .form-builder-frame .nav-tabs,
 .form-builder-frame .nav.nav-tabs {
-  border-bottom-color: rgba(48, 31, 13, 0.12);
-  gap: 0.35rem;
+  border-bottom-color: #e6e6e6;
+  gap: 0;
 }
 
 .form-builder-frame .nav-tabs .nav-link,
 .form-builder-frame .nav.nav-tabs .nav-link,
 .form-builder-frame .nav-tabs > li > a {
-  border-radius: 999px;
+  border-radius: 0;
   border: 1px solid transparent;
-  color: var(--muted, #6d5f52);
+  color: #666;
   background: transparent;
 }
 
 .form-builder-frame .nav-tabs .nav-link.active,
 .form-builder-frame .nav.nav-tabs .nav-link.active,
 .form-builder-frame .nav-tabs > li.active > a {
-  border-color: rgba(48, 31, 13, 0.12);
-  background: rgba(255, 253, 249, 0.96);
-  color: var(--ink, #1f1a14);
+  border-color: #e6e6e6 #e6e6e6 #fff;
+  background: #fff;
+  color: #000;
 }
 
 .form-builder-frame .formio-drop-zone.enabled {
-  opacity: 0.18;
-  background: var(--brand, #1d4c73);
+  opacity: 0.12;
+  background: var(--brand, #00677F);
 }
 
 .form-builder-frame .component-btn-group .component-settings-button {
   width: 24px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .form-builder-frame .component-settings .formio-dialog-content,
 .form-builder-frame .formio-dialog-content {
-  border: 1px solid rgba(48, 31, 13, 0.12);
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(246, 239, 226, 0.98));
-  color: var(--ink, #1f1a14);
-  box-shadow: 0 28px 90px rgba(42, 28, 12, 0.12);
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  box-shadow: none;
 }
