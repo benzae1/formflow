@@ -189,7 +189,12 @@ function getLdapUrls() {
 }
 
 function getBaseDns() {
-  return splitEnvList(process.env.LDAP_BASE_DNS ?? process.env.LDAP_BASE_DN);
+  const raw = process.env.LDAP_BASE_DNS ?? process.env.LDAP_BASE_DN ?? "";
+  // DNs contain commas as part of their syntax; use | to separate multiple base DNs
+  return raw
+    .split("|")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function getFallbackEmailDomain() {
