@@ -198,7 +198,7 @@ function walkRows(
   rows: Array<Array<{ components?: FormioComponent[] }>> | undefined,
   visitor: (component: FormioComponent) => void,
 ) {
-  if (!rows) {
+  if (!Array.isArray(rows)) {
     return;
   }
 
