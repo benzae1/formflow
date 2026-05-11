@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { mutationHeaders } from "@/lib/mutation-headers";
 
 type WorkflowOption = {
   id: string;
@@ -82,7 +83,7 @@ export default function FormsManagerClient({
 
     const response = await fetch("/api/forms", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...mutationHeaders },
       body: JSON.stringify({
         slug: normalizedSlug,
         title: formState.title.trim(),
@@ -135,7 +136,7 @@ export default function FormsManagerClient({
     setPending(true);
     await fetch(`/api/forms/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...mutationHeaders },
       body: JSON.stringify({ status: nextStatus }),
     });
     setPending(false);

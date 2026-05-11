@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { mutationHeaders } from "@/lib/mutation-headers";
 
 type Task = {
   id: string;
@@ -53,7 +54,7 @@ export function SubmissionActionPanel({
     try {
       const response = await fetch(`/api/submissions/${submissionId}/${decision}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...mutationHeaders },
         body: JSON.stringify({
           taskId: pendingTask.id,
           note: note || undefined,

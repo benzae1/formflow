@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { summarizeWorkflow } from "@/lib/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { mutationHeaders } from "@/lib/mutation-headers";
 
 type WorkflowRecord = {
   id: string;
@@ -82,7 +83,7 @@ export default function WorkflowsManagerClient({
 
     const response = await fetch(selectedId ? `/api/workflows/${selectedId}` : "/api/workflows", {
       method: selectedId ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...mutationHeaders },
       body: JSON.stringify({
         name,
         definition,

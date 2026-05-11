@@ -13,20 +13,25 @@ const RenderForm = Form as unknown as ComponentType<{
   form: RenderableFormSchema;
   submission?: { data: FormSubmissionData };
   onSubmit: (submission: { data?: FormSubmissionData }) => Promise<void> | void;
+  onChange?: (submission: { data?: FormSubmissionData }) => void;
 }>;
 
 type Props = {
   schema: RenderableFormSchema;
   initialData?: FormData;
   onSubmit: (data: FormData) => Promise<void> | void;
+  onChange?: (data: FormData) => void;
 };
 
-export function FormRenderer({ schema, initialData, onSubmit }: Props) {
+export function FormRenderer({ schema, initialData, onSubmit, onChange }: Props) {
   return (
     <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
       <RenderForm
         form={schema}
         submission={{ data: (initialData ?? {}) as FormSubmissionData }}
+        onChange={(submission) => {
+          onChange?.((submission.data ?? {}) as FormData);
+        }}
         onSubmit={(submission) => {
           return onSubmit((submission.data ?? {}) as FormData);
         }}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/components/inbox/useNotifications";
+import { mutationHeaders } from "@/lib/mutation-headers";
 
 export function NotificationPanel() {
   const [open, setOpen] = useState(false);
@@ -10,7 +11,10 @@ export function NotificationPanel() {
   const { count, items } = useNotifications();
 
   async function openNotification(id: string, href?: string | null) {
-    await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+    await fetch(`/api/notifications/${id}/read`, {
+      method: "POST",
+      headers: mutationHeaders,
+    });
     setOpen(false);
     router.refresh();
 
