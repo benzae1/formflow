@@ -53,21 +53,16 @@ const sensitiveSchema: FormioSchema = {
 };
 
 export async function resetDatabase() {
-  await db.$executeRawUnsafe(`
-    TRUNCATE TABLE
-      "Notification",
-      "ApprovalTask",
-      "Submission",
-      "FormVersion",
-      "Form",
-      "Workflow",
-      "Delegation",
-      "OrgMembership",
-      "OrgUnit",
-      "AuditLog",
-      "User"
-    RESTART IDENTITY CASCADE;
-  `);
+  await db.notification.deleteMany();
+  await db.approvalTask.deleteMany();
+  await db.submission.deleteMany();
+  await db.formVersion.deleteMany();
+  await db.form.deleteMany();
+  await db.workflow.deleteMany();
+  await db.delegation.deleteMany();
+  await db.orgMembership.deleteMany();
+  await db.orgUnit.deleteMany();
+  await db.user.deleteMany();
 }
 
 export async function seedBaseUsers() {

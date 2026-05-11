@@ -15,6 +15,24 @@ describe("forms route", () => {
     await resetDatabase();
   });
 
+  const validSchema = {
+    display: "form",
+    components: [
+      {
+        type: "textfield",
+        key: "requestTitle",
+        label: "Request title",
+        input: true,
+      },
+      {
+        type: "button",
+        action: "submit",
+        label: "Submit",
+        theme: "primary",
+      },
+    ],
+  };
+
   test("admin can create a form and initial version", async () => {
     const { admin, approver } = await seedBaseUsers();
     const workflow = await createWorkflowFixture({
@@ -28,17 +46,14 @@ describe("forms route", () => {
     const response = await POST(
       new Request("http://localhost/api/forms", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
         body: JSON.stringify({
           slug: uniqueSlug("access-request"),
           title: "Access request",
           sensitivity: "standard",
           workflowId: workflow.id,
           parentFormId: null,
-          schema: {
-            display: "form",
-            components: [],
-          },
+          schema: validSchema,
         }),
       }),
     );
@@ -76,16 +91,13 @@ describe("forms route", () => {
       POST(
         new Request("http://localhost/api/forms", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
           body: JSON.stringify({
             slug,
             title: "Duplicate slug form",
             sensitivity: "standard",
             workflowId: workflow.id,
-            schema: {
-              display: "form",
-              components: [],
-            },
+            schema: validSchema,
           }),
         }),
       );
@@ -108,15 +120,12 @@ describe("forms route", () => {
     const response = await POST(
       new Request("http://localhost/api/forms", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
         body: JSON.stringify({
           slug: uniqueSlug("blocked"),
           title: "Blocked form",
           sensitivity: "standard",
-          schema: {
-            display: "form",
-            components: [],
-          },
+          schema: validSchema,
         }),
       }),
     );

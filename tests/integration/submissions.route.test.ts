@@ -37,7 +37,7 @@ describe("submissions route", () => {
     const response = await POST(
       new Request("http://localhost/api/submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
         body: JSON.stringify({
           formId: form.id,
           data: {
@@ -76,7 +76,7 @@ describe("submissions route", () => {
     const response = await POST(
       new Request("http://localhost/api/submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
         body: JSON.stringify({
           formId: form.id,
           data: {
@@ -111,7 +111,7 @@ describe("submissions route", () => {
     const response = await POST(
       new Request("http://localhost/api/submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
         body: JSON.stringify({
           formId: form.id,
           data: {
@@ -174,7 +174,7 @@ describe("submissions route", () => {
     setMockSession(submitter);
     const submitterPayload = await parseJson<{
       submissions: Array<{ id: string; data: { publicNote: string; salary: number | null } }>;
-    }>(await GET());
+    }>(await GET(new Request("http://localhost/api/submissions")));
 
     expect(submitterPayload.submissions).toHaveLength(1);
     expect(submitterPayload.submissions[0]?.id).toBe(ownSubmission.id);
@@ -184,7 +184,7 @@ describe("submissions route", () => {
     setMockSession(approver);
     const approverPayload = await parseJson<{
       submissions: Array<{ id: string; data: { salary: number | null } }>;
-    }>(await GET());
+    }>(await GET(new Request("http://localhost/api/submissions")));
 
     expect(approverPayload.submissions.map((item) => item.id)).toContain(ownSubmission.id);
     expect(approverPayload.submissions.map((item) => item.id)).not.toContain(unrelatedSubmission.id);
@@ -195,7 +195,9 @@ describe("submissions route", () => {
     setMockSession(compliance);
     const compliancePayload = await parseJson<{
       submissions: Array<{ id: string; data: { salary: number | null } }>;
-    }>(await GET());
+    }>(
+      await GET(new Request("http://localhost/api/submissions?includeSensitive=true")),
+    );
 
     expect(compliancePayload.submissions.map((item) => item.id)).toEqual(
       expect.arrayContaining([ownSubmission.id, unrelatedSubmission.id]),
@@ -203,5 +205,47 @@ describe("submissions route", () => {
     expect(
       compliancePayload.submissions.find((item) => item.id === ownSubmission.id)?.data.salary,
     ).toBe(150000);
+  });
+
+  test("compliance list excludes pii and sensitive submissions by default", async () => {
+    const { admin, approver, submitter, compliance } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const standardForm = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+      sensitivity: "standard",
+    });
+    const piiForm = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+      sensitivity: "pii",
+    });
+
+    await createSubmissionFixture({
+      formId: standardForm.id,
+      formVersion: standardForm.version,
+      submittedById: submitter.id,
+      status: "submitted",
+    });
+    await createSubmissionFixture({
+      formId: piiForm.id,
+      formVersion: piiForm.version,
+      submittedById: submitter.id,
+      status: "submitted",
+    });
+
+    setMockSession(compliance);
+
+    const payload = await parseJson<{
+      submissions: Array<{ form: { id: string } }>;
+    }>(await GET(new Request("http://localhost/api/submissions")));
+
+    expect(payload.submissions).toHaveLength(1);
+    expect(payload.submissions[0]?.form.id).toBe(standardForm.id);
   });
 });
