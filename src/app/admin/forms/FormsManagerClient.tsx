@@ -120,13 +120,7 @@ export default function FormsManagerClient({
 
     const json = (await response.json()) as { form: { id: string } };
     setCreateOpen(false);
-    setFormState({
-      slug: "",
-      title: "",
-      sensitivity: "standard",
-      workflowId: "",
-      parentFormId: "",
-    });
+    setFormState({ slug: "", title: "", sensitivity: "standard", workflowId: "", parentFormId: "" });
     setSlugTouched(false);
     router.push(`/admin/forms/${json.form.id}/builder`);
     router.refresh();
@@ -145,18 +139,18 @@ export default function FormsManagerClient({
 
   return (
     <div className="space-y-4">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] lg:flex-row lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-4 border border-[var(--line-strong)] bg-white p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col gap-3 md:flex-row">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search title or slug"
-            className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
           />
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value)}
-            className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
           >
             <option value="all">All statuses</option>
             <option value="draft">Draft</option>
@@ -168,14 +162,14 @@ export default function FormsManagerClient({
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
         >
           Create form
         </button>
       </section>
 
       {error ? (
-        <div className="rounded-[20px] border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+        <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </div>
       ) : null}
@@ -184,27 +178,27 @@ export default function FormsManagerClient({
         {visibleForms.map((form) => (
           <article
             key={form.id}
-            className="rounded-[26px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]"
+            className="border border-[var(--line-strong)] bg-white p-5"
           >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
                   {form.slug}
                 </p>
-                <h2 className="text-2xl font-semibold">{form.title}</h2>
+                <h2 className="text-2xl font-bold">{form.title}</h2>
                 <div className="flex flex-wrap gap-2">
                   <StatusBadge status={form.status} />
                   <StatusBadge status={form.sensitivity} />
                 </div>
                 <p className="text-sm text-[var(--muted)]">
-                  Version {form.version} • Workflow {form.workflow?.name ?? "Unassigned"}
+                  Version {form.version} · Workflow {form.workflow?.name ?? "Unassigned"}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/admin/forms/${form.id}/builder`}
-                  className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                  className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
                 >
                   Open builder
                 </Link>
@@ -212,12 +206,9 @@ export default function FormsManagerClient({
                   type="button"
                   disabled={pending}
                   onClick={() =>
-                    updateStatus(
-                      form.id,
-                      form.status === "published" ? "archived" : "published",
-                    )
+                    updateStatus(form.id, form.status === "published" ? "archived" : "published")
                   }
-                  className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03] disabled:opacity-60"
+                  className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
                 >
                   {form.status === "published" ? "Archive" : "Publish"}
                 </button>
@@ -228,19 +219,19 @@ export default function FormsManagerClient({
       </section>
 
       {createOpen ? (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-xl rounded-[28px] border border-[var(--line)] bg-[var(--panel-strong)] p-6 shadow-[var(--shadow-lg)]">
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-xl border border-[var(--line-strong)] bg-white p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+                <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
                   New form
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">Start with a fresh shell</h2>
+                <h2 className="mt-2 text-2xl font-bold">Start with a fresh shell</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
-                className="rounded-full border border-black/10 px-3 py-1 text-sm"
+                className="border border-[var(--line-strong)] px-3 py-1 text-sm font-semibold hover:bg-[var(--canvas)]"
               >
                 Close
               </button>
@@ -251,7 +242,6 @@ export default function FormsManagerClient({
                 value={formState.title}
                 onChange={(event) => {
                   const nextTitle = event.target.value;
-
                   setFormState((current) => ({
                     ...current,
                     title: nextTitle,
@@ -259,7 +249,7 @@ export default function FormsManagerClient({
                   }));
                 }}
                 placeholder="Form title"
-                className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
               />
               <input
                 value={formState.slug}
@@ -271,17 +261,14 @@ export default function FormsManagerClient({
                   }));
                 }}
                 placeholder="form-slug"
-                className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
               />
               <select
                 value={formState.sensitivity}
                 onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    sensitivity: event.target.value,
-                  }))
+                  setFormState((current) => ({ ...current, sensitivity: event.target.value }))
                 }
-                className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
               >
                 <option value="standard">Standard</option>
                 <option value="pii">PII</option>
@@ -290,12 +277,9 @@ export default function FormsManagerClient({
               <select
                 value={formState.workflowId}
                 onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    workflowId: event.target.value,
-                  }))
+                  setFormState((current) => ({ ...current, workflowId: event.target.value }))
                 }
-                className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
               >
                 <option value="">No workflow yet</option>
                 {workflows.map((workflow) => (
@@ -307,12 +291,9 @@ export default function FormsManagerClient({
               <select
                 value={formState.parentFormId}
                 onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    parentFormId: event.target.value,
-                  }))
+                  setFormState((current) => ({ ...current, parentFormId: event.target.value }))
                 }
-                className="rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)] md:col-span-2"
+                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)] md:col-span-2"
               >
                 <option value="">No parent form</option>
                 {parentForms.map((form) => (
@@ -324,8 +305,7 @@ export default function FormsManagerClient({
             </div>
 
             <p className="mt-3 text-xs text-[var(--muted)]">
-              Slugs use lowercase letters, numbers, and hyphens. Leave the workflow blank if
-              you want to attach one later.
+              Slugs use lowercase letters, numbers, and hyphens. Leave the workflow blank to attach one later.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -333,7 +313,7 @@ export default function FormsManagerClient({
                 type="button"
                 onClick={createForm}
                 disabled={pending}
-                className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
               >
                 {pending ? "Creating..." : "Create and open builder"}
               </button>
@@ -356,15 +336,8 @@ function slugify(value: string) {
 
 async function getErrorMessage(response: Response) {
   try {
-    const payload = (await response.json()) as {
-      error?: {
-        message?: string;
-      };
-    };
-
-    if (payload.error?.message) {
-      return payload.error.message;
-    }
+    const payload = (await response.json()) as { error?: { message?: string } };
+    if (payload.error?.message) return payload.error.message;
   } catch {
     return "The form could not be created. Try a different slug or workflow selection.";
   }

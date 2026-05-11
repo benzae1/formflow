@@ -54,14 +54,7 @@ export default function BuilderClient({
     const response = await fetch(`/api/forms/${form.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...mutationHeaders },
-      body: JSON.stringify({
-        title,
-        slug,
-        sensitivity,
-        workflowId: workflowId || null,
-        schema,
-        status,
-      }),
+      body: JSON.stringify({ title, slug, sensitivity, workflowId: workflowId || null, schema, status }),
     });
 
     setSaving(false);
@@ -77,17 +70,17 @@ export default function BuilderClient({
 
   return (
     <main className="space-y-6">
-      <header className="rounded-[30px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]">
+      <header className="border border-[var(--line-strong)] bg-white p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
               Builder
             </p>
-            <h1 className="mt-3 font-[var(--font-display)] text-4xl">{title}</h1>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <h1 className="mt-2 text-4xl font-bold">{title}</h1>
+            <div className="mt-3 flex flex-wrap gap-2">
               <StatusBadge status={form.status} />
               <StatusBadge status={sensitivity} />
-              <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--ink)]">
+              <span className="border border-[var(--line-strong)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[.1em] text-[var(--ink)]">
                 Version {form.version}
               </span>
             </div>
@@ -96,12 +89,12 @@ export default function BuilderClient({
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/forms/${slug}`}
-              className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+              className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
             >
               Preview public form
             </Link>
             <button
-              className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+              className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
               onClick={() => save("draft")}
               disabled={saving}
               type="button"
@@ -109,7 +102,7 @@ export default function BuilderClient({
               Save draft
             </button>
             <button
-              className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+              className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
               onClick={() => save("published")}
               disabled={saving}
               type="button"
@@ -120,26 +113,26 @@ export default function BuilderClient({
         </div>
 
         {message ? (
-          <div className="mt-4 rounded-[20px] border border-[var(--success)]/20 bg-[var(--success-soft)] px-4 py-3 text-sm text-[var(--success)]">
+          <div className="mt-4 border border-[var(--success)] bg-[var(--success-soft)] px-4 py-3 text-sm text-[var(--success)]">
             {message}
           </div>
         ) : null}
       </header>
 
-      <section className="space-y-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]">
+      <section className="space-y-4 border border-[var(--line-strong)] bg-white p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
               Form settings
             </p>
-            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Manage metadata and route assignment before you drop into the full-width builder workspace.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setPreview((current) => !current)}
-            className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+            className="border border-[var(--line-strong)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
           >
             {preview ? "Back to builder" : "Preview schema JSON"}
           </button>
@@ -150,18 +143,18 @@ export default function BuilderClient({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Form title"
-            className="w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
           />
           <input
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             placeholder="form-slug"
-            className="w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
           />
           <select
             value={sensitivity}
             onChange={(event) => setSensitivity(event.target.value as BuilderForm["sensitivity"])}
-            className="w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
           >
             <option value="standard">Standard</option>
             <option value="pii">PII</option>
@@ -170,7 +163,7 @@ export default function BuilderClient({
           <select
             value={workflowId}
             onChange={(event) => setWorkflowId(event.target.value)}
-            className="w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
           >
             <option value="">No workflow assigned</option>
             {workflows.map((workflow) => (
@@ -181,33 +174,31 @@ export default function BuilderClient({
           </select>
         </div>
 
-        <div className="rounded-[24px] border border-black/10 bg-white/90 p-4">
-            <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
-              Field access tips
-            </p>
-            <div className="mt-3 grid gap-2 text-sm leading-7 text-[var(--muted)] lg:grid-cols-2">
-              <p>Use the field settings panel below to control encryption and read access by role.</p>
-              <p>Schema changes on published forms will create new form versions automatically.</p>
-            </div>
+        <div className="border border-[var(--line)] bg-[var(--canvas)] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
+            Field access tips
+          </p>
+          <div className="mt-3 grid gap-2 text-sm text-[var(--muted)] lg:grid-cols-2">
+            <p>Use the field settings panel below to control encryption and read access by role.</p>
+            <p>Schema changes on published forms will create new form versions automatically.</p>
           </div>
+        </div>
 
         {fieldSettings.length > 0 ? (
-          <div className="rounded-[24px] border border-black/10 bg-white/90 p-4">
-            <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+          <div className="border border-[var(--line)] bg-[var(--canvas)] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
               Field access settings
             </p>
             <div className="mt-4 space-y-4">
               {fieldSettings.map((field) => (
                 <article
                   key={field.key}
-                  className="rounded-[20px] border border-black/10 bg-[var(--canvas)] p-4"
+                  className="border border-[var(--line-strong)] bg-white p-4"
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-[var(--ink)]">
-                        {field.label}
-                      </p>
-                      <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                      <p className="text-sm font-semibold text-[var(--ink)]">{field.label}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
                         {field.key}
                       </p>
                     </div>
@@ -218,13 +209,9 @@ export default function BuilderClient({
                           checked={field.sensitive}
                           onChange={(event) =>
                             setSchema((current) =>
-                              updateFormFieldSettings(
-                                current as FormioSchema,
-                                field.key,
-                                {
-                                  sensitive: event.target.checked,
-                                },
-                              ) as FormBuilderSchema,
+                              updateFormFieldSettings(current as FormioSchema, field.key, {
+                                sensitive: event.target.checked,
+                              }) as FormBuilderSchema,
                             )
                           }
                         />
@@ -236,20 +223,16 @@ export default function BuilderClient({
                           value={field.readRoles.join(", ")}
                           onChange={(event) =>
                             setSchema((current) =>
-                              updateFormFieldSettings(
-                                current as FormioSchema,
-                                field.key,
-                                {
-                                  readRoles: event.target.value
-                                    .split(",")
-                                    .map((role) => role.trim())
-                                    .filter(Boolean),
-                                },
-                              ) as FormBuilderSchema,
+                              updateFormFieldSettings(current as FormioSchema, field.key, {
+                                readRoles: event.target.value
+                                  .split(",")
+                                  .map((role) => role.trim())
+                                  .filter(Boolean),
+                              }) as FormBuilderSchema,
                             )
                           }
                           placeholder="admin, compliance"
-                          className="rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                          className="border border-[var(--line-strong)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
                         />
                       </label>
                       <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
@@ -258,13 +241,9 @@ export default function BuilderClient({
                           checked={field.ownerCanRead}
                           onChange={(event) =>
                             setSchema((current) =>
-                              updateFormFieldSettings(
-                                current as FormioSchema,
-                                field.key,
-                                {
-                                  ownerCanRead: event.target.checked,
-                                },
-                              ) as FormBuilderSchema,
+                              updateFormFieldSettings(current as FormioSchema, field.key, {
+                                ownerCanRead: event.target.checked,
+                              }) as FormBuilderSchema,
                             )
                           }
                         />
@@ -280,17 +259,17 @@ export default function BuilderClient({
       </section>
 
       <section className="space-y-4">
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] px-5 py-4 shadow-[var(--shadow-md)]">
-          <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+        <div className="border border-[var(--line-strong)] bg-white px-5 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
             Builder canvas
           </p>
-          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Drag components into a full-width workspace with the metadata controls now moved above the builder.
           </p>
         </div>
 
         {preview ? (
-          <pre className="min-h-[72vh] overflow-x-auto rounded-[28px] border border-[var(--line)] bg-[var(--ink)] p-5 font-mono text-sm leading-7 text-white shadow-[var(--shadow-md)]">
+          <pre className="min-h-[72vh] overflow-x-auto border border-[var(--line-strong)] bg-[var(--ink)] p-5 font-mono text-sm leading-7 text-white">
             {JSON.stringify(schema, null, 2)}
           </pre>
         ) : (

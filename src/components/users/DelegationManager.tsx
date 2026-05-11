@@ -59,20 +59,13 @@ export default function DelegationManager({
     const response = await fetch("/api/delegations", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...mutationHeaders },
-      body: JSON.stringify({
-        approverId,
-        delegateId,
-        startsAt,
-        endsAt,
-      }),
+      body: JSON.stringify({ approverId, delegateId, startsAt, endsAt }),
     });
 
     setPending(false);
 
     if (!response.ok) {
-      const payload = (await response.json()) as {
-        error?: { message?: string };
-      };
+      const payload = (await response.json()) as { error?: { message?: string } };
       setError(payload.error?.message ?? "Could not save delegation.");
       return;
     }
@@ -95,9 +88,7 @@ export default function DelegationManager({
     setPending(false);
 
     if (!response.ok) {
-      const payload = (await response.json()) as {
-        error?: { message?: string };
-      };
+      const payload = (await response.json()) as { error?: { message?: string } };
       setError(payload.error?.message ?? "Could not remove delegation.");
       return;
     }
@@ -106,12 +97,12 @@ export default function DelegationManager({
   }
 
   return (
-    <div className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4">
+    <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
           {title}
         </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">{description}</p>
       </div>
 
       <div className="mt-4 space-y-2">
@@ -121,10 +112,10 @@ export default function DelegationManager({
           delegations.map((delegation) => (
             <div
               key={delegation.id}
-              className="flex flex-col gap-3 rounded-[18px] border border-black/10 px-3 py-3 md:flex-row md:items-center md:justify-between"
+              className="flex flex-col gap-3 border border-[var(--line)] px-3 py-3 md:flex-row md:items-center md:justify-between"
             >
-              <div className="text-sm leading-6 text-[var(--ink)]">
-                <p className="font-medium">{delegation.delegateName}</p>
+              <div className="text-sm text-[var(--ink)]">
+                <p className="font-semibold">{delegation.delegateName}</p>
                 <p className="text-[var(--muted)]">
                   {formatDateTime(delegation.startsAt)} to {formatDateTime(delegation.endsAt)}
                 </p>
@@ -134,7 +125,7 @@ export default function DelegationManager({
                   type="button"
                   disabled={pending}
                   onClick={() => removeDelegation(delegation.id)}
-                  className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03] disabled:opacity-60"
+                  className="border border-[var(--line-strong)] bg-white px-4 py-1.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
                 >
                   Remove
                 </button>
@@ -149,7 +140,7 @@ export default function DelegationManager({
           <select
             value={delegateId}
             onChange={(event) => setDelegateId(event.target.value)}
-            className="w-full rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+            className="w-full border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
           >
             <option value="">Choose delegate</option>
             {availableDelegates.map((delegate) => (
@@ -160,28 +151,28 @@ export default function DelegationManager({
           </select>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="space-y-2 text-sm">
+            <label className="space-y-1 text-sm">
               <span className="text-[var(--muted)]">Starts</span>
               <input
                 type="datetime-local"
                 value={startsAt}
                 onChange={(event) => setStartsAt(event.target.value)}
-                className="w-full rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="w-full border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
               />
             </label>
-            <label className="space-y-2 text-sm">
+            <label className="space-y-1 text-sm">
               <span className="text-[var(--muted)]">Ends</span>
               <input
                 type="datetime-local"
                 value={endsAt}
                 onChange={(event) => setEndsAt(event.target.value)}
-                className="w-full rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+                className="w-full border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
               />
             </label>
           </div>
 
           {error ? (
-            <div className="rounded-[18px] border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+            <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
               {error}
             </div>
           ) : null}
@@ -190,7 +181,7 @@ export default function DelegationManager({
             type="button"
             disabled={pending}
             onClick={createDelegation}
-            className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+            className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             Save delegation
           </button>

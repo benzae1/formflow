@@ -53,17 +53,16 @@ export default function InboxClient({
         {tabs.map((tab) => {
           const params = new URLSearchParams(currentParams.toString());
           params.set("view", tab.id);
-
           const active = view === tab.id;
 
           return (
             <Link
               key={tab.id}
               href={`/inbox?${params.toString()}`}
-              className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+              className={`border px-4 py-2 text-sm font-semibold ${
                 active
-                  ? "bg-[var(--brand)] text-white"
-                  : "border border-black/10 bg-white text-[var(--ink)] hover:border-black/20"
+                  ? "border-[var(--ink)] bg-[var(--ink)] text-white"
+                  : "border-[var(--line-strong)] bg-white text-[var(--ink)] hover:bg-[var(--canvas)]"
               }`}
             >
               {tab.label}
@@ -83,42 +82,42 @@ export default function InboxClient({
           {tasks.map((task) => (
             <article
               key={task.id}
-              className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]"
+              className="border border-[var(--line-strong)] bg-white p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
                     {view === "completed" ? "Completed review" : "Approval task"}
                   </p>
-                  <h2 className="mt-3 text-2xl font-semibold">
+                  <h2 className="mt-3 text-2xl font-bold">
                     {task.submission.form.title}
                   </h2>
-                  <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                  <p className="mt-1 text-sm text-[var(--muted)]">
                     Submission {task.submission.id}
                   </p>
                 </div>
                 <StatusBadge status={task.status} />
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[20px] border border-black/10 bg-white/90 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
                     Created
                   </p>
                   <p className="mt-2 text-sm">{formatDateTime(task.createdAt)}</p>
                 </div>
-                <div className="rounded-[20px] border border-black/10 bg-white/90 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
+                <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
                     Due
                   </p>
                   <p className="mt-2 text-sm">{formatDateTime(task.dueAt)}</p>
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-5">
                 <Link
                   href={`/submissions/${task.submissionId}`}
-                  className="inline-flex rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                  className="inline-flex bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
                 >
                   Open submission
                 </Link>

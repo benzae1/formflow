@@ -80,7 +80,7 @@ export default function AdminUsersClient({
   return (
     <section className="space-y-3">
       {error ? (
-        <div className="rounded-[20px] border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+        <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </div>
       ) : null}
@@ -129,12 +129,12 @@ function UserCard({
   const canManageDelegation = roles.includes("approver") || roles.includes("admin");
 
   return (
-    <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]">
+    <article className="border border-[var(--line-strong)] bg-white p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">{user.name ?? user.email}</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">{user.email}</p>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <h2 className="text-2xl font-bold">{user.name ?? user.email}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{user.email}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Updated {formatDateTime(user.updatedAt)}
           </p>
         </div>
@@ -148,8 +148,8 @@ function UserCard({
       </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
-        <div className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4">
-          <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+        <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
             Roles
           </p>
           <div className="mt-3 space-y-3">
@@ -159,7 +159,7 @@ function UserCard({
                   type="checkbox"
                   checked={roles.includes(role)}
                   onChange={() => toggleRole(role)}
-                  className="h-4 w-4 rounded border-black/20"
+                  className="h-4 w-4 border-[var(--line-strong)]"
                 />
                 <span>{getRoleLabel(role)}</span>
               </label>
@@ -169,14 +169,14 @@ function UserCard({
             type="button"
             disabled={pending || roles.length === 0}
             onClick={() => onSaveRoles(roles)}
-            className="mt-4 rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+            className="mt-4 bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             Save roles
           </button>
         </div>
 
-        <div className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4">
-          <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+        <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
             Org memberships
           </p>
           <div className="mt-3 space-y-2">
@@ -184,9 +184,9 @@ function UserCard({
               <p className="text-sm text-[var(--muted)]">No memberships synced.</p>
             ) : (
               user.memberships.map((membership) => (
-                <p key={membership.id} className="text-sm leading-7 text-[var(--ink)]">
-                  {membership.orgUnit.name} • {membership.roleInUnit ?? "member"}
-                  {membership.isManager ? " • manager" : ""}
+                <p key={membership.id} className="text-sm text-[var(--ink)]">
+                  {membership.orgUnit.name} · {membership.roleInUnit ?? "member"}
+                  {membership.isManager ? " · manager" : ""}
                 </p>
               ))
             )}

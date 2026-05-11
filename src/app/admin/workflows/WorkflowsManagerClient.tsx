@@ -21,10 +21,7 @@ function emptyDefinition() {
         id: "approval",
         name: "Approval",
         type: "approval",
-        assignTo: {
-          type: "role",
-          value: "approver",
-        },
+        assignTo: { type: "role", value: "approver" },
         onApprove: "close",
         onReject: "close",
       },
@@ -84,10 +81,7 @@ export default function WorkflowsManagerClient({
     const response = await fetch(selectedId ? `/api/workflows/${selectedId}` : "/api/workflows", {
       method: selectedId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json", ...mutationHeaders },
-      body: JSON.stringify({
-        name,
-        definition,
-      }),
+      body: JSON.stringify({ name, definition }),
     });
 
     setPending(false);
@@ -109,18 +103,18 @@ export default function WorkflowsManagerClient({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="space-y-3 rounded-[30px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]">
+      <section className="space-y-3 border border-[var(--line-strong)] bg-white p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
               Workflow library
             </p>
-            <h2 className="mt-2 text-2xl font-semibold">Definitions</h2>
+            <h2 className="mt-2 text-2xl font-bold">Definitions</h2>
           </div>
           <button
             type="button"
             onClick={newWorkflow}
-            className="rounded-full bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-white"
+            className="bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
             New workflow
           </button>
@@ -131,17 +125,17 @@ export default function WorkflowsManagerClient({
             key={workflow.id}
             type="button"
             onClick={() => chooseWorkflow(workflow.id)}
-            className={`w-full rounded-[24px] border px-4 py-4 text-left transition ${
+            className={`w-full border px-4 py-4 text-left ${
               selectedId === workflow.id
                 ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                : "border-black/10 bg-white/85 hover:border-black/20"
+                : "border-[var(--line-strong)] bg-white hover:bg-[var(--canvas)]"
             }`}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-lg font-semibold">{workflow.name}</p>
-                <p className="mt-2 text-sm text-[var(--muted)]">
-                  Version {workflow.version} • {workflow.forms.length} attached forms
+                <p className="text-base font-semibold">{workflow.name}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Version {workflow.version} · {workflow.forms.length} attached forms
                 </p>
               </div>
               <StatusBadge status="approval" />
@@ -150,13 +144,13 @@ export default function WorkflowsManagerClient({
         ))}
       </section>
 
-      <section className="space-y-4 rounded-[30px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]">
+      <section className="space-y-4 border border-[var(--line-strong)] bg-white p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
               Editor
             </p>
-            <h2 className="mt-2 text-2xl font-semibold">
+            <h2 className="mt-2 text-2xl font-bold">
               {selectedId ? "Edit workflow" : "Create workflow"}
             </h2>
           </div>
@@ -164,7 +158,7 @@ export default function WorkflowsManagerClient({
             type="button"
             onClick={save}
             disabled={pending}
-            className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+            className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             {pending ? "Saving..." : "Save workflow"}
           </button>
@@ -173,12 +167,12 @@ export default function WorkflowsManagerClient({
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="w-full rounded-2xl border border-black/10 bg-white/90 px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+          className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
           placeholder="Workflow name"
         />
 
         {error ? (
-          <div className="rounded-[20px] border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+          <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
             {error}
           </div>
         ) : null}
@@ -188,26 +182,24 @@ export default function WorkflowsManagerClient({
             value={definitionText}
             onChange={(event) => setDefinitionText(event.target.value)}
             rows={24}
-            className="w-full rounded-[24px] border border-black/10 bg-[var(--ink)] px-4 py-4 font-mono text-sm leading-7 text-white outline-none transition focus:border-[var(--brand)]"
+            className="w-full border border-[var(--line-strong)] bg-[var(--ink)] px-4 py-4 font-mono text-sm leading-7 text-white outline-none focus:border-[var(--brand)]"
           />
 
           <div className="space-y-3">
-            <div className="rounded-[24px] border border-black/10 bg-white/85 p-4">
-              <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+            <div className="border border-[var(--line-strong)] bg-white p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
                 Stage summary
               </p>
               <div className="mt-4 space-y-3">
                 {stageSummary.map((stage) => (
                   <article
                     key={stage.id}
-                    className="rounded-[20px] border border-black/10 bg-[var(--canvas)] px-4 py-3"
+                    className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-3"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold">{stage.name}</p>
-                        <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                          {stage.description}
-                        </p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">{stage.description}</p>
                       </div>
                       <StatusBadge status={stage.type} />
                     </div>
@@ -217,8 +209,8 @@ export default function WorkflowsManagerClient({
             </div>
 
             {selectedWorkflow ? (
-              <div className="rounded-[24px] border border-black/10 bg-white/85 p-4">
-                <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
+              <div className="border border-[var(--line-strong)] bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
                   Attached forms
                 </p>
                 <div className="mt-3 space-y-2">
@@ -228,7 +220,7 @@ export default function WorkflowsManagerClient({
                     </p>
                   ) : (
                     selectedWorkflow.forms.map((form) => (
-                      <p key={form.id} className="rounded-2xl bg-[var(--canvas)] px-3 py-2 text-sm">
+                      <p key={form.id} className="border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm">
                         {form.title}
                       </p>
                     ))
