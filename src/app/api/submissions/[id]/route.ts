@@ -8,9 +8,11 @@ import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
 import {
   auditSubmissionAccess,
   getVisibleSubmissionById,
+  getSubmissionSchema,
   presentSubmissionForUser,
 } from "@/lib/submissions";
 import { getTemporalClient } from "@/lib/temporal";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
 import {
   approvalWorkflow,
@@ -47,7 +49,13 @@ export async function GET(
           ...submission,
           form: {
             ...submission.form,
-            schema: submission.form.schema as Record<string, unknown>,
+            schema: getSubmissionSchema({
+              ...submission,
+              form: {
+                ...submission.form,
+                schema: submission.form.schema as Record<string, unknown>,
+              },
+            }),
           },
           data: submission.data as Record<string, unknown>,
         },
@@ -64,6 +72,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    assertMutationRequest(req);
     const user = await requireUser();
     const { id } = await context.params;
     const body = await req.json();
@@ -93,7 +102,13 @@ export async function PATCH(
     }
 
     const encryptedData = encryptSensitiveSubmissionData(
-      submission.form.schema as unknown as FormioSchema,
+      getSubmissionSchema({
+        ...submission,
+        form: {
+          ...submission.form,
+          schema: submission.form.schema as Record<string, unknown>,
+        },
+      }) as FormioSchema,
       input.data,
     );
 
@@ -113,7 +128,39 @@ export async function PATCH(
     });
 
     if (submission.status === "draft" && input.submit) {
+      const workflowId = submission.form.workflowId;
+      if (!workflowId) {
+        throw new ApiError(
+          "FORM_HAS_NO_WORKFLOW",
+          "This form has no workflow attached.",
+          409,
+        );
+      }
+
       const temporal = await getTemporalClient();
+      const workflow = await db.workflow.findUnique({
+        where: { id: workflowId },
+      });
+
+      if (!workflow) {
+        throw new ApiError(
+          "WORKFLOW_NOT_FOUND",
+          "This form's workflow could not be found.",
+          404,
+        );
+      }
+
+      updated = await db.submission.update({
+        where: { id },
+        data: {
+          data: encryptedData as Prisma.InputJsonValue,
+          formVersion: submission.form.version,
+          formSchemaSnapshot: submission.form.schema as Prisma.InputJsonValue,
+          workflowId: workflow.id,
+          workflowVersion: workflow.version,
+          workflowDefinition: workflow.definition as Prisma.InputJsonValue,
+        },
+      });
 
       await temporal.workflow.start(approvalWorkflow, {
         taskQueue: "formflow-approval",
@@ -122,7 +169,11 @@ export async function PATCH(
           {
             submissionId: submission.id,
             formId: submission.form.id,
-            workflowId: submission.form.workflowId,
+            workflowId: workflow.id,
+            workflowVersion: workflow.version,
+            workflowDefinition: workflow.definition as Parameters<
+              typeof approvalWorkflow
+            >[0]["workflowDefinition"],
             submitterId: user.id,
           },
         ],
@@ -173,7 +224,13 @@ export async function PATCH(
             ...updated,
             form: {
               ...submission.form,
-              schema: submission.form.schema as Record<string, unknown>,
+              schema: getSubmissionSchema({
+                ...updated,
+                form: {
+                  ...submission.form,
+                  schema: submission.form.schema as Record<string, unknown>,
+                },
+              }),
             },
             data: updated.data as Record<string, unknown>,
           },

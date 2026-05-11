@@ -1,6 +1,8 @@
+import { requirePendingApprovalTask } from "@/lib/approval-decisions";
 import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { getTemporalClient } from "@/lib/temporal";
 import { decisionSchema } from "@/lib/validation/submissions";
 import { approvalDecisionSignal } from "@/temporal/workflows/approvalWorkflow";
@@ -10,11 +12,18 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    assertMutationRequest(req);
     const user = await requireRole(["admin", "approver"]);
 
     const { id } = await context.params;
     const body = await req.json();
     const input = decisionSchema.parse(body);
+    await requirePendingApprovalTask({
+      submissionId: id,
+      taskId: input.taskId,
+      actorId: user.id,
+      actorRoles: user.roles,
+    });
 
     const temporal = await getTemporalClient();
     const handle = temporal.workflow.getHandle(id);

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { createWorkflowSchema } from "@/lib/validation/workflows";
 
 export async function GET(
@@ -35,10 +36,12 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    assertMutationRequest(req);
     const user = await requireRole(["admin"]);
     const { id } = await context.params;
     const body = await req.json();
     const input = createWorkflowSchema.parse(body);
+    await assertChildFormsExist(input.definition);
 
     const existing = await db.workflow.findUnique({
       where: { id },
@@ -69,5 +72,31 @@ export async function PUT(
     return Response.json({ workflow });
   } catch (error) {
     return apiErrorResponse(error);
+  }
+}
+
+async function assertChildFormsExist(definition: Array<{ childFormId?: string }>) {
+  const childFormIds = definition
+    .map((stage) => stage.childFormId)
+    .filter((id): id is string => Boolean(id));
+
+  if (childFormIds.length === 0) {
+    return;
+  }
+
+  const forms = await db.form.findMany({
+    where: { id: { in: childFormIds } },
+    select: { id: true },
+  });
+
+  const foundIds = new Set(forms.map((form) => form.id));
+  const missingId = childFormIds.find((id) => !foundIds.has(id));
+
+  if (missingId) {
+    throw new ApiError(
+      "CHILD_FORM_NOT_FOUND",
+      `Child form ${missingId} does not exist.`,
+      404,
+    );
   }
 }

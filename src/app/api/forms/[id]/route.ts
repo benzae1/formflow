@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { updateFormSchema } from "@/lib/validation/forms";
 
 export async function GET(
@@ -37,6 +38,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    assertMutationRequest(req);
     const user = await requireRole(["admin"]);
 
     const { id } = await context.params;
@@ -49,6 +51,36 @@ export async function PUT(
       throw new ApiError("FORM_NOT_FOUND", "Form not found.", 404);
     }
 
+    if (input.workflowId) {
+      const workflow = await db.workflow.findUnique({
+        where: { id: input.workflowId },
+        select: { id: true, definition: true },
+      });
+
+      if (!workflow) {
+        throw new ApiError("WORKFLOW_NOT_FOUND", "Workflow not found.", 404);
+      }
+
+      if (!Array.isArray(workflow.definition) || workflow.definition.length === 0) {
+        throw new ApiError(
+          "WORKFLOW_INVALID",
+          "Attach a workflow with at least one executable stage before publishing.",
+          409,
+        );
+      }
+    }
+
+    if (input.parentFormId) {
+      const parentForm = await db.form.findUnique({
+        where: { id: input.parentFormId },
+        select: { id: true },
+      });
+
+      if (!parentForm) {
+        throw new ApiError("PARENT_FORM_NOT_FOUND", "Parent form not found.", 404);
+      }
+    }
+
     const shouldBumpVersion =
       existing.status === "published" &&
       input.schema &&
@@ -57,6 +89,17 @@ export async function PUT(
     const nextVersion = shouldBumpVersion
       ? existing.version + 1
       : existing.version;
+    const nextStatus = input.status ?? existing.status;
+    const nextWorkflowId =
+      input.workflowId !== undefined ? input.workflowId : existing.workflowId;
+
+    if (nextStatus === "published" && !nextWorkflowId) {
+      throw new ApiError(
+        "FORM_HAS_NO_WORKFLOW",
+        "Published forms must have a runnable workflow attached.",
+        409,
+      );
+    }
 
     const updateData: Prisma.FormUncheckedUpdateInput = {
       version: nextVersion,

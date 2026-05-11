@@ -8,18 +8,21 @@ import {
   auditSubmissionAccess,
   presentSubmissionForUser,
 } from "@/lib/submissions";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { getTemporalClient } from "@/lib/temporal";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await requireUser();
+    const { searchParams } = new URL(req.url);
+    const includeSensitive = searchParams.get("includeSensitive") === "true";
 
     const submissions = await db.submission.findMany({
-      where: submissionVisibilityWhere(user),
+      where: submissionVisibilityWhere(user, { includeSensitive }),
       include: {
         form: true,
         approvalTasks: true,
@@ -60,6 +63,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    assertMutationRequest(req);
     const user = await requireUser();
     const body = await req.json();
     const input = createSubmissionSchema.parse(body);
@@ -77,6 +81,7 @@ export async function POST(req: Request) {
       form.schema as unknown as FormioSchema,
       input.data,
     );
+    const workflow = form.workflow;
 
     if (!input.saveAsDraft && !form.workflowId) {
       throw new ApiError(
@@ -90,14 +95,28 @@ export async function POST(req: Request) {
       data: {
         formId: form.id,
         formVersion: form.version,
+        formSchemaSnapshot: form.schema as Prisma.InputJsonValue,
         submittedById: user.id,
         data: data as Prisma.InputJsonValue,
         status: "draft",
+        workflowId: workflow?.id ?? null,
+        workflowVersion: workflow?.version ?? null,
+        workflowDefinition: workflow
+          ? (workflow.definition as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         parentSubmissionId: input.parentSubmissionId ?? null,
       },
     });
 
     if (!input.saveAsDraft) {
+      if (!workflow) {
+        throw new ApiError(
+          "FORM_HAS_NO_WORKFLOW",
+          "This form has no workflow attached.",
+          409,
+        );
+      }
+
       const temporal = await getTemporalClient();
 
       await temporal.workflow.start(approvalWorkflow, {
@@ -107,7 +126,11 @@ export async function POST(req: Request) {
           {
             submissionId: submission.id,
             formId: form.id,
-            workflowId: form.workflowId,
+            workflowId: workflow.id,
+            workflowVersion: workflow.version,
+            workflowDefinition: workflow.definition as Parameters<
+              typeof approvalWorkflow
+            >[0]["workflowDefinition"],
             submitterId: user.id,
           },
         ],

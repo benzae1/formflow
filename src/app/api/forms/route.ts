@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { createFormSchema } from "@/lib/validation/forms";
 
 export async function GET() {
@@ -25,6 +26,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    assertMutationRequest(req);
     const user = await requireRole(["admin"]);
     const body = await req.json();
     const input = createFormSchema.parse(body);
@@ -57,6 +59,10 @@ export async function POST(req: Request) {
           404,
         );
       }
+    }
+
+    if (input.workflowId) {
+      await assertWorkflowRunnable(input.workflowId);
     }
 
     const form = await db.form.create({
@@ -121,5 +127,28 @@ export async function POST(req: Request) {
     }
 
     return apiErrorResponse(error);
+  }
+}
+
+async function assertWorkflowRunnable(workflowId: string) {
+  const workflow = await db.workflow.findUnique({
+    where: { id: workflowId },
+    select: { id: true, definition: true },
+  });
+
+  if (!workflow) {
+    throw new ApiError(
+      "WORKFLOW_NOT_FOUND",
+      "Select a valid workflow or leave the workflow blank for now.",
+      404,
+    );
+  }
+
+  if (!Array.isArray(workflow.definition) || workflow.definition.length === 0) {
+    throw new ApiError(
+      "WORKFLOW_INVALID",
+      "Attach a workflow with at least one executable stage.",
+      409,
+    );
   }
 }

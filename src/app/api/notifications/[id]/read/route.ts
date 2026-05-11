@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/permissions";
 import { apiErrorResponse } from "@/lib/errors";
+import { assertMutationRequest } from "@/lib/request-guard";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    assertMutationRequest(req);
     const user = await requireUser();
     const { id } = await context.params;
 

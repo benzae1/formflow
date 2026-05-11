@@ -1,11 +1,15 @@
 import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
+import { assertMutationRequest } from "@/lib/request-guard";
 import { syncOrg } from "@/jobs/orgSync";
 import { devOrgAdapter } from "@/jobs/devOrgAdapter";
+import { createLdapOrgAdapter } from "@/jobs/ldapOrgAdapter";
+import { isLdapConfigured } from "@/lib/ldap";
 import { requireRole } from "@/lib/permissions";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    assertMutationRequest(req);
     const user = await requireRole(["admin"]);
 
     await writeAuditLog({
@@ -15,7 +19,7 @@ export async function POST() {
       resourceId: "manual-sync",
     });
 
-    await syncOrg(devOrgAdapter);
+    await syncOrg(isLdapConfigured() ? createLdapOrgAdapter() : devOrgAdapter);
 
     await writeAuditLog({
       actorId: user.id,
