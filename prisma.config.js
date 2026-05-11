@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { loadEnvFile } = require("node:process");
 const { defineConfig, env } = require("prisma/config");
 

@@ -64,6 +64,8 @@ model User {
   submissions   Submission[]
   approvalTasks ApprovalTask[]
   memberships   OrgMembership[]
+  delegationsFrom Delegation[] @relation("DelegationApprover")
+  delegationsTo   Delegation[] @relation("DelegationDelegate")
 }
 
 model Form {
@@ -125,12 +127,16 @@ model Submission {
   form                Form             @relation(fields: [formId], references: [id])
 
   formVersion         Int
+  formSchemaSnapshot  Json?
   submittedById       String
   submittedBy         User             @relation(fields: [submittedById], references: [id])
 
   data                Json
   status              SubmissionStatus @default(draft)
   workflowRunId       String?
+  workflowId          String?
+  workflowVersion     Int?
+  workflowDefinition  Json?
 
   parentSubmissionId  String?
   parentSubmission    Submission?      @relation("ParentChildSubmissions", fields: [parentSubmissionId], references: [id])
@@ -203,7 +209,9 @@ model OrgMembership {
 model Delegation {
   id             String   @id @default(uuid())
   approverId     String
+  approver       User     @relation("DelegationApprover", fields: [approverId], references: [id])
   delegateId     String
+  delegate       User     @relation("DelegationDelegate", fields: [delegateId], references: [id])
   startsAt       DateTime
   endsAt         DateTime
 
