@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { filterSubmissionDataForUser } from "@/lib/field-access";
@@ -8,6 +9,32 @@ export type VisibleSubmissionUser = {
   id: string;
   roles: AppRole[];
 };
+
+export type VisibleSubmissionRecord = Prisma.SubmissionGetPayload<{
+  include: {
+    form: {
+      include: {
+        workflow: true;
+      };
+    };
+    submittedBy: true;
+    approvalTasks: {
+      include: {
+        assignedTo: true;
+      };
+    };
+    childSubmissions: {
+      include: {
+        form: true;
+      };
+    };
+    parentSubmission: {
+      include: {
+        form: true;
+      };
+    };
+  };
+}>;
 
 export async function auditSubmissionAccess(input: {
   actorId: string;
@@ -43,12 +70,15 @@ export function presentSubmissionForUser<
     form: { schema: Record<string, unknown> };
     submittedById: string;
     data: Record<string, unknown>;
+    formSchemaSnapshot?: unknown;
   },
 >(submission: T, user: VisibleSubmissionUser) {
+  const schema = getSubmissionSchema(submission);
+
   return {
     ...submission,
     data: filterSubmissionDataForUser({
-      schema: submission.form.schema,
+      schema,
       data: submission.data,
       userRoles: user.roles,
       isOwner: submission.submittedById === user.id,
@@ -56,10 +86,27 @@ export function presentSubmissionForUser<
   };
 }
 
+export function getSubmissionSchema<
+  T extends {
+    form: { schema: Record<string, unknown> };
+    formSchemaSnapshot?: unknown;
+  },
+>(submission: T) {
+  if (
+    submission.formSchemaSnapshot &&
+    typeof submission.formSchemaSnapshot === "object" &&
+    !Array.isArray(submission.formSchemaSnapshot)
+  ) {
+    return submission.formSchemaSnapshot as Record<string, unknown>;
+  }
+
+  return submission.form.schema;
+}
+
 export async function getVisibleSubmissionById(input: {
   submissionId: string;
   user: VisibleSubmissionUser;
-}) {
+}): Promise<VisibleSubmissionRecord | null> {
   const submission = await db.submission.findFirst({
     where: {
       id: input.submissionId,

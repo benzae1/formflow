@@ -3,7 +3,9 @@ import SubmitFormClient from "./SubmitFormClient";
 import { requirePageUser } from "@/lib/page-auth";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { filterSubmissionDataForUser } from "@/lib/field-access";
+import { getSubmissionSchema } from "@/lib/submissions";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
+import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 
 export default async function PublicFormPage({
   params,
@@ -41,13 +43,29 @@ export default async function PublicFormPage({
     <SubmitFormClient
       form={{
         ...form,
-        schema: (form.schema ?? { components: [] }) as RenderableFormSchema,
+        schema: (
+          existingSubmission
+            ? getSubmissionSchema({
+                ...existingSubmission,
+                form: {
+                  ...form,
+                  schema: form.schema as Record<string, unknown>,
+                },
+              })
+            : form.schema ?? { components: [] }
+        ) as RenderableFormSchema,
       }}
       submissionId={existingSubmission?.id}
       initialData={
         existingSubmission
           ? filterSubmissionDataForUser({
-              schema: form.schema as Record<string, unknown>,
+              schema: getSubmissionSchema({
+                ...existingSubmission,
+                form: {
+                  ...form,
+                  schema: form.schema as Record<string, unknown>,
+                },
+              }) as FormioSchema,
               data: existingSubmission.data as Record<string, unknown>,
               userRoles: user.roles,
               isOwner: existingSubmission.submittedById === user.id,

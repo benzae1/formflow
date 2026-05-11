@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requirePageUser } from "@/lib/page-auth";
 import {
   auditSubmissionAccess,
+  getSubmissionSchema,
   getVisibleSubmissionById,
   presentSubmissionForUser,
 } from "@/lib/submissions";
@@ -41,7 +42,13 @@ export default async function SubmissionDetailPage({
       ...submission,
       form: {
         ...submission.form,
-        schema: submission.form.schema as Record<string, unknown>,
+        schema: getSubmissionSchema({
+          ...submission,
+          form: {
+            ...submission.form,
+            schema: submission.form.schema as Record<string, unknown>,
+          },
+        }),
       },
       data: submission.data as Record<string, unknown>,
     },
@@ -53,8 +60,10 @@ export default async function SubmissionDetailPage({
     (task) => task.status === "pending" && task.assignedToId === user.id,
   );
   const canAct = user.roles.includes("admin") || user.roles.includes("approver");
-  const workflowSummary = submission.form.workflow
-    ? summarizeWorkflow(submission.form.workflow.definition as never)
+  const workflowSummary = submission.workflowDefinition
+    ? summarizeWorkflow(submission.workflowDefinition as never)
+    : submission.form.workflow
+      ? summarizeWorkflow(submission.form.workflow.definition as never)
     : [];
 
   return (
@@ -95,7 +104,13 @@ export default async function SubmissionDetailPage({
             <h2 className="mt-2 text-2xl font-semibold">Response snapshot</h2>
             <div className="mt-4">
               <SubmissionFormView
-                schema={submission.form.schema as Record<string, unknown>}
+                schema={getSubmissionSchema({
+                  ...submission,
+                  form: {
+                    ...submission.form,
+                    schema: submission.form.schema as Record<string, unknown>,
+                  },
+                })}
                 data={visibleSubmission.data as Record<string, unknown>}
               />
             </div>
