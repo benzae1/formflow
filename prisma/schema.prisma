@@ -54,6 +54,7 @@ model User {
   name          String?
   roles         AppRole[] @default([submitter])
   externalId    String?
+  passwordHash  String?
   deactivatedAt DateTime?
 
   createdAt     DateTime  @default(now())

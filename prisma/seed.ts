@@ -1,6 +1,7 @@
 import { loadEnvFile } from "node:process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { hash } from "bcryptjs";
 
 try {
   loadEnvFile();
@@ -22,32 +23,38 @@ const db = new PrismaClient({
 
 async function main() {
   const admin = await db.user.upsert({
-    where: { email: "admin@example.com" },
-    update: {},
+    where: { email: "admin@bauhaus.de" },
+    update: { passwordHash: await hash("admin", 10) },
     create: {
-      email: "admin@example.com",
+      email: "admin@bauhaus.de",
       name: "Admin User",
+      externalId: "admin",
       roles: ["admin", "submitter"],
+      passwordHash: await hash("admin", 10),
     },
   });
 
   const approver = await db.user.upsert({
-    where: { email: "approver@example.com" },
-    update: {},
+    where: { email: "approver@bauhaus.de" },
+    update: { passwordHash: await hash("approver", 10) },
     create: {
-      email: "approver@example.com",
+      email: "approver@bauhaus.de",
       name: "Approver User",
+      externalId: "approver",
       roles: ["approver", "submitter"],
+      passwordHash: await hash("approver", 10),
     },
   });
 
   const submitter = await db.user.upsert({
-    where: { email: "submitter@example.com" },
-    update: {},
+    where: { email: "submitter@bauhaus.de" },
+    update: { passwordHash: await hash("submitter", 10) },
     create: {
-      email: "submitter@example.com",
+      email: "submitter@bauhaus.de",
       name: "Submitter User",
+      externalId: "submitter",
       roles: ["submitter"],
+      passwordHash: await hash("submitter", 10),
     },
   });
 

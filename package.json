@@ -30,6 +30,8 @@
     "@temporalio/client": "^1.17.0",
     "@temporalio/worker": "^1.17.0",
     "@temporalio/workflow": "^1.17.0",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "expr-eval": "^2.0.2",
     "formiojs": "^4.21.7",

@@ -1,5 +1,6 @@
 import { NextAuthOptions, getServerSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { compare } from "bcryptjs";
 import { db } from "./db";
 import { AppRole } from "@/domain/roles";
 import { authenticateLdapUser, isLdapConfigured } from "./ldap";
@@ -61,13 +62,16 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        if (!credentials?.email) return null;
+        if (!credentials?.uid || !credentials.password) return null;
 
-        const user = await db.user.findUnique({
-          where: { email: credentials.email },
+        const user = await db.user.findFirst({
+          where: { externalId: credentials.uid },
         });
 
-        if (!user || user.deactivatedAt) return null;
+        if (!user || user.deactivatedAt || !user.passwordHash) return null;
+
+        const passwordValid = await compare(credentials.password, user.passwordHash);
+        if (!passwordValid) return null;
 
         return {
           id: user.id,
