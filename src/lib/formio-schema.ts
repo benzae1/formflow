@@ -203,6 +203,7 @@ function walkRows(
   }
 
   for (const row of rows) {
+    if (!Array.isArray(row)) continue;
     for (const column of row) {
       walkComponents(column.components, visitor);
     }
