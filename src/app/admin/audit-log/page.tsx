@@ -53,34 +53,34 @@ export default async function AuditLogPage({
       >
         <Link
           href={`/api/audit-log?${exportParams.toString()}`}
-          className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className=" bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Export CSV
         </Link>
       </PageHeader>
 
-      <form className="flex flex-col gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] lg:flex-row">
+      <form className="flex flex-col gap-3 border border-[var(--line)] bg-[var(--panel)] p-5 lg:flex-row">
         <input
           name="action"
           defaultValue={filters.action ?? ""}
           placeholder="Action filter"
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         />
         <input
           name="resourceType"
           defaultValue={filters.resourceType ?? ""}
           placeholder="Resource type"
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         />
         <input
           name="actorId"
           defaultValue={filters.actorId ?? ""}
           placeholder="Actor ID"
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         />
         <button
           type="submit"
-          className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className=" bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Filter
         </button>
@@ -90,7 +90,7 @@ export default async function AuditLogPage({
         {page.map((log) => (
           <article
             key={log.id}
-            className="rounded-[26px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]"
+            className=" border border-[var(--line)] bg-[var(--panel)] p-5"
           >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
@@ -104,7 +104,7 @@ export default async function AuditLogPage({
                 </p>
               </div>
               {log.action === "sensitive.accessed" ? (
-                <span className="rounded-full border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--danger)]">
+                <span className=" border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--danger)]">
                   Sensitive
                 </span>
               ) : null}
@@ -122,7 +122,7 @@ export default async function AuditLogPage({
               ...(filters.actorId ? { actorId: filters.actorId } : {}),
               cursor: nextCursor,
             }).toString()}`}
-            className="rounded-full border border-[var(--line)] bg-[var(--panel)] px-6 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+            className=" border border-[var(--line)] bg-[var(--panel)] px-6 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
           >
             Load next {PAGE_SIZE}
           </Link>

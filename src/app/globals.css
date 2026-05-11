@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f4efe3;
-  --canvas-deep: #e6dcc6;
-  --panel: rgba(255, 251, 244, 0.78);
-  --panel-strong: #fffdf9;
-  --ink: #1f1a14;
-  --muted: #6d5f52;
-  --line: rgba(48, 31, 13, 0.12);
-  --line-strong: rgba(48, 31, 13, 0.2);
-  --brand: #1d4c73;
-  --brand-soft: #dcecf8;
-  --accent: #b95f2d;
-  --accent-soft: #f8e5d8;
-  --success: #1d6b57;
-  --success-soft: #d9f1e7;
-  --warning: #a25c10;
-  --warning-soft: #faebca;
-  --danger: #a4382f;
-  --danger-soft: #fde2de;
-  --shadow-lg: 0 28px 90px rgba(42, 28, 12, 0.12);
-  --shadow-md: 0 16px 44px rgba(42, 28, 12, 0.08);
-  --font-sans: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
-  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --canvas:       #FAF8F3;
+  --canvas-deep:  #F0EDE8;
+  --panel:        #FFFFFF;
+  --panel-strong: #FFFFFF;
+  --ink:          #000000;
+  --muted:        #6B6B6B;
+  --line:         #E6E6E6;
+  --line-strong:  #000000;
+  --brand:        #00677F;
+  --brand-soft:   #D9EFF5;
+  --accent:       #D22630;
+  --accent-soft:  #FDE2DE;
+  --success:      #558B2F;
+  --success-soft: #EDF7E1;
+  --warning:      #ED8B00;
+  --warning-soft: #FFF3E0;
+  --danger:       #D22630;
+  --danger-soft:  #FDE2DE;
+  --shadow-lg:    none;
+  --shadow-md:    none;
+  --font-sans:    var(--font-barlow, "Barlow Semi Condensed", system-ui, -apple-system, sans-serif);
+  --font-display: var(--font-barlow, "Barlow Semi Condensed", system-ui, -apple-system, sans-serif);
+  --font-mono:    "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 @theme inline {
@@ -33,36 +33,19 @@
   --font-mono: var(--font-mono);
 }
 
-* {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at top left, rgba(249, 229, 190, 0.88), transparent 28%),
-    radial-gradient(circle at right 10%, rgba(196, 219, 239, 0.58), transparent 24%),
-    linear-gradient(180deg, var(--canvas) 0%, var(--canvas-deep) 100%);
+  background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-sans);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+button, input, select, textarea { font: inherit; }
 
-::selection {
-  background: rgba(29, 76, 115, 0.18);
-}
+::selection { background: rgba(0, 103, 127, 0.2); }

@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { Barlow_Semi_Condensed } from "next/font/google";
 import "./globals.css";
 
+const barlow = Barlow_Semi_Condensed({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-barlow",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "FormFlow",
-  description:
-    "Internal workflow platform for secure forms, approvals, compliance review, and operational oversight.",
+  title: "Bauhaus Forms",
+  description: "Workflow platform for secure forms, approvals, and compliance review.",
 };
 
 export default function RootLayout({
@@ -14,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full bg-[var(--canvas)] text-[var(--ink)] antialiased">
+    <html lang="en" className={barlow.variable}>
+      <body className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
         {children}
       </body>
     </html>

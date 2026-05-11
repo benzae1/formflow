@@ -51,7 +51,7 @@ export default async function AdminOrgPage() {
         ].map(([label, value]) => (
           <article
             key={label}
-            className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] px-5 py-5 shadow-[var(--shadow-md)]"
+            className=" border border-[var(--line)] bg-[var(--panel)] px-5 py-5"
           >
             <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
               {label}
@@ -65,7 +65,7 @@ export default async function AdminOrgPage() {
         {units.map((unit) => (
           <article
             key={unit.id}
-            className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)]"
+            className=" border border-[var(--line)] bg-[var(--panel)] p-5"
           >
             <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
               {unit.type}
@@ -75,7 +75,7 @@ export default async function AdminOrgPage() {
               {unit.memberships.map((membership) => (
                 <div
                   key={membership.id}
-                  className="rounded-[20px] border border-black/10 bg-white/90 px-4 py-3"
+                  className=" border border-[var(--line)] bg-white px-4 py-3"
                 >
                   <p className="text-sm font-semibold">
                     {membership.user.name ?? membership.user.email}

@@ -25,7 +25,7 @@ type Props = {
 
 export function FormRenderer({ schema, initialData, onSubmit, onChange }: Props) {
   return (
-    <div className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+    <div className=" border border-[var(--line)] bg-white p-6">
       <RenderForm
         form={schema}
         submission={{ data: (initialData ?? {}) as FormSubmissionData }}

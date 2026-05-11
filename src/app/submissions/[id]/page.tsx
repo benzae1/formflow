@@ -77,7 +77,7 @@ export default async function SubmissionDetailPage({
       </PageHeader>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="space-y-5 rounded-[30px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]">
+        <section className="space-y-5 border border-[var(--line)] bg-[var(--panel)] p-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {[
               ["Form version", String(submission.formVersion)],
@@ -87,7 +87,7 @@ export default async function SubmissionDetailPage({
             ].map(([label, value]) => (
               <article
                 key={label}
-                className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4"
+                className=" border border-[var(--line)] bg-white px-4 py-4"
               >
                 <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
                   {label}
@@ -126,7 +126,7 @@ export default async function SubmissionDetailPage({
                   <Link
                     key={child.id}
                     href={`/submissions/${child.id}`}
-                    className="flex items-center justify-between rounded-[22px] border border-black/10 bg-white/90 px-4 py-4 transition hover:border-black/20"
+                    className="flex items-center justify-between border border-[var(--line)] bg-white px-4 py-4 transition hover:border-[var(--line-strong)]"
                   >
                     <div>
                       <p className="text-sm font-semibold">{child.form.title}</p>
@@ -161,7 +161,7 @@ export default async function SubmissionDetailPage({
             }
           />
 
-          <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]">
+          <section className=" border border-[var(--line)] bg-[var(--panel)] p-6">
             <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">
               Approval timeline
             </p>
@@ -174,7 +174,7 @@ export default async function SubmissionDetailPage({
                 submission.approvalTasks.map((task) => (
                   <article
                     key={task.id}
-                    className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4"
+                    className=" border border-[var(--line)] bg-white px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -191,7 +191,7 @@ export default async function SubmissionDetailPage({
                       <StatusBadge status={task.status} />
                     </div>
                     {task.note ? (
-                      <p className="mt-3 rounded-2xl bg-[var(--canvas)] px-3 py-3 text-sm leading-7 text-[var(--muted)]">
+                      <p className="mt-3 bg-[var(--canvas)] px-3 py-3 text-sm leading-7 text-[var(--muted)]">
                         {task.note}
                       </p>
                     ) : null}
@@ -201,7 +201,7 @@ export default async function SubmissionDetailPage({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]">
+          <section className=" border border-[var(--line)] bg-[var(--panel)] p-6">
             <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">
               Workflow context
             </p>
@@ -214,7 +214,7 @@ export default async function SubmissionDetailPage({
                 workflowSummary.map((stage) => (
                   <article
                     key={stage.id}
-                    className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4"
+                    className=" border border-[var(--line)] bg-white px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>

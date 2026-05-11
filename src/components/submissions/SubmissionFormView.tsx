@@ -41,7 +41,7 @@ function renderValue(value: unknown) {
   }
 
   return (
-    <pre className="overflow-x-auto whitespace-pre-wrap rounded-2xl bg-[var(--canvas)] px-3 py-3 text-xs leading-6 text-[var(--ink)]">
+    <pre className="overflow-x-auto whitespace-pre-wrap bg-[var(--canvas)] px-3 py-3 text-xs leading-6 text-[var(--ink)]">
       {JSON.stringify(value, null, 2)}
     </pre>
   );
@@ -64,7 +64,7 @@ export function SubmissionFormView({
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-[24px] border border-dashed border-[var(--line)] bg-white/70 px-4 py-8 text-center text-sm text-[var(--muted)]">
+      <div className=" border border-dashed border-[var(--line)] bg-white px-4 py-8 text-center text-sm text-[var(--muted)]">
         No response data has been stored yet.
       </div>
     );
@@ -75,7 +75,7 @@ export function SubmissionFormView({
       {entries.map(([key, value]) => (
         <article
           key={key}
-          className="rounded-[22px] border border-black/10 bg-white/90 px-4 py-4 shadow-sm"
+          className=" border border-[var(--line)] bg-white px-4 py-4"
         >
           <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
             {labels[key] ?? key}

@@ -76,7 +76,7 @@ export function SubmissionActionPanel({
   }
 
   return (
-    <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)]">
+    <section className=" border border-[var(--line)] bg-[var(--panel)] p-6">
       <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">
         Next action
       </p>
@@ -88,7 +88,7 @@ export function SubmissionActionPanel({
           </p>
           <Link
             href={`/forms/${formSlug}?submissionId=${submissionId}`}
-            className="inline-flex rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            className="inline-flex bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
             {status === "draft" ? "Continue draft" : "Edit and resubmit"}
           </Link>
@@ -99,7 +99,7 @@ export function SubmissionActionPanel({
         <div className="mt-4">
           {decision ? (
             <form onSubmit={submitDecision} className="space-y-4">
-              <div className="rounded-2xl border border-black/10 bg-white/90 p-4">
+              <div className=" border border-[var(--line)] bg-white p-4">
                 <p className="text-sm font-semibold text-[var(--ink)]">
                   {decisions.find((item) => item.action === decision)?.label}
                 </p>
@@ -107,13 +107,13 @@ export function SubmissionActionPanel({
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   rows={4}
-                  className="mt-3 w-full rounded-2xl border border-black/10 bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                  className="mt-3 w-full border border-[var(--line)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
                   placeholder="Add context for the audit trail or the submitter."
                 />
               </div>
 
               {error ? (
-                <div className="rounded-2xl border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+                <div className=" border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
                   {error}
                 </div>
               ) : null}
@@ -122,14 +122,14 @@ export function SubmissionActionPanel({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className=" bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {pending ? "Recording..." : "Confirm decision"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDecision(null)}
-                  className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+                  className=" border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--line-strong)] hover:bg-[var(--canvas)]"
                 >
                   Cancel
                 </button>
@@ -148,8 +148,8 @@ export function SubmissionActionPanel({
                     onClick={() => setDecision(item.action)}
                     className={
                       item.tone === "primary"
-                        ? "rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-                        : "rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-black/20 hover:bg-black/[0.03]"
+                        ? " bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                        : " border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--line-strong)] hover:bg-[var(--canvas)]"
                     }
                   >
                     {item.label}

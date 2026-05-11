@@ -70,11 +70,11 @@ export default async function AdminSubmissionsPage({
         description="A shared read surface for admin and compliance to inspect active and completed work across every published form, with PII and sensitive work opt-in for list views."
       />
 
-      <form className="flex flex-col gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] lg:flex-row">
+      <form className="flex flex-col gap-3 border border-[var(--line)] bg-[var(--panel)] p-5 lg:flex-row">
         <select
           name="status"
           defaultValue={filters.status ?? ""}
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         >
           <option value="">All statuses</option>
           {["draft", "submitted", "in_review", "needs_revision", "approved", "rejected", "closed"].map((status) => (
@@ -86,7 +86,7 @@ export default async function AdminSubmissionsPage({
         <select
           name="sensitivity"
           defaultValue={filters.sensitivity ?? ""}
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         >
           <option value="">All sensitivity</option>
           <option value="standard">Standard</option>
@@ -96,7 +96,7 @@ export default async function AdminSubmissionsPage({
         <select
           name="formId"
           defaultValue={filters.formId ?? ""}
-          className="rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
         >
           <option value="">All forms</option>
           {forms.map((form) => (
@@ -105,19 +105,19 @@ export default async function AdminSubmissionsPage({
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm text-[var(--ink)]">
+        <label className="flex items-center gap-3 border border-[var(--line)] bg-white px-4 py-2.5 text-sm text-[var(--ink)]">
           <input
             type="checkbox"
             name="includeSensitive"
             value="true"
             defaultChecked={includeSensitive}
-            className="h-4 w-4 rounded border-black/20"
+            className="h-4 w-4  border-[var(--line-strong)]"
           />
           <span>Include PII and sensitive</span>
         </label>
         <button
           type="submit"
-          className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className=" bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
           Filter
         </button>
@@ -128,7 +128,7 @@ export default async function AdminSubmissionsPage({
           <Link
             key={submission.id}
             href={`/submissions/${submission.id}`}
-            className="block rounded-[26px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-md)] transition hover:-translate-y-0.5"
+            className="block border border-[var(--line)] bg-[var(--panel)] p-5 transition"
           >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>

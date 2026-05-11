@@ -22,69 +22,56 @@ export function WorkspaceShell({
   const navigation = getWorkspaceNavigation(user.roles);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,rgba(244,239,227,0.95),rgba(230,220,198,0.96))] text-[var(--ink)]">
-      <div className="mx-auto grid min-h-screen max-w-[96rem] gap-6 px-4 py-4 lg:grid-cols-[19rem_minmax(0,1fr)] lg:px-6">
-        <aside className="rounded-[32px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-md)] backdrop-blur md:p-7">
-          <Link href="/" className="block">
-            <p className="text-xs uppercase tracking-[0.38em] text-[var(--muted)]">
-              FormFlow
-            </p>
-            <h1 className="mt-3 font-[var(--font-display)] text-4xl leading-none">
-              Casework made deliberate.
-            </h1>
-          </Link>
-
-          <div className="mt-8 rounded-[24px] border border-black/10 bg-white/85 p-4">
-            <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-              Signed in
-            </p>
-            <p className="mt-3 text-lg font-semibold">{user.name ?? user.email}</p>
-            <p className="text-sm text-[var(--muted)]">{user.email}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {user.roles.map((role) => (
-                <span
-                  key={role}
-                  className="rounded-full border border-black/10 bg-[var(--canvas)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--ink)]"
-                >
-                  {getRoleLabel(role)}
-                </span>
-              ))}
-            </div>
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]" style={{ fontFamily: "var(--font-sans)" }}>
+      {/* Top header — same language as sign-in */}
+      <header className="flex items-stretch justify-between border-b border-[var(--line-strong)] bg-white">
+        <div className="flex items-stretch">
+          <div className="bg-black px-6 py-3 text-white text-[12px] font-bold leading-tight whitespace-nowrap">
+            Bauhaus-Universität<br />Weimar
           </div>
+          <div className="flex flex-col justify-center border-l border-[var(--line)] px-5">
+            <span className="text-[15px] font-bold">Bauhaus Forms</span>
+            <span className="text-[11px] text-[var(--muted)]">University Communications</span>
+          </div>
+        </div>
+        <div className="flex items-stretch">
+          <div className="flex items-center border-l border-[var(--line)] px-5 text-[13px] text-[var(--muted)]">
+            <span>{user.name ?? user.email}</span>
+            <span className="ml-2 text-[10px] font-bold uppercase tracking-[.08em] text-[var(--muted)]">
+              ({user.roles.map((r) => getRoleLabel(r)).join(", ")})
+            </span>
+          </div>
+          <div className="flex items-center border-l border-[var(--line)] px-4">
+            <NotificationPanel />
+          </div>
+          <div className="flex items-center border-l border-[var(--line)] px-4">
+            <SignOutButton />
+          </div>
+        </div>
+      </header>
 
-          <nav className="mt-8 space-y-2">
+      {/* Body: sidebar + content */}
+      <div className="flex" style={{ minHeight: "calc(100vh - 53px)" }}>
+        <aside className="w-52 shrink-0 border-r border-[var(--line-strong)] bg-white flex flex-col">
+          <nav className="flex-1">
             {navigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block rounded-[22px] border border-transparent px-4 py-3 transition hover:border-black/10 hover:bg-white/75"
+                className="block border-b border-[var(--line)] px-6 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
               >
-                <p className="text-sm font-semibold">{item.label}</p>
-                <p className="text-sm text-[var(--muted)]">{item.description}</p>
+                {item.label}
+                <span className="block text-[11px] font-normal text-[var(--muted)] mt-0.5">
+                  {item.description}
+                </span>
               </Link>
             ))}
           </nav>
         </aside>
 
-        <div className="flex min-h-full flex-col gap-5">
-          <header className="flex flex-col gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] px-5 py-4 shadow-[var(--shadow-md)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-                Workspace
-              </p>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                Secure submissions, routing, audit visibility, and approvals in
-                one shared operating surface.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <NotificationPanel />
-              <SignOutButton />
-            </div>
-          </header>
-
-          <main>{children}</main>
-        </div>
+        <main className="flex-1 min-w-0 p-8">
+          {children}
+        </main>
       </div>
     </div>
   );
