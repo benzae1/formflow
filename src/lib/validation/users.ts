@@ -4,6 +4,7 @@ const appRoleSchema = z.enum(["admin", "submitter", "approver", "compliance"]);
 
 export const updateUserRolesSchema = z.object({
   roles: z.array(appRoleSchema).min(1, "Select at least one role."),
+  teamScope: z.boolean().optional(),
 });
 
 export const createDelegationSchema = z

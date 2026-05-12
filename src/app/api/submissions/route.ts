@@ -15,14 +15,32 @@ import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
 
+async function getVisibilityContext(userId: string, roles: string[]) {
+  if (!roles.includes("approver")) return { teamScope: false, orgUnitIds: [] };
+
+  const dbUser = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      teamScope: true,
+      memberships: { select: { orgUnitId: true } },
+    },
+  });
+
+  return {
+    teamScope: dbUser?.teamScope ?? false,
+    orgUnitIds: dbUser?.memberships.map((m) => m.orgUnitId) ?? [],
+  };
+}
+
 export async function GET(req: Request) {
   try {
     const user = await requireUser();
     const { searchParams } = new URL(req.url);
     const includeSensitive = searchParams.get("includeSensitive") === "true";
+    const visibilityCtx = await getVisibilityContext(user.id, user.roles);
 
     const submissions = await db.submission.findMany({
-      where: submissionVisibilityWhere(user, { includeSensitive }),
+      where: submissionVisibilityWhere({ ...user, ...visibilityCtx }, { includeSensitive }),
       include: {
         form: true,
         approvalTasks: true,

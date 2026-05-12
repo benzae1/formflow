@@ -4,6 +4,8 @@ import { AppRole } from "@/domain/roles";
 export function submissionVisibilityWhere(user: {
   id: string;
   roles: AppRole[];
+  teamScope?: boolean;
+  orgUnitIds?: string[];
 }, options?: {
   includeSensitive?: boolean;
 }): Prisma.SubmissionWhereInput {
@@ -22,18 +24,30 @@ export function submissionVisibilityWhere(user: {
   }
 
   if (user.roles.includes("approver")) {
-    return {
-      OR: [
-        { submittedById: user.id },
-        {
-          approvalTasks: {
+    const ownAndAssigned: Prisma.SubmissionWhereInput[] = [
+      { submittedById: user.id },
+      {
+        approvalTasks: {
+          some: {
+            assignedToId: user.id,
+          },
+        },
+      },
+    ];
+
+    if (user.teamScope && user.orgUnitIds && user.orgUnitIds.length > 0) {
+      ownAndAssigned.push({
+        submittedBy: {
+          memberships: {
             some: {
-              assignedToId: user.id,
+              orgUnitId: { in: user.orgUnitIds },
             },
           },
         },
-      ],
-    };
+      });
+    }
+
+    return { OR: ownAndAssigned };
   }
 
   return {

@@ -28,7 +28,10 @@ export async function PATCH(
 
     const user = await db.user.update({
       where: { id },
-      data: { roles },
+      data: {
+        roles,
+        ...(input.teamScope !== undefined ? { teamScope: input.teamScope } : {}),
+      },
     });
 
     await writeAuditLog({
@@ -36,8 +39,8 @@ export async function PATCH(
       action: "user.role_changed",
       resourceType: "user",
       resourceId: user.id,
-      beforeState: { roles: existing.roles },
-      afterState: { roles: user.roles },
+      beforeState: { roles: existing.roles, teamScope: existing.teamScope },
+      afterState: { roles: user.roles, teamScope: user.teamScope },
       metadata: { email: user.email },
     });
 
