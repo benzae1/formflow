@@ -102,7 +102,7 @@ export default function BuilderClient({
               <PrimitiveMark shape="triangle" color="var(--haus-yellow)" size={34} />
             </div>
             <div className="bf-action-row">
-              <Link href={`/forms/${slug}`} className="bf-btn bf-btn-segment">
+              <Link href={`/forms/${slug}?preview=1`} className="bf-btn bf-btn-segment">
                 Preview
               </Link>
               <button onClick={() => save("draft")} disabled={saving} type="button" className="bf-btn bf-btn-segment disabled:opacity-60">

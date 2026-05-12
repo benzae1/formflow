@@ -1,19 +1,11 @@
 "use client";
 
-import { FormEvent, useState, type CSSProperties } from "react";
+import { FormEvent, type CSSProperties, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
 
-const HAUSFARBEN = [
-  "#D22630",
-  "#ED8B00",
-  "#FFD100",
-  "#84BD00",
-  "#008EAA",
-  "#00677F",
-  "#A50050",
-];
+const ACCENT_COLOR = "#A50050";
 
 const STYLES = `
   *, *::before, *::after { box-sizing: border-box; }
@@ -225,13 +217,11 @@ export default function SignInClient() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [accentColor] = useState(
-    () => HAUSFARBEN[Math.floor(Math.random() * HAUSFARBEN.length)],
-  );
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const year = new Date().getFullYear();
+  const accentColor = useMemo(() => ACCENT_COLOR, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

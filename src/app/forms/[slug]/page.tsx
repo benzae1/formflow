@@ -12,17 +12,20 @@ export default async function PublicFormPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ submissionId?: string }>;
+  searchParams: Promise<{ submissionId?: string; preview?: string }>;
 }) {
   const user = await requirePageUser();
   const { slug } = await params;
-  const { submissionId } = await searchParams;
+  const { submissionId, preview } = await searchParams;
+  const previewMode = preview === "1" || preview === "true";
 
   const form = await db.form.findUnique({
     where: { slug },
   });
 
-  if (!form || form.status !== "published") {
+  const canPreviewUnpublished = previewMode && user.roles.includes("admin");
+
+  if (!form || (form.status !== "published" && !canPreviewUnpublished)) {
     return <div>Form not available.</div>;
   }
 
