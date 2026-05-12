@@ -1,5 +1,31 @@
 import { RoutingTarget } from "@/domain/workflow";
 import { db } from "@/lib/db";
+import { syncOrg } from "@/jobs/orgSync";
+import { devOrgAdapter } from "@/jobs/devOrgAdapter";
+import { createLdapOrgAdapter } from "@/jobs/ldapOrgAdapter";
+import { isLdapConfigured } from "@/lib/ldap";
+import { writeAuditLog } from "@/lib/audit";
+import { logger } from "@/lib/logger";
+
+export async function runScheduledOrgSync() {
+  logger.info("Scheduled org sync started");
+
+  await writeAuditLog({
+    action: "org.sync.scheduled",
+    resourceType: "org",
+    resourceId: "scheduled-sync",
+  });
+
+  await syncOrg(isLdapConfigured() ? createLdapOrgAdapter() : devOrgAdapter);
+
+  await writeAuditLog({
+    action: "org.sync.completed",
+    resourceType: "org",
+    resourceId: "scheduled-sync",
+  });
+
+  logger.info("Scheduled org sync completed");
+}
 
 export async function resolveAssignees(
   target: RoutingTarget | RoutingTarget[],
