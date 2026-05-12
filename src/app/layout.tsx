@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={barlow.variable}>
+    <html lang="de" className={barlow.variable}>
       <body className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
         {children}
       </body>

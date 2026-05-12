@@ -4,6 +4,8 @@ import { compare } from "bcryptjs";
 import { db } from "./db";
 import { AppRole } from "@/domain/roles";
 import { authenticateLdapUser, isLdapConfigured } from "./ldap";
+import { localizePath } from "@/lib/i18n/routing";
+import type { Locale } from "@/lib/i18n/config";
 
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 const REFRESH_TOKEN_TTL_SECONDS = 8 * 60 * 60;
@@ -128,7 +130,12 @@ export async function getCurrentUser() {
   return (session?.user as SessionUser | undefined) ?? null;
 }
 
-export function getDefaultRouteForRoles(roles: AppRole[]) {
+export function getDefaultRouteForRoles(roles: AppRole[], locale?: Locale) {
+  const path = getDefaultRoutePathForRoles(roles);
+  return locale ? localizePath(locale, path) : path;
+}
+
+function getDefaultRoutePathForRoles(roles: AppRole[]) {
   if (roles.includes("compliance")) {
     return "/admin/audit-log";
   }

@@ -1,4 +1,4 @@
-type Props = { status: string };
+type Props = { status: string; label?: string };
 
 function toneForStatus(status: string) {
   switch (status) {
@@ -56,7 +56,7 @@ function toneForStatus(status: string) {
   }
 }
 
-export function StatusBadge({ status }: Props) {
+export function StatusBadge({ status, label }: Props) {
   const tone = toneForStatus(status);
 
   return (
@@ -68,7 +68,7 @@ export function StatusBadge({ status }: Props) {
         color: tone.color,
       }}
     >
-      {status.replaceAll("_", " ")}
+      {label ?? status.replaceAll("_", " ")}
     </span>
   );
 }

@@ -4,6 +4,10 @@ import { FormEvent, type CSSProperties, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { localizePath } from "@/lib/i18n/routing";
 
 const ACCENT_COLOR = "#A50050";
 
@@ -212,14 +216,20 @@ const STYLES = `
   }
 `;
 
-export default function SignInClient() {
+export default function SignInClient({
+  locale,
+  dictionary,
+}: {
+  locale: Locale;
+  dictionary: Dictionary;
+}) {
   const [uid, setUid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const callbackUrl = searchParams.get("callbackUrl") ?? localizePath(locale, "/");
   const year = new Date().getFullYear();
   const accentColor = useMemo(() => ACCENT_COLOR, []);
 
@@ -239,7 +249,7 @@ export default function SignInClient() {
     setPending(false);
 
     if (!result?.ok) {
-      setError("Invalid username or password. Please try again.");
+      setError(dictionary.auth.error);
       return;
     }
 
@@ -263,24 +273,27 @@ export default function SignInClient() {
               Weimar
             </div>
             <div className="bu-hdr-title">
-              <div className="t">Bauhaus Forms</div>
-              <div className="s">University Communications</div>
+              <div className="t">{dictionary.common.appName}</div>
+              <div className="s">{dictionary.common.brandSubtitle}</div>
             </div>
           </div>
+          <LanguageSwitcher locale={locale} dictionary={dictionary} />
         </header>
 
         <main className="bu-stage">
           <div className="bu-hero">
             <div>
-              <p className="bu-eyebrow">{year} | Sign in</p>
+              <p className="bu-eyebrow">
+                {year} | {dictionary.auth.yearSignin}
+              </p>
               <hr className="bu-rule" />
               <p className="bu-display">
-                <span>Sign</span>
+                <span>{dictionary.auth.title}</span>
                 <span className="accent" style={{ color: accentColor }}>
-                  in.
+                  {dictionary.auth.accentTitle}
                 </span>
               </p>
-              <p className="bu-lede">Bauhaus Forms | Workflow system of the Bauhaus-Universitaet Weimar.</p>
+              <p className="bu-lede">{dictionary.auth.lede}</p>
             </div>
             <div className="bu-primitives">
               <PrimitiveMark shape="circle" color="var(--haus-teal)" size={44} />
@@ -290,53 +303,53 @@ export default function SignInClient() {
           </div>
 
           <form className="bu-card" onSubmit={handleSubmit}>
-            <p className="bu-form-eyebrow">Authentication | LDAP</p>
-            <h1 className="bu-form-title">Access</h1>
+            <p className="bu-form-eyebrow">{dictionary.auth.authLabel}</p>
+            <h1 className="bu-form-title">{dictionary.auth.access}</h1>
 
             {error && <div className="bu-err">{error}</div>}
 
             <div className="bu-field">
-              <label htmlFor="uid">Username</label>
+              <label htmlFor="uid">{dictionary.auth.username}</label>
               <input
                 id="uid"
                 type="text"
                 value={uid}
                 onChange={(e) => setUid(e.target.value)}
-                placeholder="max.mustermann"
+                placeholder={dictionary.auth.usernamePlaceholder}
                 autoComplete="username"
                 autoFocus
                 required
               />
             </div>
             <div className="bu-field">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{dictionary.auth.password}</label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="........"
+                placeholder={dictionary.auth.passwordPlaceholder}
                 autoComplete="current-password"
                 required
               />
             </div>
 
             <button type="submit" className="bu-submit" disabled={pending}>
-              {pending ? "Signing in..." : "Sign in"}
+              {pending ? dictionary.auth.submitPending : dictionary.auth.submit}
             </button>
 
             <div className="bu-alt-links">
-              <a href="#">Help</a>
+              <a href="#">{dictionary.auth.help}</a>
             </div>
           </form>
         </main>
 
         <footer className="bu-ftr">
-          <span>Bauhaus-Universitaet Weimar | University Communications</span>
+          <span>Bauhaus-Universitaet Weimar | {dictionary.common.brandSubtitle}</span>
           <span className="spacer" />
-          <a href="#">Imprint</a>
-          <a href="#">Privacy</a>
-          <a href="#">Accessibility</a>
+          <a href="#">{dictionary.auth.imprint}</a>
+          <a href="#">{dictionary.auth.privacy}</a>
+          <a href="#">{dictionary.auth.accessibility}</a>
         </footer>
       </div>
     </>

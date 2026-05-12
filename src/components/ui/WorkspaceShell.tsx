@@ -1,5 +1,8 @@
 import { AppRole } from "@/domain/roles";
 import { getWorkspaceNavigation } from "@/lib/navigation";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { NotificationPanel } from "./NotificationPanel";
 import { SignOutButton } from "./SignOutButton";
 import { SidebarNav } from "./SidebarNav";
@@ -13,12 +16,16 @@ type WorkspaceUser = {
 
 export function WorkspaceShell({
   user,
+  locale,
+  dictionary,
   children,
 }: {
   user: WorkspaceUser;
+  locale: Locale;
+  dictionary: Dictionary;
   children: React.ReactNode;
 }) {
-  const navigation = getWorkspaceNavigation(user.roles);
+  const navigation = getWorkspaceNavigation(user.roles, locale, dictionary);
 
   return (
     <div
@@ -75,6 +82,7 @@ export function WorkspaceShell({
         </div>
 
         <div style={{ display: "flex", alignItems: "stretch" }}>
+          <LanguageSwitcher locale={locale} dictionary={dictionary} />
           <div
             style={{
               display: "flex",
@@ -97,7 +105,14 @@ export function WorkspaceShell({
               borderLeft: "1px solid var(--line)",
             }}
           >
-            <NotificationPanel />
+            <NotificationPanel
+              locale={locale}
+              labels={{
+                button: dictionary.workspace.alerts,
+                panelTitle: dictionary.workspace.notifications,
+                empty: dictionary.workspace.notificationsEmpty,
+              }}
+            />
           </div>
           <div
             style={{
@@ -106,7 +121,7 @@ export function WorkspaceShell({
               borderLeft: "1px solid var(--line)",
             }}
           >
-            <SignOutButton />
+            <SignOutButton locale={locale} label={dictionary.workspace.signOut} />
           </div>
         </div>
       </header>
