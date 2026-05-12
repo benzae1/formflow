@@ -6,7 +6,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "node scripts/prisma-postinstall.mjs",
     "dev": "next dev",
     "worker": "tsx src/temporal/worker.ts",
     "prisma:generate": "prisma generate",
