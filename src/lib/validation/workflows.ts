@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateConditionExpression } from "@/lib/workflow-conditions";
 
 const routingTargetSchema = z.discriminatedUnion("type", [
   z.object({
@@ -29,7 +30,16 @@ export const workflowStageSchema = z.object({
   type: z.enum(["approval", "notification", "trigger-form", "condition"]),
   assignTo: z.union([routingTargetSchema, z.array(routingTargetSchema)]).optional(),
   childFormId: z.string().uuid().optional(),
-  conditions: z.array(z.object({ expression: z.string() })).optional(),
+  conditions: z
+    .array(
+      z.object({
+        expression: z.string().superRefine((expr, ctx) => {
+          const err = validateConditionExpression(expr);
+          if (err) ctx.addIssue({ code: "custom", message: err });
+        }),
+      }),
+    )
+    .optional(),
   sla: z
     .object({
       hours: z.number().positive(),
