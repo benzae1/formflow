@@ -108,16 +108,56 @@ export default function SubmitFormClient({
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      <header className="border border-[var(--line-strong)] bg-white px-6 py-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <header style={{ marginBottom: 8 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 40,
+            alignItems: "end",
+          }}
+        >
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: ".12em",
+                textTransform: "uppercase",
+                color: "var(--ink)",
+              }}
+            >
               {submissionId ? "Edit submission" : "Public form"}
-            </p>
-            <h1 className="mt-2 text-4xl font-bold">
+            </div>
+            <div
+              style={{
+                height: 2,
+                background: "var(--ink)",
+                margin: "12px 0 16px",
+                width: 48,
+              }}
+            />
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "clamp(32px, 4vw, 56px)",
+                fontWeight: 800,
+                lineHeight: 0.9,
+                letterSpacing: "-.03em",
+                color: "var(--ink)",
+              }}
+            >
               {form.title}
+              <span style={{ color: "var(--accent)" }}>.</span>
             </h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.5,
+                marginTop: 14,
+                color: "var(--muted)",
+              }}
+            >
               {submissionId
                 ? `This ${existingStatus?.replaceAll("_", " ")} submission is open for edits. Submitting here will ${existingStatus === "draft" ? "launch" : "resume"} the workflow.`
                 : "Complete the published form below to start the approval workflow."}
@@ -125,9 +165,18 @@ export default function SubmitFormClient({
           </div>
           <Link
             href="/submissions"
-            className="inline-flex border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "12px 20px",
+              background: "var(--panel)",
+              color: "var(--ink)",
+              border: "1px solid var(--line-strong)",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
           >
-            Back to submissions
+            ← Back
           </Link>
         </div>
       </header>

@@ -75,13 +75,48 @@ export default function BuilderClient({
 
   return (
     <main className="space-y-6">
-      <header className="border border-[var(--line-strong)] bg-white p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+      <header style={{ marginBottom: 8 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 40,
+            alignItems: "end",
+          }}
+        >
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: ".12em",
+                textTransform: "uppercase",
+                color: "var(--ink)",
+              }}
+            >
               Builder
-            </p>
-            <h1 className="mt-2 text-4xl font-bold">{title}</h1>
+            </div>
+            <div
+              style={{
+                height: 2,
+                background: "var(--ink)",
+                margin: "12px 0 16px",
+                width: 48,
+              }}
+            />
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "clamp(32px, 4vw, 56px)",
+                fontWeight: 800,
+                lineHeight: 0.9,
+                letterSpacing: "-.03em",
+                color: "var(--ink)",
+              }}
+            >
+              {title}
+              <span style={{ color: "var(--accent)" }}>.</span>
+            </h1>
             <div className="mt-3 flex flex-wrap gap-2">
               <StatusBadge status={form.status} />
               <StatusBadge status={sensitivity} />
@@ -91,15 +126,32 @@ export default function BuilderClient({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div style={{ display: "flex" }}>
             <Link
               href={`/forms/${slug}`}
-              className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                padding: "12px 20px",
+                background: "var(--panel)",
+                color: "var(--ink)",
+                border: "1px solid var(--line-strong)",
+                textDecoration: "none",
+              }}
             >
-              Preview public form
+              Preview
             </Link>
             <button
-              className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                padding: "12px 20px",
+                background: "var(--panel)",
+                color: "var(--ink)",
+                border: "1px solid var(--line-strong)",
+                borderLeft: "none",
+                cursor: "pointer",
+              }}
               onClick={() => save("draft")}
               disabled={saving}
               type="button"
@@ -107,7 +159,16 @@ export default function BuilderClient({
               Save draft
             </button>
             <button
-              className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                padding: "12px 20px",
+                background: "#000",
+                color: "#fff",
+                border: "1px solid #000",
+                borderLeft: "none",
+                cursor: "pointer",
+              }}
               onClick={() => save("published")}
               disabled={saving}
               type="button"

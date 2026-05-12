@@ -6,20 +6,70 @@ export function PageHeader({
 }: {
   eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border border-[var(--line-strong)] bg-white px-8 py-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <header style={{ marginBottom: 40 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          gap: 40,
+          alignItems: "end",
+        }}
+      >
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: ".12em",
+              textTransform: "uppercase",
+              color: "var(--ink)",
+            }}
+          >
             {eyebrow}
-          </p>
-          <h1 className="mt-2 text-4xl font-bold leading-tight">{title}</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">{description}</p>
+          </div>
+          <div
+            style={{
+              height: 2,
+              background: "var(--ink)",
+              margin: "12px 0 20px",
+              width: 64,
+            }}
+          />
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "clamp(40px, 5vw, 72px)",
+              fontWeight: 800,
+              lineHeight: 0.9,
+              letterSpacing: "-.03em",
+              color: "var(--ink)",
+            }}
+          >
+            {title}
+            <span style={{ color: "var(--accent)" }}>.</span>
+          </h1>
+          {description && (
+            <p
+              style={{
+                fontSize: 15,
+                lineHeight: 1.4,
+                maxWidth: "44ch",
+                marginTop: 16,
+                color: "var(--muted)",
+              }}
+            >
+              {description}
+            </p>
+          )}
         </div>
-        {children ? <div className="flex flex-wrap gap-3">{children}</div> : null}
+
+        {children ? (
+          <div style={{ display: "flex", gap: 0 }}>{children}</div>
+        ) : null}
       </div>
     </header>
   );
