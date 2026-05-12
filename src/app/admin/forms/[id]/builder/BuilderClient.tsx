@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import type { FormBuilderSchema } from "@/components/form-builder/FormBuilder";
 
 const FormBuilder = dynamic(
   () => import("@/components/form-builder/FormBuilder").then((m) => ({ default: m.FormBuilder })),
-  { ssr: false, loading: () => <div className="border border-[var(--line-strong)] bg-white p-8 text-sm text-[var(--muted)]">Loading builder…</div> },
+  {
+    ssr: false,
+    loading: () => <div className="bf-panel p-8 text-sm text-[var(--muted-strong)]">Loading builder...</div>,
+  },
 );
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { mutationHeaders } from "@/lib/mutation-headers";
@@ -74,163 +78,77 @@ export default function BuilderClient({
   }
 
   return (
-    <main className="space-y-6">
-      <header style={{ marginBottom: 8 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 40,
-            alignItems: "end",
-          }}
-        >
+    <main className="bf-stack">
+      <header className="bf-panel px-6 py-6">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: ".12em",
-                textTransform: "uppercase",
-                color: "var(--ink)",
-              }}
-            >
-              Builder
-            </div>
-            <div
-              style={{
-                height: 2,
-                background: "var(--ink)",
-                margin: "12px 0 16px",
-                width: 48,
-              }}
-            />
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "clamp(32px, 4vw, 56px)",
-                fontWeight: 800,
-                lineHeight: 0.9,
-                letterSpacing: "-.03em",
-                color: "var(--ink)",
-              }}
-            >
+            <p className="bf-eyebrow">Builder</p>
+            <div className="bf-rule mt-3" />
+            <h1 className="mt-5 text-[clamp(36px,5vw,64px)] font-extrabold leading-[0.9]">
               {title}
-              <span style={{ color: "var(--accent)" }}>.</span>
+              <span className="text-[var(--accent)]">.</span>
             </h1>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <StatusBadge status={form.status} />
               <StatusBadge status={sensitivity} />
-              <span className="border border-[var(--line-strong)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[.1em] text-[var(--ink)]">
-                Version {form.version}
-              </span>
+              <span className="bf-pill">Version {form.version}</span>
             </div>
           </div>
 
-          <div style={{ display: "flex" }}>
-            <Link
-              href={`/forms/${slug}`}
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "12px 20px",
-                background: "var(--panel)",
-                color: "var(--ink)",
-                border: "1px solid var(--line-strong)",
-                textDecoration: "none",
-              }}
-            >
-              Preview
-            </Link>
-            <button
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "12px 20px",
-                background: "var(--panel)",
-                color: "var(--ink)",
-                border: "1px solid var(--line-strong)",
-                borderLeft: "none",
-                cursor: "pointer",
-              }}
-              onClick={() => save("draft")}
-              disabled={saving}
-              type="button"
-            >
-              Save draft
-            </button>
-            <button
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                padding: "12px 20px",
-                background: "#000",
-                color: "#fff",
-                border: "1px solid #000",
-                borderLeft: "none",
-                cursor: "pointer",
-              }}
-              onClick={() => save("published")}
-              disabled={saving}
-              type="button"
-            >
-              Publish
-            </button>
+          <div className="flex flex-col items-start gap-5 lg:items-end">
+            <div className="bf-primitive-row">
+              <PrimitiveMark shape="circle" color="var(--haus-teal)" size={34} />
+              <PrimitiveMark shape="square" color="var(--haus-red)" size={34} />
+              <PrimitiveMark shape="triangle" color="var(--haus-yellow)" size={34} />
+            </div>
+            <div className="bf-action-row">
+              <Link href={`/forms/${slug}`} className="bf-btn bf-btn-segment">
+                Preview
+              </Link>
+              <button onClick={() => save("draft")} disabled={saving} type="button" className="bf-btn bf-btn-segment disabled:opacity-60">
+                Save draft
+              </button>
+              <button
+                onClick={() => save("published")}
+                disabled={saving}
+                type="button"
+                className="bf-btn bf-btn-primary bf-btn-segment disabled:opacity-60"
+              >
+                Publish
+              </button>
+            </div>
           </div>
         </div>
 
         {message ? (
-          <div className="mt-4 border border-[var(--success)] bg-[var(--success-soft)] px-4 py-3 text-sm text-[var(--success)]">
+          <div className={`mt-4 bf-alert ${message.includes("could not") ? "bf-alert-error" : "bf-alert-success"}`}>
             {message}
           </div>
         ) : null}
       </header>
 
-      <section className="space-y-4 border border-[var(--line-strong)] bg-white p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <section className="bf-panel p-5">
+        <div className="flex flex-col gap-3 border-b border-[var(--line)] pb-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-              Form settings
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p className="bf-eyebrow">Form settings</p>
+            <p className="mt-2 text-sm text-[var(--muted-strong)]">
               Manage metadata and route assignment before you drop into the full-width builder workspace.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setPreview((current) => !current)}
-            className="border border-[var(--line-strong)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
-          >
+          <button type="button" onClick={() => setPreview((current) => !current)} className="bf-btn">
             {preview ? "Back to builder" : "Preview schema JSON"}
           </button>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Form title"
-            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
-          />
-          <input
-            value={slug}
-            onChange={(event) => setSlug(event.target.value)}
-            placeholder="form-slug"
-            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
-          />
-          <select
-            value={sensitivity}
-            onChange={(event) => setSensitivity(event.target.value as BuilderForm["sensitivity"])}
-            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
-          >
+        <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
+          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Form title" className="bf-input" />
+          <input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="form-slug" className="bf-input" />
+          <select value={sensitivity} onChange={(event) => setSensitivity(event.target.value as BuilderForm["sensitivity"])} className="bf-select">
             <option value="standard">Standard</option>
             <option value="pii">PII</option>
             <option value="sensitive">Sensitive</option>
           </select>
-          <select
-            value={workflowId}
-            onChange={(event) => setWorkflowId(event.target.value)}
-            className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
-          >
+          <select value={workflowId} onChange={(event) => setWorkflowId(event.target.value)} className="bf-select">
             <option value="">No workflow assigned</option>
             {workflows.map((workflow) => (
               <option key={workflow.id} value={workflow.id}>
@@ -240,33 +158,24 @@ export default function BuilderClient({
           </select>
         </div>
 
-        <div className="border border-[var(--line)] bg-[var(--canvas)] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-            Field access tips
-          </p>
-          <div className="mt-3 grid gap-2 text-sm text-[var(--muted)] lg:grid-cols-2">
+        <div className="bf-panel-muted mt-4 p-4">
+          <p className="bf-kicker">Field access tips</p>
+          <div className="mt-3 grid gap-2 text-sm text-[var(--muted-strong)] lg:grid-cols-2">
             <p>Use the field settings panel below to control encryption and read access by role.</p>
             <p>Schema changes on published forms will create new form versions automatically.</p>
           </div>
         </div>
 
         {fieldSettings.length > 0 ? (
-          <div className="border border-[var(--line)] bg-[var(--canvas)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-              Field access settings
-            </p>
-            <div className="mt-4 space-y-4">
+          <div className="bf-panel-muted mt-4 p-4">
+            <p className="bf-kicker">Field access settings</p>
+            <div className="mt-4 bf-list">
               {fieldSettings.map((field) => (
-                <article
-                  key={field.key}
-                  className="border border-[var(--line-strong)] bg-white p-4"
-                >
+                <article key={field.key} className="bf-panel px-4 py-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-[var(--ink)]">{field.label}</p>
-                      <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-                        {field.key}
-                      </p>
+                      <p className="bf-kicker mt-1">{field.key}</p>
                     </div>
                     <div className="grid gap-3 lg:min-w-[24rem]">
                       <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
@@ -284,7 +193,7 @@ export default function BuilderClient({
                         Encrypt this field at rest
                       </label>
                       <label className="grid gap-2 text-sm text-[var(--ink)]">
-                        <span>Read roles</span>
+                        <span className="bf-kicker">Read roles</span>
                         <input
                           value={field.readRoles.join(", ")}
                           onChange={(event) =>
@@ -298,7 +207,7 @@ export default function BuilderClient({
                             )
                           }
                           placeholder="admin, compliance"
-                          className="border border-[var(--line-strong)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
+                          className="bf-input"
                         />
                       </label>
                       <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
@@ -324,13 +233,11 @@ export default function BuilderClient({
         ) : null}
       </section>
 
-      <section className="space-y-4">
-        <div className="border border-[var(--line-strong)] bg-white px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-            Builder canvas
-          </p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Drag components into a full-width workspace with the metadata controls now moved above the builder.
+      <section className="bf-stack">
+        <div className="bf-panel px-5 py-4">
+          <p className="bf-eyebrow">Builder canvas</p>
+          <p className="mt-2 text-sm text-[var(--muted-strong)]">
+            Drag components into a full-width workspace with metadata controls now moved above the builder.
           </p>
         </div>
 

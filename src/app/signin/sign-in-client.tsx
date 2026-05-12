@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { PrimitiveMark } from "@/components/ui/Bauhaus";
 
 const HAUSFARBEN = [
   "#D22630",
@@ -19,56 +20,33 @@ const STYLES = `
 
   .bu-page {
     --font-sans: var(--font-barlow, "Barlow Semi Condensed", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif);
-    --t-bg:           #FAF8F3;
-    --t-surface:      #ffffff;
-    --t-text:         #000000;
-    --t-muted:        #6B6B6B;
-    --t-border:       #E6E6E6;
-    --t-border-strong:#000000;
-    --t-logo-bg:      #000000;
-    --t-logo-fg:      #ffffff;
-    --t-hdr-bg:       #ffffff;
-    --t-ftr-bg:       #ffffff;
-    --t-accent:       #D22630;
+    --t-bg: #FAF8F3;
+    --t-surface: #ffffff;
+    --t-text: #000000;
+    --t-muted: #4B4B4B;
+    --t-border: #000000;
     min-height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr auto;
     background: var(--t-bg);
     color: var(--t-text);
     font-family: var(--font-sans);
-    transition: background 200ms, color 200ms;
   }
-  .bu-page.dark {
-    --t-bg:           #0F0F0F;
-    --t-surface:      #1F1F1F;
-    --t-text:         #F0EDE8;
-    --t-muted:        #888888;
-    --t-border:       #2E2E2E;
-    --t-border-strong:#555555;
-    --t-logo-bg:      #F0EDE8;
-    --t-logo-fg:      #0F0F0F;
-    --t-hdr-bg:       #1A1A1A;
-    --t-ftr-bg:       #1A1A1A;
-  }
-
-  /* Header */
   .bu-hdr {
     display: flex;
     align-items: stretch;
     justify-content: space-between;
-    border-bottom: 1px solid var(--t-border-strong);
-    background: var(--t-hdr-bg);
-    transition: background 200ms;
+    border-bottom: 1px solid var(--t-border);
+    background: var(--t-surface);
   }
   .bu-hdr-brand { display: flex; align-items: stretch; }
   .bu-hdr-logo {
-    background: var(--t-logo-bg);
-    color: var(--t-logo-fg);
+    background: #000;
+    color: #fff;
     padding: 14px 24px;
     font-weight: 700;
     font-size: 13px;
     line-height: 1.1;
-    transition: background 200ms, color 200ms;
     white-space: nowrap;
   }
   .bu-hdr-title {
@@ -79,26 +57,7 @@ const STYLES = `
   }
   .bu-hdr-title .t { font-size: 15px; font-weight: 700; }
   .bu-hdr-title .s { font-size: 11px; color: var(--t-muted); margin-top: 1px; }
-  .bu-hdr-actions { display: flex; align-items: stretch; }
-  .bu-dark-btn {
-    background: var(--t-hdr-bg);
-    border: none;
-    border-left: 1px solid var(--t-border);
-    font-family: inherit;
-    cursor: pointer;
-    color: var(--t-text);
-    transition: background 200ms, color 200ms;
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-  }
-  .bu-dark-btn.active {
-    background: var(--t-text);
-    color: var(--t-surface);
-  }
-  .bu-dark-btn svg { display: block; }
 
-  /* Stage */
   .bu-stage {
     position: relative;
     max-width: 1280px;
@@ -110,12 +69,11 @@ const STYLES = `
     align-items: center;
   }
 
-  /* Hero */
   .bu-hero { display: flex; flex-direction: column; }
   .bu-eyebrow {
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .08em;
+    font-weight: 700;
+    letter-spacing: .12em;
     color: var(--t-text);
     text-transform: uppercase;
     margin: 0;
@@ -125,14 +83,12 @@ const STYLES = `
     background: var(--t-text);
     margin: 14px 0 24px;
     width: 72px;
-    transition: background 200ms;
     border: none;
   }
   .bu-display {
     font-size: clamp(80px, 11vw, 168px);
     font-weight: 800;
     line-height: .85;
-    letter-spacing: -.035em;
     color: var(--t-text);
     margin: 0;
   }
@@ -150,30 +106,25 @@ const STYLES = `
     align-items: flex-end;
     margin-top: 32px;
   }
-  .bu-circle { width: 44px; height: 44px; background: #00677F; border-radius: 50%; }
-  .bu-square { width: 44px; height: 44px; background: #D22630; }
 
-  /* Form card */
   .bu-card {
     background: var(--t-surface);
-    border: 1px solid var(--t-border-strong);
+    border: 1px solid var(--t-border);
     padding: 40px;
     align-self: center;
-    transition: background 200ms, border-color 200ms;
   }
   .bu-form-eyebrow {
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .08em;
+    font-weight: 700;
+    letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--t-muted);
     margin: 0 0 8px;
   }
   .bu-form-title {
     font-size: 36px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1;
-    letter-spacing: -.01em;
     margin: 0 0 28px;
     color: var(--t-text);
   }
@@ -181,8 +132,8 @@ const STYLES = `
   .bu-field label {
     display: block;
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .08em;
+    font-weight: 700;
+    letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--t-muted);
     margin-bottom: 6px;
@@ -190,14 +141,13 @@ const STYLES = `
   .bu-field input {
     width: 100%;
     padding: 14px;
-    border: 1px solid var(--t-border-strong);
+    border: 1px solid var(--t-border);
     border-radius: 0;
     font-family: inherit;
     font-size: 15px;
     background: var(--t-surface);
     color: var(--t-text);
     outline: none;
-    transition: background 200ms, border-color 200ms, color 200ms;
   }
   .bu-field input:focus-visible {
     outline: 3px solid var(--t-picked, #D22630);
@@ -208,17 +158,18 @@ const STYLES = `
     padding: 16px 20px;
     background: var(--t-text);
     color: var(--t-surface);
-    border: none;
+    border: 1px solid var(--t-text);
     font-family: inherit;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     margin-top: 12px;
-    transition: background 200ms, color 200ms;
-    letter-spacing: .02em;
+    letter-spacing: .08em;
+    text-transform: uppercase;
   }
   .bu-submit:hover:not(:disabled) {
     background: var(--t-picked, #D22630);
+    border-color: var(--t-picked, #D22630);
     color: #fff;
   }
   .bu-submit:disabled { opacity: .6; cursor: not-allowed; }
@@ -237,15 +188,14 @@ const STYLES = `
   .bu-alt-links a { text-decoration: none; color: var(--t-muted); }
   .bu-err {
     padding: 10px 12px;
-    border: 1px solid var(--t-accent);
-    border-left: 4px solid var(--t-accent);
+    border: 1px solid #D22630;
+    border-left: 4px solid #D22630;
     color: var(--t-text);
     font-size: 13px;
     margin-bottom: 16px;
     background: var(--t-surface);
   }
 
-  /* Footer */
   .bu-ftr {
     display: flex;
     gap: 24px;
@@ -253,13 +203,11 @@ const STYLES = `
     color: var(--t-muted);
     padding: 16px 64px;
     border-top: 1px solid var(--t-border);
-    background: var(--t-ftr-bg);
-    transition: background 200ms;
+    background: var(--t-surface);
   }
   .bu-ftr a { color: var(--t-muted); text-decoration: none; }
   .bu-ftr .spacer { flex: 1; }
 
-  /* Responsive */
   @media (max-width: 960px) {
     .bu-stage {
       grid-template-columns: 1fr;
@@ -277,25 +225,13 @@ export default function SignInClient() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [dark, setDark] = useState(false);
-  const [accentColor, setAccentColor] = useState<string | null>(null);
-  useEffect(() => {
-    setAccentColor(HAUSFARBEN[Math.floor(Math.random() * HAUSFARBEN.length)]);
-  }, []);
+  const [accentColor] = useState(
+    () => HAUSFARBEN[Math.floor(Math.random() * HAUSFARBEN.length)],
+  );
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const year = new Date().getFullYear();
-
-  useEffect(() => {
-    setDark(localStorage.getItem("bf-dark") === "1");
-  }, []);
-
-  function toggleDark() {
-    const next = !dark;
-    setDark(next);
-    localStorage.setItem("bf-dark", next ? "1" : "0");
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -323,65 +259,48 @@ export default function SignInClient() {
 
   const cssVars = {
     "--t-picked": accentColor,
-  } as React.CSSProperties;
+  } as CSSProperties;
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <div className={`bu-page${dark ? " dark" : ""}`} style={cssVars}>
-
-        {/* Header */}
+      <div className="bu-page" style={cssVars}>
         <header className="bu-hdr">
           <div className="bu-hdr-brand">
             <div className="bu-hdr-logo">
-              Bauhaus-Universität<br />Weimar
+              Bauhaus-Universitaet
+              <br />
+              Weimar
             </div>
             <div className="bu-hdr-title">
               <div className="t">Bauhaus Forms</div>
               <div className="s">University Communications</div>
             </div>
           </div>
-          <div className="bu-hdr-actions">
-            <button
-              className={`bu-dark-btn${dark ? " active" : ""}`}
-              aria-label="Dark mode"
-              title="Dark mode"
-              onClick={toggleDark}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-              </svg>
-            </button>
-          </div>
         </header>
 
-        {/* Stage */}
         <main className="bu-stage">
-          {/* Left: typographic hero */}
           <div className="bu-hero">
             <div>
-              <p className="bu-eyebrow">{year} · Sign in</p>
+              <p className="bu-eyebrow">{year} | Sign in</p>
               <hr className="bu-rule" />
               <p className="bu-display">
                 <span>Sign</span>
-                <span className="accent" style={{ color: accentColor }}>in.</span>
+                <span className="accent" style={{ color: accentColor }}>
+                  in.
+                </span>
               </p>
-              <p className="bu-lede">
-                »Bauhaus Forms« — Workflow system of the Bauhaus-Universität Weimar.
-              </p>
+              <p className="bu-lede">Bauhaus Forms | Workflow system of the Bauhaus-Universitaet Weimar.</p>
             </div>
             <div className="bu-primitives">
-              <div className="bu-circle" />
-              <div className="bu-square" />
-              <svg width="44" height="44" viewBox="0 0 40 40">
-                <polygon points="20,2 38,36 2,36" fill="#FFD100" />
-              </svg>
+              <PrimitiveMark shape="circle" color="var(--haus-teal)" size={44} />
+              <PrimitiveMark shape="square" color="var(--haus-red)" size={44} />
+              <PrimitiveMark shape="triangle" color="var(--haus-yellow)" size={44} />
             </div>
           </div>
 
-          {/* Right: form card */}
           <form className="bu-card" onSubmit={handleSubmit}>
-            <p className="bu-form-eyebrow">Authentication · LDAP</p>
+            <p className="bu-form-eyebrow">Authentication | LDAP</p>
             <h1 className="bu-form-title">Access</h1>
 
             {error && <div className="bu-err">{error}</div>}
@@ -406,14 +325,14 @@ export default function SignInClient() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="........"
                 autoComplete="current-password"
                 required
               />
             </div>
 
             <button type="submit" className="bu-submit" disabled={pending}>
-              {pending ? "Signing in…" : "Sign in →"}
+              {pending ? "Signing in..." : "Sign in"}
             </button>
 
             <div className="bu-alt-links">
@@ -422,15 +341,13 @@ export default function SignInClient() {
           </form>
         </main>
 
-        {/* Footer */}
         <footer className="bu-ftr">
-          <span>Bauhaus-Universität Weimar · University Communications</span>
+          <span>Bauhaus-Universitaet Weimar | University Communications</span>
           <span className="spacer" />
           <a href="#">Imprint</a>
           <a href="#">Privacy</a>
           <a href="#">Accessibility</a>
         </footer>
-
       </div>
     </>
   );

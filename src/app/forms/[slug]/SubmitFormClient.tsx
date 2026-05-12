@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
 
 const FormRenderer = dynamic(
   () => import("@/components/form-renderer/FormRenderer").then((m) => ({ default: m.FormRenderer })),
-  { ssr: false, loading: () => <div className="border border-[var(--line-strong)] bg-white p-8 text-sm text-[var(--muted)]">Loading form…</div> },
+  {
+    ssr: false,
+    loading: () => <div className="bf-panel p-8 text-sm text-[var(--muted-strong)]">Loading form...</div>,
+  },
 );
 import { mutationHeaders } from "@/lib/mutation-headers";
 
@@ -75,7 +79,6 @@ export default function SubmitFormClient({
       } catch {
         detail = ` (HTTP ${response.status})`;
       }
-      console.error("[SubmitForm] API error:", response.status, detail);
       setState("error");
       setMessage(`The submission could not be saved.${detail}`);
       return;
@@ -90,8 +93,8 @@ export default function SubmitFormClient({
       options?.saveAsDraft
         ? "Draft saved. Redirecting to the case file..."
         : submissionId
-        ? "Submission updated. Redirecting back to the case file..."
-        : "Submission received. Redirecting to the case file...",
+          ? "Submission updated. Redirecting back to the case file..."
+          : "Submission received. Redirecting to the case file...",
     );
 
     setTimeout(() => {
@@ -107,107 +110,45 @@ export default function SubmitFormClient({
   const canSaveDraft = !submissionId || existingStatus === "draft";
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      <header style={{ marginBottom: 8 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 40,
-            alignItems: "end",
-          }}
-        >
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
+      <header className="bf-panel px-6 py-6">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: ".12em",
-                textTransform: "uppercase",
-                color: "var(--ink)",
-              }}
-            >
-              {submissionId ? "Edit submission" : "Public form"}
-            </div>
-            <div
-              style={{
-                height: 2,
-                background: "var(--ink)",
-                margin: "12px 0 16px",
-                width: 48,
-              }}
-            />
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "clamp(32px, 4vw, 56px)",
-                fontWeight: 800,
-                lineHeight: 0.9,
-                letterSpacing: "-.03em",
-                color: "var(--ink)",
-              }}
-            >
+            <p className="bf-eyebrow">{submissionId ? "Edit submission" : "Published form"}</p>
+            <div className="bf-rule mt-3" />
+            <h1 className="mt-5 text-[clamp(38px,6vw,72px)] font-extrabold leading-[0.9]">
               {form.title}
-              <span style={{ color: "var(--accent)" }}>.</span>
+              <span className="text-[var(--accent)]">.</span>
             </h1>
-            <p
-              style={{
-                fontSize: 14,
-                lineHeight: 1.5,
-                marginTop: 14,
-                color: "var(--muted)",
-              }}
-            >
+            <p className="mt-4 max-w-[48ch] text-sm leading-7 text-[var(--muted-strong)]">
               {submissionId
                 ? `This ${existingStatus?.replaceAll("_", " ")} submission is open for edits. Submitting here will ${existingStatus === "draft" ? "launch" : "resume"} the workflow.`
                 : "Complete the published form below to start the approval workflow."}
             </p>
           </div>
-          <Link
-            href="/submissions"
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              padding: "12px 20px",
-              background: "var(--panel)",
-              color: "var(--ink)",
-              border: "1px solid var(--line-strong)",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            ← Back
-          </Link>
+
+          <div className="flex flex-col items-start gap-5 lg:items-end">
+            <div className="bf-primitive-row">
+              <PrimitiveMark shape="circle" color="var(--haus-teal)" size={34} />
+              <PrimitiveMark shape="square" color="var(--haus-red)" size={34} />
+              <PrimitiveMark shape="triangle" color="var(--haus-yellow)" size={34} />
+            </div>
+            <Link href="/submissions" className="bf-btn">
+              Back
+            </Link>
+          </div>
         </div>
       </header>
 
       {message ? (
-        <div
-          className={`border px-5 py-4 text-sm ${
-            state === "error"
-              ? "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]"
-          }`}
-        >
-          {message}
-        </div>
+        <div className={`bf-alert ${state === "error" ? "bf-alert-error" : "bf-alert-success"}`}>{message}</div>
       ) : null}
 
-      <FormRenderer
-        schema={form.schema}
-        initialData={initialData}
-        onChange={setLatestData}
-        onSubmit={(data) => submit(data)}
-      />
+      <FormRenderer schema={form.schema} initialData={initialData} onChange={setLatestData} onSubmit={(data) => submit(data)} />
 
       {canSaveDraft ? (
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={saveDraft}
-            disabled={state === "saving"}
-            className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
-          >
+          <button type="button" onClick={saveDraft} disabled={state === "saving"} className="bf-btn disabled:opacity-60">
             Save draft
           </button>
         </div>

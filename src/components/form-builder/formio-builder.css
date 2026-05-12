@@ -2492,3 +2492,59 @@ span[role=link] {
   color: #000;
   box-shadow: none;
 }
+
+/* Shared Bauhaus app alignment */
+.form-builder-frame .panel,
+.form-builder-frame .card,
+.form-builder-frame .builder-sidebar .formcomponent,
+.form-builder-frame .drag-container {
+  border-color: #000;
+  background: var(--panel, #fff);
+}
+
+.form-builder-frame .panel-heading,
+.form-builder-frame .card-header {
+  border-bottom-color: #000;
+  background: var(--canvas-soft, #f6f1ea);
+}
+
+.form-builder-frame .builder-sidebar_search:focus,
+.form-builder-frame .form-control:focus,
+.form-builder-frame .form-select:focus,
+.form-builder-frame input:focus,
+.form-builder-frame textarea:focus,
+.form-builder-frame select:focus {
+  border-color: var(--focus-ring, #00677f);
+}
+
+.form-builder-frame .builder-group-button,
+.form-builder-frame .builder-sidebar .btn-light,
+.form-builder-frame .builder-sidebar .btn-secondary,
+.form-builder-frame .btn-light,
+.form-builder-frame .btn-secondary,
+.form-builder-frame .btn-default {
+  border-color: #000;
+  background: var(--panel, #fff);
+  color: #000;
+}
+
+.form-builder-frame .btn-primary,
+.form-builder-frame .btn-success {
+  border-color: #000;
+  background: #000;
+}
+
+.form-builder-frame .btn-primary:hover,
+.form-builder-frame .btn-success:hover {
+  border-color: var(--accent, #d22630);
+  background: var(--accent, #d22630);
+}
+
+.form-builder-frame .builder-component-selected {
+  border-color: var(--accent, #d22630);
+  background: rgba(210, 38, 48, 0.08);
+}
+
+.form-builder-frame .formio-drop-zone.enabled {
+  background: var(--accent, #d22630);
+}

@@ -2116,3 +2116,57 @@ span[role=link] {
   font-weight: 600;
   color: #000;
 }
+
+.form-renderer-frame .form-control,
+.form-renderer-frame .form-select,
+.form-renderer-frame input[type="text"],
+.form-renderer-frame input[type="email"],
+.form-renderer-frame input[type="number"],
+.form-renderer-frame input[type="password"],
+.form-renderer-frame input[type="date"],
+.form-renderer-frame input[type="datetime-local"],
+.form-renderer-frame input[type="tel"],
+.form-renderer-frame input[type="url"],
+.form-renderer-frame textarea,
+.form-renderer-frame select,
+.form-renderer-frame .input-group-text,
+.form-renderer-frame .choices__inner,
+.form-renderer-frame .choices__list--dropdown,
+.form-renderer-frame .choices__list[aria-expanded],
+.form-renderer-frame .card,
+.form-renderer-frame .panel {
+  border-color: #000;
+  background: var(--panel, #fff);
+}
+
+.form-renderer-frame .form-control:focus,
+.form-renderer-frame .form-select:focus,
+.form-renderer-frame input:focus,
+.form-renderer-frame textarea:focus,
+.form-renderer-frame select:focus {
+  border-color: var(--focus-ring, #00677f);
+}
+
+.form-renderer-frame .btn-primary {
+  border-color: #000;
+  background: #000;
+}
+
+.form-renderer-frame .btn-primary:hover {
+  border-color: var(--accent, #d22630);
+  background: var(--accent, #d22630);
+}
+
+.form-renderer-frame .btn-secondary,
+.form-renderer-frame .btn-default,
+.form-renderer-frame .btn-light {
+  border-color: #000;
+  background: var(--panel, #fff);
+  color: #000;
+}
+
+.form-renderer-frame .card-header,
+.form-renderer-frame .panel-heading {
+  border-bottom-color: #000;
+  background: var(--canvas-soft, #f6f1ea);
+}
