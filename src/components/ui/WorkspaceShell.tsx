@@ -25,6 +25,7 @@ export function WorkspaceShell({
       style={{
         display: "grid",
         gridTemplateColumns: "240px 1fr",
+        gridTemplateRows: "auto 1fr",
         minHeight: "100vh",
         background: "var(--canvas)",
         color: "var(--ink)",
