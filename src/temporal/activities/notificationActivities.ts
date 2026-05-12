@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY
@@ -50,7 +51,7 @@ export async function sendNotification(input: {
         `,
       });
     } catch (error) {
-      console.error("Failed to send email notification.", error);
+      logger.error({ err: error }, "Failed to send email notification");
     }
   }
 }

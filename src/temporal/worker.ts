@@ -3,6 +3,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import * as approvalActivities from "./activities/approvalActivities";
 import * as notificationActivities from "./activities/notificationActivities";
 import * as orgActivities from "./activities/orgActivities";
+import { logger } from "@/lib/logger";
 
 try {
   loadEnvFile();
@@ -33,6 +34,6 @@ async function run() {
 }
 
 run().catch((err) => {
-  console.error(err);
+  logger.error({ err }, "Temporal worker crashed");
   process.exit(1);
 });
