@@ -1,5 +1,6 @@
 import { OrgAdapter } from "@/domain/org";
 import { db } from "@/lib/db";
+import { sendNotification } from "@/temporal/activities/notificationActivities";
 
 export async function syncOrg(adapter: OrgAdapter) {
   const [externalUsers, externalUnits, externalMemberships] =
@@ -33,7 +34,19 @@ export async function syncOrg(adapter: OrgAdapter) {
     });
   }
 
+  const nowDeactivated: string[] = [];
+
   if (syncedUserExternalIds.size > 0) {
+    const toDeactivate = await db.user.findMany({
+      where: {
+        externalId: { notIn: Array.from(syncedUserExternalIds) },
+        deactivatedAt: null,
+      },
+      select: { id: true },
+    });
+
+    nowDeactivated.push(...toDeactivate.map((u) => u.id));
+
     await db.user.updateMany({
       where: {
         externalId: {
@@ -45,6 +58,8 @@ export async function syncOrg(adapter: OrgAdapter) {
       },
     });
   }
+
+  await flagTasksForDeactivatedUsers(nowDeactivated);
 
   for (const unit of externalUnits) {
     await db.orgUnit.upsert({
@@ -171,6 +186,40 @@ export async function syncOrg(adapter: OrgAdapter) {
           in: staleMembershipIds,
         },
       },
+    });
+  }
+}
+
+async function flagTasksForDeactivatedUsers(userIds: string[]) {
+  if (userIds.length === 0) return;
+
+  const stuckTasks = await db.approvalTask.findMany({
+    where: {
+      assignedToId: { in: userIds },
+      status: "pending",
+    },
+    select: {
+      id: true,
+      submissionId: true,
+      assignedToId: true,
+    },
+  });
+
+  if (stuckTasks.length === 0) return;
+
+  const admins = await db.user.findMany({
+    where: { roles: { has: "admin" }, deactivatedAt: null },
+    select: { id: true },
+  });
+
+  for (const admin of admins) {
+    await sendNotification({
+      userId: admin.id,
+      type: "deactivated_user_tasks",
+      title: "Open tasks need reassignment",
+      body: `${stuckTasks.length} approval task(s) are assigned to newly deactivated users and need reassignment.`,
+      linkUrl: "/admin/submissions",
+      email: true,
     });
   }
 }
