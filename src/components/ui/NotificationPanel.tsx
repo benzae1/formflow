@@ -25,12 +25,41 @@ export function NotificationPanel() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="border border-[var(--line-strong)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
+        style={{
+          background: "transparent",
+          border: "none",
+          fontFamily: "inherit",
+          cursor: "pointer",
+          color: "var(--ink)",
+          padding: "0 18px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 13,
+          fontWeight: 600,
+          height: "100%",
+        }}
       >
+        {count > 0 && (
+          <span
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              background: "#D22630",
+            }}
+          />
+        )}
         Alerts
         {count > 0 && (
-          <span className="ml-2 bg-[var(--danger)] px-2 py-0.5 text-[11px] font-bold text-white">
-            {count}
+          <span
+            style={{
+              color: "var(--muted)",
+              fontVariantNumeric: "tabular-nums",
+              marginLeft: 2,
+            }}
+          >
+            ({count})
           </span>
         )}
       </button>

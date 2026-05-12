@@ -3,75 +3,58 @@ import { AppRole } from "@/domain/roles";
 export type NavItem = {
   href: string;
   label: string;
-  description: string;
+  exact?: boolean;
 };
 
-export function getWorkspaceNavigation(roles: AppRole[]) {
+export type NavGroup = {
+  group: string;
+  items: NavItem[];
+};
+
+export function getWorkspaceNavigation(roles: AppRole[]): NavGroup[] {
   const isAdmin = roles.includes("admin");
   const isCompliance = roles.includes("compliance");
   const isApprover = roles.includes("approver");
 
-  const items: NavItem[] = [];
-
-  items.push({
-    href: "/submissions",
-    label: "My work",
-    description: "Forms and submissions",
-  });
+  const workItems: NavItem[] = [
+    { href: "/submissions", label: "My work" },
+  ];
 
   if (isApprover || isAdmin) {
-    items.push({
-      href: "/inbox",
-      label: "Inbox",
-      description: "Approval decisions",
-    });
+    workItems.push({ href: "/inbox", label: "Inbox" });
   }
 
+  const adminItems: NavItem[] = [];
+
   if (isAdmin || isCompliance) {
-    items.push({
+    adminItems.push({
       href: "/admin",
-      label: isCompliance && !isAdmin ? "Oversight" : "Admin",
-      description: "Operations dashboard",
+      label: isCompliance && !isAdmin ? "Oversight" : "Overview",
+      exact: true,
     });
   }
 
   if (isAdmin) {
-    items.push(
-      {
-        href: "/admin/forms",
-        label: "Forms",
-        description: "Create and publish",
-      },
-      {
-        href: "/admin/workflows",
-        label: "Workflows",
-        description: "Routing and stages",
-      },
-      {
-        href: "/admin/submissions",
-        label: "Global queue",
-        description: "All submissions",
-      },
-      {
-        href: "/admin/users",
-        label: "Users",
-        description: "Directory and roles",
-      },
-      {
-        href: "/admin/org",
-        label: "Org sync",
-        description: "Structure and cache",
-      },
+    adminItems.push(
+      { href: "/admin/forms", label: "Forms" },
+      { href: "/admin/workflows", label: "Workflows" },
+      { href: "/admin/submissions", label: "Global queue" },
+      { href: "/admin/users", label: "Users" },
+      { href: "/admin/org", label: "Org sync" },
     );
   }
 
   if (isAdmin || isCompliance) {
-    items.push({
-      href: "/admin/audit-log",
-      label: "Audit log",
-      description: "Sensitive access trail",
-    });
+    adminItems.push({ href: "/admin/audit-log", label: "Audit log" });
   }
 
-  return items;
+  const groups: NavGroup[] = [
+    { group: "Work", items: workItems },
+  ];
+
+  if (adminItems.length > 0) {
+    groups.push({ group: "Administration", items: adminItems });
+  }
+
+  return groups;
 }

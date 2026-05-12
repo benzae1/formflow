@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { AppRole } from "@/domain/roles";
-import { getRoleLabel } from "@/lib/ui";
 import { getWorkspaceNavigation } from "@/lib/navigation";
 import { NotificationPanel } from "./NotificationPanel";
 import { SignOutButton } from "./SignOutButton";
+import { SidebarNav } from "./SidebarNav";
 
 type WorkspaceUser = {
   id: string;
@@ -22,57 +21,118 @@ export function WorkspaceShell({
   const navigation = getWorkspaceNavigation(user.roles);
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]" style={{ fontFamily: "var(--font-sans)" }}>
-      {/* Top header — same language as sign-in */}
-      <header className="flex items-stretch justify-between border-b border-[var(--line-strong)] bg-white">
-        <div className="flex items-stretch">
-          <div className="bg-black px-6 py-3 text-white text-[12px] font-bold leading-tight whitespace-nowrap">
-            Bauhaus-Universität<br />Weimar
-          </div>
-          <div className="flex flex-col justify-center border-l border-[var(--line)] px-5">
-            <span className="text-[15px] font-bold">Bauhaus Forms</span>
-            <span className="text-[11px] text-[var(--muted)]">University Communications</span>
-          </div>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "240px 1fr",
+        minHeight: "100vh",
+        background: "var(--canvas)",
+        color: "var(--ink)",
+        fontFamily: "var(--font-sans)",
+      }}
+    >
+      {/* ── Header ── */}
+      <header
+        style={{
+          gridColumn: "1 / -1",
+          display: "grid",
+          gridTemplateColumns: "240px 1fr auto",
+          alignItems: "stretch",
+          borderBottom: "1px solid var(--line-strong)",
+          background: "var(--panel)",
+        }}
+      >
+        {/* Logo block */}
+        <div
+          style={{
+            background: "#000",
+            color: "#fff",
+            padding: "14px 24px",
+            fontWeight: 700,
+            fontSize: 13,
+            lineHeight: 1.1,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          Bauhaus-Universität
+          <br />
+          Weimar
         </div>
-        <div className="flex items-stretch">
-          <div className="flex items-center border-l border-[var(--line)] px-5 text-[13px] text-[var(--muted)]">
-            <span>{user.name ?? user.email}</span>
-            <span className="ml-2 text-[10px] font-bold uppercase tracking-[.08em] text-[var(--muted)]">
-              ({user.roles.map((r) => getRoleLabel(r)).join(", ")})
+
+        {/* App title */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            padding: "0 24px",
+            borderRight: "1px solid var(--line)",
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 700 }}>Bauhaus Forms</span>
+          <span style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>
+            University Communications
+          </span>
+        </div>
+
+        {/* Right controls */}
+        <div style={{ display: "flex", alignItems: "stretch" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              padding: "0 20px",
+              borderLeft: "1px solid var(--line)",
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 700 }}>
+              {user.name ?? user.email}
             </span>
           </div>
-          <div className="flex items-center border-l border-[var(--line)] px-4">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              borderLeft: "1px solid var(--line)",
+              padding: "0 4px",
+            }}
+          >
             <NotificationPanel />
           </div>
-          <div className="flex items-center border-l border-[var(--line)] px-4">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              borderLeft: "1px solid var(--line)",
+              padding: "0 4px",
+            }}
+          >
             <SignOutButton />
           </div>
         </div>
       </header>
 
-      {/* Body: sidebar + content */}
-      <div className="flex" style={{ minHeight: "calc(100vh - 53px)" }}>
-        <aside className="w-52 shrink-0 border-r border-[var(--line-strong)] bg-white flex flex-col">
-          <nav className="flex-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block border-b border-[var(--line)] px-6 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
-              >
-                {item.label}
-                <span className="block text-[11px] font-normal text-[var(--muted)] mt-0.5">
-                  {item.description}
-                </span>
-              </Link>
-            ))}
-          </nav>
-        </aside>
+      {/* ── Sidebar ── */}
+      <aside
+        style={{
+          background: "var(--panel)",
+          borderRight: "1px solid var(--line-strong)",
+        }}
+      >
+        <SidebarNav groups={navigation} />
+      </aside>
 
-        <main className="flex-1 min-w-0 p-8">
-          {children}
-        </main>
-      </div>
+      {/* ── Main content ── */}
+      <main
+        style={{
+          padding: "48px 56px 80px",
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

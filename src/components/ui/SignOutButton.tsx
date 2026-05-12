@@ -7,7 +7,21 @@ export function SignOutButton() {
     <button
       type="button"
       onClick={() => signOut({ callbackUrl: "/" })}
-      className="border border-[var(--line-strong)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]"
+      style={{
+        background: "transparent",
+        border: "none",
+        fontFamily: "inherit",
+        cursor: "pointer",
+        color: "var(--ink)",
+        padding: "0 18px",
+        display: "flex",
+        alignItems: "center",
+        fontSize: 13,
+        fontWeight: 600,
+        letterSpacing: ".08em",
+        textTransform: "uppercase",
+        height: "100%",
+      }}
     >
       Sign out
     </button>
