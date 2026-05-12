@@ -138,25 +138,37 @@ export default async function SubmissionsPage({
             </div>
           ) : (
             <div className="mt-5 bf-list">
-              {submissions.map((submission) => (
-                <Link key={submission.id} href={`/submissions/${submission.id}`} className="bf-link-card">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <p className="bf-eyebrow">{submission.form.slug}</p>
-                      <h3 className="mt-3 text-[28px] font-extrabold leading-none">{submission.form.title}</h3>
-                      <p className="mt-2 text-sm text-[var(--muted-strong)]">Updated {formatDateTime(submission.updatedAt)}</p>
+              {submissions.map((submission) => {
+                const isDraft = submission.status === "draft";
+                const href = isDraft
+                  ? `/forms/${submission.form.slug}?submissionId=${submission.id}`
+                  : `/submissions/${submission.id}`;
+
+                return (
+                  <Link key={submission.id} href={href} className="bf-link-card">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="bf-eyebrow">{submission.form.slug}</p>
+                        <h3 className="mt-3 text-[28px] font-extrabold leading-none">{submission.form.title}</h3>
+                        <p className="mt-2 text-sm text-[var(--muted-strong)]">Updated {formatDateTime(submission.updatedAt)}</p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {isDraft && (
+                          <span className="bf-btn bf-btn-primary text-sm px-3 py-1">Resume draft</span>
+                        )}
+                        <StatusBadge status={submission.status} />
+                      </div>
                     </div>
 
-                    <StatusBadge status={submission.status} />
-                  </div>
-
-                  {submission.approvalTasks[0]?.note ? (
-                    <div className="bf-panel-muted mt-4 px-4 py-3 text-sm leading-7 text-[var(--muted-strong)]">
-                      Latest note: {submission.approvalTasks[0].note}
-                    </div>
-                  ) : null}
-                </Link>
-              ))}
+                    {submission.approvalTasks[0]?.note ? (
+                      <div className="bf-panel-muted mt-4 px-4 py-3 text-sm leading-7 text-[var(--muted-strong)]">
+                        Latest note: {submission.approvalTasks[0].note}
+                      </div>
+                    ) : null}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
