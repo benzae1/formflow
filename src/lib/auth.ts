@@ -5,6 +5,9 @@ import { db } from "./db";
 import { AppRole } from "@/domain/roles";
 import { authenticateLdapUser, isLdapConfigured } from "./ldap";
 
+const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
+const REFRESH_TOKEN_TTL_SECONDS = 8 * 60 * 60;
+
 type SessionUser = {
   id: string;
   email: string;
@@ -18,7 +21,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 15 * 60,
+    maxAge: REFRESH_TOKEN_TTL_SECONDS,
   },
   providers: [
     Credentials({
@@ -84,14 +87,31 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      const now = Math.floor(Date.now() / 1000);
+
       if (user) {
         token.id = (user as SessionUser).id;
         token.roles = (user as SessionUser).roles;
+        token.accessTokenExpiry = now + ACCESS_TOKEN_TTL_SECONDS;
+        token.refreshTokenExpiry = now + REFRESH_TOKEN_TTL_SECONDS;
+        return token;
       }
 
-      return token;
+      // Refresh token still valid — slide the access token window.
+      if (now < (token.refreshTokenExpiry as number)) {
+        if (now > (token.accessTokenExpiry as number)) {
+          token.accessTokenExpiry = now + ACCESS_TOKEN_TTL_SECONDS;
+        }
+        return token;
+      }
+
+      // Refresh token expired — force re-login.
+      return { ...token, error: "RefreshTokenExpired" };
     },
     async session({ session, token }) {
+      if ((token as { error?: string }).error === "RefreshTokenExpired") {
+        (session as { error?: string }).error = "RefreshTokenExpired";
+      }
       (session.user as SessionUser).id = token.id as string;
       (session.user as SessionUser).roles = token.roles as AppRole[];
       return session;
