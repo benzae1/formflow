@@ -29,6 +29,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npx tsc --noEmit
 
   build:
@@ -49,6 +50,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run build
 
   integration:
@@ -83,5 +85,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run test:integration

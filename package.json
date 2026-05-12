@@ -6,8 +6,10 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
+    "postinstall": "npm run prisma:generate",
     "dev": "next dev",
     "worker": "tsx src/temporal/worker.ts",
+    "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "build": "next build",
