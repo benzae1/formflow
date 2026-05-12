@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { db } from "../../src/lib/db";
-import { GET, POST } from "../../src/app/api/submissions/route";
+import type { WorkflowDefinition } from "../../src/domain/workflow";
 import {
   createApprovalTaskFixture,
   createFormFixture,
@@ -15,9 +15,61 @@ import {
 import { parseJson } from "../support/response";
 import { setMockSession } from "../support/vitest.setup";
 
+const startWorkflowMock = vi.fn();
+
+type WorkflowStartInput = {
+  submissionId: string;
+  workflowDefinition: WorkflowDefinition;
+};
+
+type WorkflowStartOptions = {
+  args: [WorkflowStartInput];
+};
+
+vi.mock("@/lib/temporal", () => ({
+  getTemporalClient: async () => ({
+    workflow: {
+      start: startWorkflowMock,
+    },
+  }),
+}));
+
+import { GET, POST } from "../../src/app/api/submissions/route";
+
 describe("submissions route", () => {
   beforeEach(async () => {
     await resetDatabase();
+    startWorkflowMock.mockReset();
+    startWorkflowMock.mockImplementation(
+      async (_workflow: unknown, options: WorkflowStartOptions) => {
+        const input = options.args[0];
+        const firstApprovalStage = input.workflowDefinition.find(
+          (stage) =>
+            stage.type === "approval" &&
+            stage.assignTo?.type === "user" &&
+            typeof stage.assignTo.value === "string",
+        );
+
+        setTimeout(async () => {
+          await db.submission.update({
+            where: { id: input.submissionId },
+            data: { status: "in_review" },
+          });
+
+          if (!firstApprovalStage || firstApprovalStage.assignTo.type !== "user") {
+            return;
+          }
+
+          await db.approvalTask.create({
+            data: {
+              submissionId: input.submissionId,
+              stageIndex: 0,
+              assignedToId: firstApprovalStage.assignTo.value,
+            },
+          });
+        }, 0);
+      },
+    );
   });
 
   test("published forms create submitted submissions, start workflows, and assign approvers", async () => {
