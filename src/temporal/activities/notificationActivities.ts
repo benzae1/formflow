@@ -37,7 +37,7 @@ export async function sendNotification(input: {
     try {
       const linkUrl = toAbsoluteAppUrl(input.linkUrl);
       await resend.emails.send({
-        from: "FormFlow <notifications@example.com>",
+        from: process.env.EMAIL_FROM_ADDRESS ?? "FormFlow <notifications@example.com>",
         to: user.email,
         subject: input.title,
         html: `
