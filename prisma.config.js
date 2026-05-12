@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { loadEnvFile } = require("node:process");
-const { defineConfig, env } = require("prisma/config");
+const { defineConfig } = require("prisma/config");
 
 try {
   loadEnvFile();
@@ -10,10 +10,14 @@ try {
   }
 }
 
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://formflow:formflow@localhost:5432/formflow";
+
 module.exports = defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: env("DATABASE_URL"),
+    url: databaseUrl,
   },
   migrations: {
     path: "prisma/migrations",
