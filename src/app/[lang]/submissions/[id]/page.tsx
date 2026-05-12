@@ -11,18 +11,19 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmissionActionPanel } from "@/components/submissions/SubmissionActionPanel";
 import { SubmissionFormView } from "@/components/submissions/SubmissionFormView";
-import { formatDateTime, summarizeWorkflow } from "@/lib/ui";
-import { defaultLocale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
+import { formatDateTime, getStatusLabel, summarizeWorkflow } from "@/lib/ui";
+import { getLocaleContext } from "@/lib/i18n/server";
+import { localizePath } from "@/lib/i18n/routing";
+import { resolveFormTitle } from "@/lib/form-translations";
 
-export default async function SubmissionDetailPage({
+export default async function LocalizedSubmissionDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ lang: string; id: string }>;
 }) {
-  const dictionary = await getDictionary(defaultLocale);
-  const user = await requirePageUser(defaultLocale);
-  const { id } = await params;
+  const { lang, id } = await params;
+  const { locale, dictionary } = await getLocaleContext(lang);
+  const user = await requirePageUser(locale);
 
   const submission = await getVisibleSubmissionById({
     submissionId: id,
@@ -67,26 +68,26 @@ export default async function SubmissionDetailPage({
     ? summarizeWorkflow(submission.workflowDefinition as never)
     : submission.form.workflow
       ? summarizeWorkflow(submission.form.workflow.definition as never)
-    : [];
+      : [];
 
   return (
     <div className="bf-stack">
       <PageHeader
-        eyebrow="Submission detail"
-        title={submission.form.title}
-        description="A shared case file for submitters, approvers, administrators, and compliance reviewers."
+        eyebrow={dictionary.submissions.detailEyebrow}
+        title={resolveFormTitle(submission.form, locale)}
+        description={dictionary.submissions.detailDescription}
       >
-        <StatusBadge status={submission.status} />
+        <StatusBadge status={submission.status} label={getStatusLabel(submission.status, locale)} />
       </PageHeader>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <section className="bf-panel p-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {[
-              ["Form version", String(submission.formVersion)],
-              ["Submitted by", submission.submittedBy.name ?? submission.submittedBy.email],
-              ["Created", formatDateTime(submission.createdAt)],
-              ["Updated", formatDateTime(submission.updatedAt)],
+              [dictionary.submissions.formVersion, String(submission.formVersion)],
+              [dictionary.submissions.submittedBy, submission.submittedBy.name ?? submission.submittedBy.email],
+              [dictionary.submissions.created, formatDateTime(submission.createdAt, locale)],
+              [dictionary.submissions.updated, formatDateTime(submission.updatedAt, locale)],
             ].map(([label, value]) => (
               <article key={label} className="bf-panel-muted px-4 py-4">
                 <p className="bf-kicker">{label}</p>
@@ -96,11 +97,11 @@ export default async function SubmissionDetailPage({
           </div>
 
           <div className="mt-6">
-            <p className="bf-eyebrow">Submitted answers</p>
-            <h2 className="mt-3 text-[32px] font-extrabold leading-none">Response snapshot</h2>
+            <p className="bf-eyebrow">{dictionary.submissions.submittedAnswers}</p>
+            <h2 className="mt-3 text-[32px] font-extrabold leading-none">{dictionary.submissions.responseSnapshot}</h2>
             <div className="mt-4">
               <SubmissionFormView
-                locale={defaultLocale}
+                locale={locale}
                 dictionary={dictionary}
                 schema={getSubmissionSchema({
                   ...submission,
@@ -116,16 +117,18 @@ export default async function SubmissionDetailPage({
 
           {submission.childSubmissions.length > 0 ? (
             <div className="mt-6">
-              <p className="bf-eyebrow">Follow-up work</p>
+              <p className="bf-eyebrow">{dictionary.submissions.followUpWork}</p>
               <div className="mt-3 bf-list">
                 {submission.childSubmissions.map((child) => (
-                  <Link key={child.id} href={`/submissions/${child.id}`} className="bf-link-card">
+                  <Link key={child.id} href={localizePath(locale, `/submissions/${child.id}`)} className="bf-link-card">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold">{child.form.title}</p>
-                        <p className="text-sm text-[var(--muted-strong)]">Child submission {child.id}</p>
+                        <p className="text-sm font-semibold">{resolveFormTitle(child.form, locale)}</p>
+                        <p className="text-sm text-[var(--muted-strong)]">
+                          {dictionary.submissions.childSubmission} {child.id}
+                        </p>
                       </div>
-                      <StatusBadge status={child.status} />
+                      <StatusBadge status={child.status} label={getStatusLabel(child.status, locale)} />
                     </div>
                   </Link>
                 ))}
@@ -136,7 +139,7 @@ export default async function SubmissionDetailPage({
 
         <div className="bf-stack">
           <SubmissionActionPanel
-            locale={defaultLocale}
+            locale={locale}
             dictionary={dictionary}
             submissionId={submission.id}
             formSlug={submission.form.slug}
@@ -156,11 +159,11 @@ export default async function SubmissionDetailPage({
           />
 
           <section className="bf-panel p-6">
-            <p className="bf-eyebrow">Approval timeline</p>
+            <p className="bf-eyebrow">{dictionary.submissions.approvalTimeline}</p>
             <div className="mt-4 bf-list">
               {submission.approvalTasks.length === 0 ? (
                 <p className="text-sm leading-7 text-[var(--muted-strong)]">
-                  No approval tasks have been created yet.
+                  {dictionary.submissions.noApprovalTasks}
                 </p>
               ) : (
                 submission.approvalTasks.map((task) => (
@@ -170,10 +173,10 @@ export default async function SubmissionDetailPage({
                         <p className="bf-kicker">Stage {task.stageIndex + 1}</p>
                         <p className="mt-2 text-sm font-semibold">{task.assignedTo.name ?? task.assignedTo.email}</p>
                         <p className="mt-1 text-sm text-[var(--muted-strong)]">
-                          Due {formatDateTime(task.dueAt)}
+                          {dictionary.submissions.due} {formatDateTime(task.dueAt, locale)}
                         </p>
                       </div>
-                      <StatusBadge status={task.status} />
+                      <StatusBadge status={task.status} label={getStatusLabel(task.status, locale)} />
                     </div>
                     {task.note ? (
                       <p className="bf-panel mt-3 px-3 py-3 text-sm leading-7 text-[var(--muted-strong)]">
@@ -187,11 +190,11 @@ export default async function SubmissionDetailPage({
           </section>
 
           <section className="bf-panel p-6">
-            <p className="bf-eyebrow">Workflow context</p>
+            <p className="bf-eyebrow">{dictionary.submissions.workflowContext}</p>
             <div className="mt-4 bf-list">
               {workflowSummary.length === 0 ? (
                 <p className="text-sm leading-7 text-[var(--muted-strong)]">
-                  No workflow summary is available for this form.
+                  {dictionary.submissions.noWorkflowSummary}
                 </p>
               ) : (
                 workflowSummary.map((stage) => (
@@ -203,7 +206,7 @@ export default async function SubmissionDetailPage({
                           {stage.description}
                         </p>
                       </div>
-                      <StatusBadge status={stage.type} />
+                      <StatusBadge status={stage.type} label={getStatusLabel(stage.type, locale)} />
                     </div>
                   </article>
                 ))

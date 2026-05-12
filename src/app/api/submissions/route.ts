@@ -9,10 +9,12 @@ import {
   presentSubmissionForUser,
 } from "@/lib/submissions";
 import { assertMutationRequest } from "@/lib/request-guard";
+import { getRequestLocale } from "@/lib/request-locale";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { getTemporalClient } from "@/lib/temporal";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
+import { resolveFormSchema } from "@/lib/form-translations";
 import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
 
 async function getVisibilityContext(userId: string, roles: string[]) {
@@ -82,6 +84,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     assertMutationRequest(req);
+    const locale = getRequestLocale(req);
     const user = await requireUser();
     const body = await req.json();
     const input = createSubmissionSchema.parse(body);
@@ -95,10 +98,8 @@ export async function POST(req: Request) {
       throw new ApiError("FORM_NOT_AVAILABLE", "Form is not available.", 404);
     }
 
-    const data = encryptSensitiveSubmissionData(
-      form.schema as unknown as FormioSchema,
-      input.data,
-    );
+    const localizedSchema = resolveFormSchema(form, locale);
+    const data = encryptSensitiveSubmissionData(localizedSchema as FormioSchema, input.data);
     const workflow = form.workflow;
 
     if (!input.saveAsDraft && !form.workflowId) {
@@ -113,7 +114,8 @@ export async function POST(req: Request) {
       data: {
         formId: form.id,
         formVersion: form.version,
-        formSchemaSnapshot: form.schema as Prisma.InputJsonValue,
+        formSchemaSnapshot: localizedSchema as Prisma.InputJsonValue,
+        submittedLocale: locale,
         submittedById: user.id,
         data: data as Prisma.InputJsonValue,
         status: "draft",

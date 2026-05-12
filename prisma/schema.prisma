@@ -75,6 +75,7 @@ model Form {
   slug          String          @unique
   title         String
   schema        Json
+  translations  Json?
   version       Int             @default(1)
   status        FormStatus      @default(draft)
   sensitivity   FormSensitivity @default(standard)
@@ -102,6 +103,7 @@ model FormVersion {
   form      Form     @relation(fields: [formId], references: [id])
   version   Int
   schema    Json
+  translations Json?
 
   createdAt DateTime @default(now())
 
@@ -130,6 +132,7 @@ model Submission {
 
   formVersion         Int
   formSchemaSnapshot  Json?
+  submittedLocale     String           @default("de")
   submittedById       String
   submittedBy         User             @relation(fields: [submittedById], references: [id])
 

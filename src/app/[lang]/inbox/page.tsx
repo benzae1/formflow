@@ -1,21 +1,23 @@
 import { db } from "@/lib/db";
 import { requirePageRole } from "@/lib/page-auth";
 import DelegationManager from "@/components/users/DelegationManager";
-import InboxClient from "./InboxClient";
-import { defaultLocale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
+import InboxClient from "@/app/inbox/InboxClient";
+import { getLocaleContext } from "@/lib/i18n/server";
 
 type SearchParams = Promise<{
   view?: string;
 }>;
 
-export default async function InboxPage({
+export default async function LocalizedInboxPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ lang: string }>;
   searchParams: SearchParams;
 }) {
-  const dictionary = await getDictionary(defaultLocale);
-  const user = await requirePageRole(["admin", "approver"], defaultLocale);
+  const { lang } = await params;
+  const { locale, dictionary } = await getLocaleContext(lang);
+  const user = await requirePageRole(["admin", "approver"], locale);
   const filters = await searchParams;
   const view = filters.view ?? "pending";
   const now = new Date();
@@ -101,10 +103,10 @@ export default async function InboxPage({
           email: delegate.email,
         }))}
         canManage
-        title="Coverage"
-        description="Set a delegate when you are away so new approval tasks route cleanly during that window."
+        title={dictionary.inbox.coverageTitle}
+        description={dictionary.inbox.coverageDescription}
       />
-      <InboxClient locale={defaultLocale} dictionary={dictionary} tasks={tasks} view={view} />
+      <InboxClient locale={locale} dictionary={dictionary} tasks={tasks} view={view} />
     </div>
   );
 }

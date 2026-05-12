@@ -8,6 +8,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import { formatDateTime } from "@/lib/ui";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { localizePath } from "@/lib/i18n/routing";
 
 type InboxTask = {
   id: string;
@@ -32,9 +35,13 @@ const tabs = [
 export default function InboxClient({
   tasks,
   view,
+  locale,
+  dictionary,
 }: {
   tasks: InboxTask[];
   view: string;
+  locale: Locale;
+  dictionary: Dictionary;
 }) {
   const searchParams = useSearchParams();
   const currentParams = useMemo(
@@ -45,9 +52,13 @@ export default function InboxClient({
   return (
     <div className="bf-stack">
       <PageHeader
-        eyebrow="Approver workspace"
-        title="Approval inbox"
-        description="Triage the queue, jump into case detail, and only commit a decision when you have the context you need."
+        eyebrow={locale === "de" ? "Freigabe-Arbeitsbereich" : "Approver workspace"}
+        title={locale === "de" ? "Freigabe-Postfach" : "Approval inbox"}
+        description={
+          locale === "de"
+            ? "Die Warteschlange sichten, in Falldetails springen und Entscheidungen erst mit vollem Kontext treffen."
+            : "Triage the queue, jump into case detail, and only commit a decision when you have the context you need."
+        }
       />
 
       <section className="flex flex-wrap gap-0">
@@ -59,7 +70,7 @@ export default function InboxClient({
           return (
             <Link
               key={tab.id}
-              href={`/inbox?${params.toString()}`}
+              href={`${localizePath(locale, "/inbox")}?${params.toString()}`}
               className={`bf-tab ${active ? "bf-tab-active" : ""}`}
               style={{ marginLeft: active ? 0 : -1 }}
             >
@@ -71,9 +82,13 @@ export default function InboxClient({
 
       {tasks.length === 0 ? (
         <EmptyState
-          eyebrow="Queue clear"
-          title="No tasks in this view"
-          description="New approval work will appear here as soon as workflow stages resolve to you."
+          eyebrow={locale === "de" ? "Warteschlange leer" : "Queue clear"}
+          title={locale === "de" ? "Keine Aufgaben in dieser Ansicht" : "No tasks in this view"}
+          description={
+            locale === "de"
+              ? "Neue Freigaben erscheinen hier, sobald Workflow-Stufen auf Sie aufloesen."
+              : "New approval work will appear here as soon as workflow stages resolve to you."
+          }
         />
       ) : (
         <section className="grid gap-4 xl:grid-cols-2">
@@ -83,7 +98,9 @@ export default function InboxClient({
                 <div>
                   <p className="bf-eyebrow">{view === "completed" ? "Completed review" : "Approval task"}</p>
                   <h2 className="mt-3 text-[30px] font-extrabold leading-none">{task.submission.form.title}</h2>
-                  <p className="mt-2 text-sm text-[var(--muted-strong)]">Submission {task.submission.id}</p>
+                  <p className="mt-2 text-sm text-[var(--muted-strong)]">
+                    {locale === "de" ? "Einreichung" : "Submission"} {task.submission.id}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <PrimitiveMark
@@ -96,18 +113,18 @@ export default function InboxClient({
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="bf-panel-muted px-4 py-3">
-                  <p className="bf-kicker">Created</p>
-                  <p className="mt-2 text-sm">{formatDateTime(task.createdAt)}</p>
+                  <p className="bf-kicker">{locale === "de" ? "Erstellt" : "Created"}</p>
+                  <p className="mt-2 text-sm">{formatDateTime(task.createdAt, locale)}</p>
                 </div>
                 <div className="bf-panel-muted px-4 py-3">
-                  <p className="bf-kicker">Due</p>
-                  <p className="mt-2 text-sm">{formatDateTime(task.dueAt)}</p>
+                  <p className="bf-kicker">{locale === "de" ? "Faellig" : "Due"}</p>
+                  <p className="mt-2 text-sm">{formatDateTime(task.dueAt, locale)}</p>
                 </div>
               </div>
 
               <div className="mt-5">
-                <Link href={`/submissions/${task.submissionId}`} className="bf-btn bf-btn-primary">
-                  Open submission
+                <Link href={localizePath(locale, `/submissions/${task.submissionId}`)} className="bf-btn bf-btn-primary">
+                  {locale === "de" ? "Einreichung oeffnen" : "Open submission"}
                 </Link>
               </div>
             </article>

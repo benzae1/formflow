@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { localizePath } from "@/lib/i18n/routing";
 
 const FormRenderer = dynamic(
   () => import("@/components/form-renderer/FormRenderer").then((m) => ({ default: m.FormRenderer })),
@@ -24,11 +27,15 @@ type PublicForm = {
 
 export default function SubmitFormClient({
   form,
+  locale,
+  dictionary,
   submissionId,
   initialData,
   existingStatus,
 }: {
   form: PublicForm;
+  locale: Locale;
+  dictionary: Dictionary;
   submissionId?: string;
   initialData?: Record<string, unknown>;
   existingStatus?: string;
@@ -65,7 +72,7 @@ export default function SubmitFormClient({
           });
     } catch {
       setState("error");
-      setMessage("The submission could not be saved. Please try again.");
+      setMessage(dictionary.forms.saveError);
       return;
     }
 
@@ -80,7 +87,7 @@ export default function SubmitFormClient({
         detail = ` (HTTP ${response.status})`;
       }
       setState("error");
-      setMessage(`The submission could not be saved.${detail}`);
+      setMessage(`${dictionary.forms.saveError}${detail}`);
       return;
     }
 
@@ -91,14 +98,14 @@ export default function SubmitFormClient({
     setState("idle");
     setMessage(
       options?.saveAsDraft
-        ? "Draft saved. Redirecting to the case file..."
+        ? dictionary.forms.draftSaved
         : submissionId
-          ? "Submission updated. Redirecting back to the case file..."
-          : "Submission received. Redirecting to the case file...",
+          ? dictionary.forms.submissionUpdated
+          : dictionary.forms.submissionReceived,
     );
 
     setTimeout(() => {
-      router.push(`/submissions/${json.submission.id}`);
+      router.push(localizePath(locale, `/submissions/${json.submission.id}`));
       router.refresh();
     }, 600);
   }
@@ -114,7 +121,9 @@ export default function SubmitFormClient({
       <header className="bf-panel px-6 py-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
-            <p className="bf-eyebrow">{submissionId ? "Edit submission" : "Published form"}</p>
+            <p className="bf-eyebrow">
+              {submissionId ? dictionary.forms.editSubmission : dictionary.forms.publishedForm}
+            </p>
             <div className="bf-rule mt-3" />
             <h1 className="mt-5 text-[clamp(38px,6vw,72px)] font-extrabold leading-[0.9]">
               {form.title}
@@ -122,8 +131,10 @@ export default function SubmitFormClient({
             </h1>
             <p className="mt-4 max-w-[48ch] text-sm leading-7 text-[var(--muted-strong)]">
               {submissionId
-                ? `This ${existingStatus?.replaceAll("_", " ")} submission is open for edits. Submitting here will ${existingStatus === "draft" ? "launch" : "resume"} the workflow.`
-                : "Complete the published form below to start the approval workflow."}
+                ? existingStatus === "draft"
+                  ? dictionary.forms.draftIntro
+                  : dictionary.forms.reviseIntro
+                : dictionary.forms.responseIntro}
             </p>
           </div>
 
@@ -133,8 +144,8 @@ export default function SubmitFormClient({
               <PrimitiveMark shape="square" color="var(--haus-red)" size={34} />
               <PrimitiveMark shape="triangle" color="var(--haus-yellow)" size={34} />
             </div>
-            <Link href="/submissions" className="bf-btn">
-              Back
+            <Link href={localizePath(locale, "/submissions")} className="bf-btn">
+              {dictionary.common.back}
             </Link>
           </div>
         </div>
@@ -144,12 +155,18 @@ export default function SubmitFormClient({
         <div className={`bf-alert ${state === "error" ? "bf-alert-error" : "bf-alert-success"}`}>{message}</div>
       ) : null}
 
-      <FormRenderer schema={form.schema} initialData={initialData} onChange={setLatestData} onSubmit={(data) => submit(data)} />
+      <FormRenderer
+        locale={locale}
+        schema={form.schema}
+        initialData={initialData}
+        onChange={setLatestData}
+        onSubmit={(data) => submit(data)}
+      />
 
       {canSaveDraft ? (
         <div className="flex justify-end">
           <button type="button" onClick={saveDraft} disabled={state === "saving"} className="bf-btn disabled:opacity-60">
-            Save draft
+            {dictionary.common.saveDraft}
           </button>
         </div>
       ) : null}

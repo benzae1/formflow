@@ -1,3 +1,6 @@
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+
 type SchemaComponent = {
   key?: string;
   label?: string;
@@ -27,13 +30,13 @@ function collectLabels(components?: SchemaComponent[], labels: Record<string, st
   return labels;
 }
 
-function renderValue(value: unknown) {
+function renderValue(value: unknown, dictionary: Dictionary) {
   if (value === null || value === undefined) {
-    return <span className="text-[var(--muted)]">Restricted or not provided</span>;
+    return <span className="text-[var(--muted)]">{dictionary.submissions.restrictedOrEmpty}</span>;
   }
 
   if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
+    return value ? dictionary.common.yes : dictionary.common.no;
   }
 
   if (typeof value === "string" || typeof value === "number") {
@@ -50,9 +53,13 @@ function renderValue(value: unknown) {
 export function SubmissionFormView({
   schema,
   data,
+  locale: _locale,
+  dictionary,
 }: {
   schema: Record<string, unknown>;
   data: Record<string, unknown>;
+  locale: Locale;
+  dictionary: Dictionary;
 }) {
   const labels = collectLabels(
     Array.isArray(schema.components)
@@ -64,9 +71,9 @@ export function SubmissionFormView({
 
   if (entries.length === 0) {
     return (
-      <div className="bf-panel px-4 py-8 text-center text-sm text-[var(--muted-strong)]">
-        No response data has been stored yet.
-      </div>
+        <div className="bf-panel px-4 py-8 text-center text-sm text-[var(--muted-strong)]">
+        {dictionary.submissions.restrictedOrEmpty}
+        </div>
     );
   }
 
@@ -81,7 +88,7 @@ export function SubmissionFormView({
             {labels[key] ?? key}
           </p>
           <div className="mt-3 text-sm leading-7 text-[var(--ink)]">
-            {renderValue(value)}
+            {renderValue(value, dictionary)}
           </div>
         </article>
       ))}

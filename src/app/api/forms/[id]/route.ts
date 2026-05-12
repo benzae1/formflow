@@ -4,6 +4,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
+import { getRequestLocale } from "@/lib/request-locale";
 import { updateFormSchema } from "@/lib/validation/forms";
 
 export async function GET(
@@ -37,6 +38,9 @@ export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const locale = getRequestLocale(req);
+  const isGerman = locale === "de";
+
   try {
     assertMutationRequest(req);
     const user = await requireRole(["admin"]);
@@ -48,7 +52,7 @@ export async function PUT(
     const existing = await db.form.findUnique({ where: { id } });
 
     if (!existing) {
-      throw new ApiError("FORM_NOT_FOUND", "Form not found.", 404);
+      throw new ApiError("FORM_NOT_FOUND", isGerman ? "Formular nicht gefunden." : "Form not found.", 404);
     }
 
     if (input.workflowId) {
@@ -58,13 +62,15 @@ export async function PUT(
       });
 
       if (!workflow) {
-        throw new ApiError("WORKFLOW_NOT_FOUND", "Workflow not found.", 404);
+        throw new ApiError("WORKFLOW_NOT_FOUND", isGerman ? "Workflow nicht gefunden." : "Workflow not found.", 404);
       }
 
       if (!Array.isArray(workflow.definition) || workflow.definition.length === 0) {
         throw new ApiError(
           "WORKFLOW_INVALID",
-          "Attach a workflow with at least one executable stage before publishing.",
+          isGerman
+            ? "Vor dem Veroeffentlichen muss ein Workflow mit mindestens einer ausfuehrbaren Stufe verknuepft sein."
+            : "Attach a workflow with at least one executable stage before publishing.",
           409,
         );
       }
@@ -77,14 +83,19 @@ export async function PUT(
       });
 
       if (!parentForm) {
-        throw new ApiError("PARENT_FORM_NOT_FOUND", "Parent form not found.", 404);
+        throw new ApiError("PARENT_FORM_NOT_FOUND", isGerman ? "Elternformular nicht gefunden." : "Parent form not found.", 404);
       }
     }
 
     const shouldBumpVersion =
       existing.status === "published" &&
-      input.schema &&
-      JSON.stringify(input.schema) !== JSON.stringify(existing.schema);
+      (
+        (input.schema !== undefined &&
+          JSON.stringify(input.schema) !== JSON.stringify(existing.schema)) ||
+        (input.title !== undefined && input.title !== existing.title) ||
+        (input.translations !== undefined &&
+          JSON.stringify(input.translations) !== JSON.stringify(existing.translations))
+      );
 
     const nextVersion = shouldBumpVersion
       ? existing.version + 1
@@ -96,7 +107,9 @@ export async function PUT(
     if (nextStatus === "published" && !nextWorkflowId) {
       throw new ApiError(
         "FORM_HAS_NO_WORKFLOW",
-        "Published forms must have a runnable workflow attached.",
+        isGerman
+          ? "Veroeffentlichte Formulare muessen einen ausfuehrbaren Workflow haben."
+          : "Published forms must have a runnable workflow attached.",
         409,
       );
     }
@@ -107,6 +120,9 @@ export async function PUT(
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.schema !== undefined
         ? { schema: input.schema as Prisma.InputJsonValue }
+        : {}),
+      ...(input.translations !== undefined
+        ? { translations: (input.translations ?? Prisma.JsonNull) as Prisma.InputJsonValue }
         : {}),
       ...(input.sensitivity !== undefined
         ? { sensitivity: input.sensitivity }
@@ -129,6 +145,7 @@ export async function PUT(
           formId: form.id,
           version: form.version,
           schema: form.schema as Prisma.InputJsonValue,
+          translations: (form.translations ?? Prisma.JsonNull) as Prisma.InputJsonValue,
         },
       });
     }

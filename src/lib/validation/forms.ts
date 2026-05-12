@@ -24,6 +24,13 @@ export const createFormSchema = z.object({
   sensitivity: z.enum(["standard", "pii", "sensitive"]).default("standard"),
   workflowId: z.string().uuid().optional().nullable(),
   parentFormId: z.string().uuid().optional().nullable(),
+  translations: z
+    .custom<Record<string, unknown>>(
+      (value) => value === undefined || value === null || (typeof value === "object" && !Array.isArray(value)),
+      "Translations must be an object.",
+    )
+    .optional()
+    .nullable(),
 });
 
 export const updateFormSchema = createFormSchema.partial().extend({

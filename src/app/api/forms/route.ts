@@ -5,6 +5,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
+import { getRequestLocale } from "@/lib/request-locale";
 import { createFormSchema } from "@/lib/validation/forms";
 
 export async function GET() {
@@ -25,6 +26,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const locale = getRequestLocale(req);
+  const isGerman = locale === "de";
+
   try {
     assertMutationRequest(req);
     const user = await requireRole(["admin"]);
@@ -40,7 +44,9 @@ export async function POST(req: Request) {
       if (!workflow) {
         throw new ApiError(
           "WORKFLOW_NOT_FOUND",
-          "Select a valid workflow or leave the workflow blank for now.",
+          isGerman
+            ? "Bitte einen gueltigen Workflow waehlen oder das Feld leer lassen."
+            : "Select a valid workflow or leave the workflow blank for now.",
           404,
         );
       }
@@ -55,7 +61,9 @@ export async function POST(req: Request) {
       if (!parentForm) {
         throw new ApiError(
           "PARENT_FORM_NOT_FOUND",
-          "Select a valid parent form or clear the parent form selection.",
+          isGerman
+            ? "Bitte ein gueltiges Elternformular waehlen oder die Auswahl leeren."
+            : "Select a valid parent form or clear the parent form selection.",
           404,
         );
       }
@@ -70,6 +78,7 @@ export async function POST(req: Request) {
         slug: input.slug,
         title: input.title,
         schema: input.schema as Prisma.InputJsonValue,
+        translations: (input.translations ?? Prisma.JsonNull) as Prisma.InputJsonValue,
         sensitivity: input.sensitivity,
         workflowId: input.workflowId ?? null,
         parentFormId: input.parentFormId ?? null,
@@ -82,6 +91,7 @@ export async function POST(req: Request) {
         formId: form.id,
         version: form.version,
         schema: form.schema as Prisma.InputJsonValue,
+        translations: (form.translations ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       },
     });
 
@@ -99,7 +109,9 @@ export async function POST(req: Request) {
       const firstIssue = error.issues[0];
       const message = firstIssue
         ? `${firstIssue.path.join(".") || "form"}: ${firstIssue.message}`
-        : "The form details are invalid.";
+        : isGerman
+          ? "Die Formulardaten sind ungueltig."
+          : "The form details are invalid.";
 
       return apiErrorResponse(new ApiError("INVALID_FORM_INPUT", message, 400));
     }
@@ -109,7 +121,9 @@ export async function POST(req: Request) {
         return apiErrorResponse(
           new ApiError(
             "FORM_SLUG_TAKEN",
-            "That slug is already in use. Choose a different slug.",
+            isGerman
+              ? "Dieser Slug wird bereits verwendet. Bitte einen anderen waehlen."
+              : "That slug is already in use. Choose a different slug.",
             409,
           ),
         );
@@ -119,7 +133,9 @@ export async function POST(req: Request) {
         return apiErrorResponse(
           new ApiError(
             "FORM_RELATION_INVALID",
-            "The selected workflow or parent form could not be linked.",
+            isGerman
+              ? "Der ausgewaehlte Workflow oder das Elternformular konnte nicht verknuepft werden."
+              : "The selected workflow or parent form could not be linked.",
             400,
           ),
         );

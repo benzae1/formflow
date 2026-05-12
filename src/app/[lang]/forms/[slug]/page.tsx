@@ -1,25 +1,24 @@
 import { db } from "@/lib/db";
-import SubmitFormClient from "./SubmitFormClient";
+import SubmitFormClient from "@/app/forms/[slug]/SubmitFormClient";
 import { requirePageUser } from "@/lib/page-auth";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { getSubmissionSchema } from "@/lib/submissions";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
-import { defaultLocale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
 import { resolveFormSchema, resolveFormTitle } from "@/lib/form-translations";
+import { getLocaleContext } from "@/lib/i18n/server";
 
-export default async function PublicFormPage({
+export default async function LocalizedPublicFormPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ lang: string; slug: string }>;
   searchParams: Promise<{ submissionId?: string; preview?: string }>;
 }) {
-  const dictionary = await getDictionary(defaultLocale);
-  const user = await requirePageUser(defaultLocale);
-  const { slug } = await params;
+  const { lang, slug } = await params;
+  const { locale, dictionary } = await getLocaleContext(lang);
+  const user = await requirePageUser(locale);
   const { submissionId, preview } = await searchParams;
   const previewMode = preview === "1" || preview === "true";
 
@@ -48,11 +47,11 @@ export default async function PublicFormPage({
 
   return (
     <SubmitFormClient
-      locale={defaultLocale}
+      locale={locale}
       dictionary={dictionary}
       form={{
         ...form,
-        title: resolveFormTitle(form, defaultLocale),
+        title: resolveFormTitle(form, locale),
         schema: (
           existingSubmission
             ? getSubmissionSchema({
@@ -62,7 +61,7 @@ export default async function PublicFormPage({
                   schema: form.schema as Record<string, unknown>,
                 },
               })
-            : resolveFormSchema(form, defaultLocale)
+            : resolveFormSchema(form, locale)
         ) as RenderableFormSchema,
       }}
       submissionId={existingSubmission?.id}

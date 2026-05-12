@@ -1,13 +1,17 @@
 import { db } from "@/lib/db";
 import { requirePageRole } from "@/lib/page-auth";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { defaultLocale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
-import FormsManagerClient from "./FormsManagerClient";
+import FormsManagerClient from "@/app/admin/forms/FormsManagerClient";
+import { getLocaleContext } from "@/lib/i18n/server";
 
-export default async function AdminFormsPage() {
-  const dictionary = await getDictionary(defaultLocale);
-  await requirePageRole(["admin"], defaultLocale);
+export default async function LocalizedAdminFormsPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  const { locale, dictionary } = await getLocaleContext(lang);
+  await requirePageRole(["admin"], locale);
 
   const [forms, workflows, parentForms] = await Promise.all([
     db.form.findMany({
@@ -42,7 +46,7 @@ export default async function AdminFormsPage() {
         description={dictionary.adminForms.pageDescription}
       />
       <FormsManagerClient
-        locale={defaultLocale}
+        locale={locale}
         dictionary={dictionary}
         forms={forms as never}
         workflows={workflows}

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { mutationHeaders } from "@/lib/mutation-headers";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { localizePath } from "@/lib/i18n/routing";
 
 type Task = {
   id: string;
@@ -13,6 +16,8 @@ type Task = {
 };
 
 type Props = {
+  locale: Locale;
+  dictionary: Dictionary;
   submissionId: string;
   formSlug: string;
   status: string;
@@ -21,13 +26,9 @@ type Props = {
   pendingTask?: Task | null;
 };
 
-const decisions = [
-  { action: "approve", label: "Approve", tone: "primary" },
-  { action: "reject", label: "Reject", tone: "secondary" },
-  { action: "revise", label: "Request revision", tone: "secondary" },
-] as const;
-
 export function SubmissionActionPanel({
+  locale,
+  dictionary,
   submissionId,
   formSlug,
   status,
@@ -35,6 +36,11 @@ export function SubmissionActionPanel({
   canAct,
   pendingTask,
 }: Props) {
+  const decisions = [
+    { action: "approve", label: locale === "de" ? "Freigeben" : "Approve", tone: "primary" },
+    { action: "reject", label: locale === "de" ? "Ablehnen" : "Reject", tone: "secondary" },
+    { action: "revise", label: locale === "de" ? "Revision anfordern" : "Request revision", tone: "secondary" },
+  ] as const;
   const router = useRouter();
   const [decision, setDecision] = useState<(typeof decisions)[number]["action"] | null>(null);
   const [note, setNote] = useState("");
@@ -54,7 +60,7 @@ export function SubmissionActionPanel({
     try {
       const response = await fetch(`/api/submissions/${submissionId}/${decision}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...mutationHeaders },
+        headers: { "Content-Type": "application/json", "x-formflow-locale": locale, ...mutationHeaders },
         body: JSON.stringify({
           taskId: pendingTask.id,
           note: note || undefined,
@@ -62,14 +68,14 @@ export function SubmissionActionPanel({
       });
 
       if (!response.ok) {
-        setError("Decision could not be recorded.");
+        setError(locale === "de" ? "Die Entscheidung konnte nicht gespeichert werden." : "Decision could not be recorded.");
         return;
       }
 
-      router.push("/inbox");
+      router.push(localizePath(locale, "/inbox"));
       router.refresh();
     } catch {
-      setError("Decision could not be recorded.");
+      setError(locale === "de" ? "Die Entscheidung konnte nicht gespeichert werden." : "Decision could not be recorded.");
     } finally {
       setPending(false);
     }
@@ -77,15 +83,23 @@ export function SubmissionActionPanel({
 
   return (
     <section className="bf-panel p-6">
-      <p className="bf-eyebrow">Next action</p>
+      <p className="bf-eyebrow">{locale === "de" ? "Naechster Schritt" : "Next action"}</p>
 
       {canEdit ? (
         <div className="mt-4 space-y-3">
           <p className="text-sm leading-7 text-[var(--muted-strong)]">
-            This submission can still be edited and sent back into the workflow.
+            {locale === "de"
+              ? "Diese Einreichung kann noch bearbeitet und erneut in den Workflow geschickt werden."
+              : "This submission can still be edited and sent back into the workflow."}
           </p>
-          <Link href={`/forms/${formSlug}?submissionId=${submissionId}`} className="bf-btn bf-btn-primary">
-            {status === "draft" ? "Continue draft" : "Edit and resubmit"}
+          <Link href={`${localizePath(locale, `/forms/${formSlug}`)}?submissionId=${submissionId}`} className="bf-btn bf-btn-primary">
+            {status === "draft"
+              ? locale === "de"
+                ? "Entwurf fortsetzen"
+                : "Continue draft"
+              : locale === "de"
+                ? "Bearbeiten und erneut einreichen"
+                : "Edit and resubmit"}
           </Link>
         </div>
       ) : null}
@@ -103,7 +117,11 @@ export function SubmissionActionPanel({
                   onChange={(event) => setNote(event.target.value)}
                   rows={4}
                   className="bf-textarea mt-3"
-                  placeholder="Add context for the audit trail or the submitter."
+                  placeholder={
+                    locale === "de"
+                      ? "Kontext fuer Audit-Log oder Einreichende ergaenzen."
+                      : "Add context for the audit trail or the submitter."
+                  }
                 />
               </div>
 
@@ -111,17 +129,25 @@ export function SubmissionActionPanel({
 
               <div className="bf-action-row">
                 <button type="submit" disabled={pending} className="bf-btn bf-btn-primary disabled:opacity-60">
-                  {pending ? "Recording..." : "Confirm decision"}
+                  {pending
+                    ? locale === "de"
+                      ? "Wird gespeichert..."
+                      : "Recording..."
+                    : locale === "de"
+                      ? "Entscheidung bestaetigen"
+                      : "Confirm decision"}
                 </button>
                 <button type="button" onClick={() => setDecision(null)} className="bf-btn bf-btn-segment">
-                  Cancel
+                  {dictionary.common.close}
                 </button>
               </div>
             </form>
           ) : (
             <div className="space-y-3">
               <p className="text-sm leading-7 text-[var(--muted-strong)]">
-                A pending approval task is assigned to you for this submission.
+                {locale === "de"
+                  ? "Fuer diese Einreichung ist Ihnen eine ausstehende Freigabeaufgabe zugewiesen."
+                  : "A pending approval task is assigned to you for this submission."}
               </p>
               <div className="bf-action-row">
                 {decisions.map((item) => (
@@ -142,7 +168,9 @@ export function SubmissionActionPanel({
 
       {!canEdit && !(canAct && pendingTask) ? (
         <p className="mt-4 text-sm leading-7 text-[var(--muted-strong)]">
-          No further action is required from this screen right now.
+          {locale === "de"
+            ? "Von dieser Ansicht aus ist aktuell keine weitere Aktion erforderlich."
+            : "No further action is required from this screen right now."}
         </p>
       ) : null}
     </section>

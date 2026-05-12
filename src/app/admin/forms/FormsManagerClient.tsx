@@ -5,6 +5,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { mutationHeaders } from "@/lib/mutation-headers";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { localizePath } from "@/lib/i18n/routing";
+import { resolveFormTitle } from "@/lib/form-translations";
+import { getStatusLabel } from "@/lib/ui";
 
 type WorkflowOption = {
   id: string;
@@ -20,6 +25,7 @@ type FormRecord = {
   id: string;
   slug: string;
   title: string;
+  translations?: Record<string, unknown> | null;
   status: string;
   version: number;
   sensitivity: string;
@@ -31,10 +37,14 @@ export default function FormsManagerClient({
   forms,
   workflows,
   parentForms,
+  locale,
+  dictionary,
 }: {
   forms: FormRecord[];
   workflows: WorkflowOption[];
   parentForms: ParentOption[];
+  locale: Locale;
+  dictionary: Dictionary;
 }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -57,6 +67,7 @@ export default function FormsManagerClient({
         const matchesStatus = status === "all" || form.status === status;
         const matchesQuery =
           query.trim().length === 0 ||
+          resolveFormTitle(form, locale).toLowerCase().includes(query.toLowerCase()) ||
           form.title.toLowerCase().includes(query.toLowerCase()) ||
           form.slug.toLowerCase().includes(query.toLowerCase());
 
@@ -69,12 +80,12 @@ export default function FormsManagerClient({
     const normalizedSlug = slugify(formState.slug);
 
     if (!formState.title.trim()) {
-      setError("Add a form title before creating the form.");
+      setError(dictionary.adminForms.titleRequired);
       return;
     }
 
     if (!normalizedSlug) {
-      setError("Add a slug using lowercase letters, numbers, and hyphens.");
+      setError(dictionary.adminForms.slugRequired);
       return;
     }
 
@@ -83,7 +94,11 @@ export default function FormsManagerClient({
 
     const response = await fetch("/api/forms", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...mutationHeaders },
+      headers: {
+        "Content-Type": "application/json",
+        "x-formflow-locale": locale,
+        ...mutationHeaders,
+      },
       body: JSON.stringify({
         slug: normalizedSlug,
         title: formState.title.trim(),
@@ -96,13 +111,13 @@ export default function FormsManagerClient({
             {
               type: "textfield",
               key: "requestTitle",
-              label: "Request title",
+              label: dictionary.adminForms.defaultTitle,
               input: true,
             },
             {
               type: "button",
               action: "submit",
-              label: "Submit",
+              label: dictionary.adminForms.defaultSubmit,
               theme: "primary",
             },
           ],
@@ -128,7 +143,7 @@ export default function FormsManagerClient({
       parentFormId: "",
     });
     setSlugTouched(false);
-    router.push(`/admin/forms/${json.form.id}/builder`);
+    router.push(localizePath(locale, `/admin/forms/${json.form.id}/builder`));
     router.refresh();
   }
 
@@ -136,7 +151,7 @@ export default function FormsManagerClient({
     setPending(true);
     await fetch(`/api/forms/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", ...mutationHeaders },
+      headers: { "Content-Type": "application/json", "x-formflow-locale": locale, ...mutationHeaders },
       body: JSON.stringify({ status: nextStatus }),
     });
     setPending(false);
@@ -150,7 +165,7 @@ export default function FormsManagerClient({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search title or slug"
+            placeholder={dictionary.adminForms.searchPlaceholder}
             className="bf-input"
           />
           <select
@@ -158,15 +173,15 @@ export default function FormsManagerClient({
             onChange={(event) => setStatus(event.target.value)}
             className="bf-select"
           >
-            <option value="all">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
+            <option value="all">{dictionary.submissions.allStatuses}</option>
+            <option value="draft">{dictionary.common.draft}</option>
+            <option value="published">{dictionary.common.published}</option>
+            <option value="archived">{dictionary.common.archived}</option>
           </select>
         </div>
 
         <button type="button" onClick={() => setCreateOpen(true)} className="bf-btn bf-btn-primary">
-          Create form
+          {dictionary.adminForms.createForm}
         </button>
       </section>
 
@@ -178,19 +193,19 @@ export default function FormsManagerClient({
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-2">
                 <p className="bf-eyebrow">{form.slug}</p>
-                <h2 className="text-[30px] font-extrabold leading-none">{form.title}</h2>
+                <h2 className="text-[30px] font-extrabold leading-none">{resolveFormTitle(form, locale)}</h2>
                 <div className="flex flex-wrap gap-2">
-                  <StatusBadge status={form.status} />
-                  <StatusBadge status={form.sensitivity} />
+                  <StatusBadge status={form.status} label={getStatusLabel(form.status, locale)} />
+                  <StatusBadge status={form.sensitivity} label={getStatusLabel(form.sensitivity, locale)} />
                 </div>
                 <p className="bf-copy">
-                  Version {form.version} | Workflow {form.workflow?.name ?? "Unassigned"}
+                  {dictionary.adminForms.version} {form.version} | {dictionary.adminForms.workflow} {form.workflow?.name ?? dictionary.adminForms.unassigned}
                 </p>
               </div>
 
               <div className="bf-action-row">
-                <Link href={`/admin/forms/${form.id}/builder`} className="bf-btn bf-btn-primary bf-btn-segment">
-                  Open builder
+                <Link href={localizePath(locale, `/admin/forms/${form.id}/builder`)} className="bf-btn bf-btn-primary bf-btn-segment">
+                  {dictionary.adminForms.openBuilder}
                 </Link>
                 <button
                   type="button"
@@ -200,7 +215,7 @@ export default function FormsManagerClient({
                   }
                   className="bf-btn bf-btn-segment disabled:opacity-60"
                 >
-                  {form.status === "published" ? "Archive" : "Publish"}
+                  {form.status === "published" ? dictionary.common.archived : dictionary.common.publish}
                 </button>
               </div>
             </div>
@@ -213,12 +228,12 @@ export default function FormsManagerClient({
           <div className="bf-panel w-full max-w-xl p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="bf-eyebrow">New form</p>
+                <p className="bf-eyebrow">{dictionary.adminForms.newForm}</p>
                 <div className="bf-rule-sm mt-3" />
-                <h2 className="mt-4 text-[32px] font-extrabold leading-none">Start with a fresh shell</h2>
+                <h2 className="mt-4 text-[32px] font-extrabold leading-none">{dictionary.adminForms.freshShell}</h2>
               </div>
               <button type="button" onClick={() => setCreateOpen(false)} className="bf-btn">
-                Close
+                {dictionary.common.close}
               </button>
             </div>
 
@@ -233,7 +248,7 @@ export default function FormsManagerClient({
                     slug: slugTouched ? current.slug : slugify(nextTitle),
                   }));
                 }}
-                placeholder="Form title"
+                placeholder={dictionary.adminForms.formTitle}
                 className="bf-input"
               />
               <input
@@ -255,9 +270,9 @@ export default function FormsManagerClient({
                 }
                 className="bf-select"
               >
-                <option value="standard">Standard</option>
-                <option value="pii">PII</option>
-                <option value="sensitive">Sensitive</option>
+                <option value="standard">{dictionary.adminForms.standard}</option>
+                <option value="pii">{dictionary.adminForms.pii}</option>
+                <option value="sensitive">{dictionary.adminForms.sensitive}</option>
               </select>
               <select
                 value={formState.workflowId}
@@ -266,7 +281,7 @@ export default function FormsManagerClient({
                 }
                 className="bf-select"
               >
-                <option value="">No workflow yet</option>
+                <option value="">{dictionary.adminForms.noWorkflowYet}</option>
                 {workflows.map((workflow) => (
                   <option key={workflow.id} value={workflow.id}>
                     {workflow.name}
@@ -280,7 +295,7 @@ export default function FormsManagerClient({
                 }
                 className="bf-select md:col-span-2"
               >
-                <option value="">No parent form</option>
+                <option value="">{dictionary.adminForms.noParentForm}</option>
                 {parentForms.map((form) => (
                   <option key={form.id} value={form.id}>
                     {form.title}
@@ -290,7 +305,7 @@ export default function FormsManagerClient({
             </div>
 
             <p className="mt-3 text-xs text-[var(--muted-strong)]">
-              Slugs use lowercase letters, numbers, and hyphens. Leave the workflow blank to attach one later.
+              {dictionary.adminForms.slugHelp}
             </p>
 
             <div className="mt-6 bf-action-row">
@@ -300,7 +315,7 @@ export default function FormsManagerClient({
                 disabled={pending}
                 className="bf-btn bf-btn-primary disabled:opacity-60"
               >
-                {pending ? "Creating..." : "Create and open builder"}
+                {pending ? dictionary.adminForms.creating : dictionary.adminForms.createAndOpenBuilder}
               </button>
             </div>
           </div>

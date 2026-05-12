@@ -13,11 +13,13 @@ import {
 } from "@/lib/submissions";
 import { getTemporalClient } from "@/lib/temporal";
 import { assertMutationRequest } from "@/lib/request-guard";
+import { getRequestLocale } from "@/lib/request-locale";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
 import {
   approvalWorkflow,
   resubmittedSignal,
 } from "@/temporal/workflows/approvalWorkflow";
+import { resolveFormSchema } from "@/lib/form-translations";
 
 export async function GET(
   _req: Request,
@@ -73,6 +75,7 @@ export async function PATCH(
 ) {
   try {
     assertMutationRequest(req);
+    const locale = getRequestLocale(req);
     const user = await requireUser();
     const { id } = await context.params;
     const body = await req.json();
@@ -101,16 +104,14 @@ export async function PATCH(
       );
     }
 
-    const encryptedData = encryptSensitiveSubmissionData(
-      getSubmissionSchema({
-        ...submission,
-        form: {
-          ...submission.form,
-          schema: submission.form.schema as Record<string, unknown>,
-        },
-      }) as FormioSchema,
-      input.data,
+    const localizedSchema = resolveFormSchema(
+      {
+        ...submission.form,
+        schema: submission.form.schema as Record<string, unknown>,
+      },
+      locale,
     );
+    const encryptedData = encryptSensitiveSubmissionData(localizedSchema as FormioSchema, input.data);
 
     if (submission.status === "draft" && input.submit && !submission.form.workflowId) {
       throw new ApiError(
@@ -124,6 +125,7 @@ export async function PATCH(
       where: { id },
       data: {
         data: encryptedData as Prisma.InputJsonValue,
+        submittedLocale: locale,
       },
     });
 
@@ -155,7 +157,8 @@ export async function PATCH(
         data: {
           data: encryptedData as Prisma.InputJsonValue,
           formVersion: submission.form.version,
-          formSchemaSnapshot: submission.form.schema as Prisma.InputJsonValue,
+          formSchemaSnapshot: localizedSchema as Prisma.InputJsonValue,
+          submittedLocale: locale,
           workflowId: workflow.id,
           workflowVersion: workflow.version,
           workflowDefinition: workflow.definition as Prisma.InputJsonValue,
