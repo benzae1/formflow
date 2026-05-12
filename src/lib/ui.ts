@@ -1,4 +1,3 @@
-import { AppRole } from "@/domain/roles";
 import { WorkflowDefinition, WorkflowStage } from "@/domain/workflow";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -28,32 +27,26 @@ export function titleCaseStatus(value: string, locale: Locale = "de") {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export function getRoleLabel(role: AppRole, locale: Locale = "de") {
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrator",
+  approver: "Approver",
+  compliance: "Compliance",
+  submitter: "Submitter",
+};
+
+export function getRoleLabel(role: string, locale: Locale = "de") {
   if (locale === "de") {
-    switch (role) {
-      case "admin":
-        return "Administration";
-      case "approver":
-        return "Freigabe";
-      case "compliance":
-        return "Compliance";
-      case "submitter":
-      default:
-        return "Einreichung";
-    }
+    return (
+      {
+        admin: "Administration",
+        approver: "Freigabe",
+        compliance: "Compliance",
+        submitter: "Einreichung",
+      }[role] ?? role.charAt(0).toUpperCase() + role.slice(1)
+    );
   }
 
-  switch (role) {
-    case "admin":
-      return "Administrator";
-    case "approver":
-      return "Approver";
-    case "compliance":
-      return "Compliance";
-    case "submitter":
-    default:
-      return "Submitter";
-  }
+  return ROLE_LABELS[role] ?? role.charAt(0).toUpperCase() + role.slice(1);
 }
 
 export function getStatusLabel(status: string, locale: Locale = "de") {

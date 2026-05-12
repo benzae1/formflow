@@ -32,8 +32,8 @@ export async function POST(req: Request) {
     }
 
     const [approver, delegate] = await Promise.all([
-      db.user.findUnique({ where: { id: approverId } }),
-      db.user.findUnique({ where: { id: input.delegateId } }),
+      db.user.findUnique({ where: { id: approverId }, include: { roles: true } }),
+      db.user.findUnique({ where: { id: input.delegateId }, include: { roles: true } }),
     ]);
 
     if (!approver) {
@@ -53,8 +53,8 @@ export async function POST(req: Request) {
     }
 
     if (
-      !approver.roles.includes("approver") &&
-      !approver.roles.includes("admin")
+      !approver.roles.some((role) => role.name === "approver") &&
+      !approver.roles.some((role) => role.name === "admin")
     ) {
       throw new ApiError(
         "DELEGATION_APPROVER_ROLE_REQUIRED",
@@ -64,8 +64,8 @@ export async function POST(req: Request) {
     }
 
     if (
-      !delegate.roles.includes("approver") &&
-      !delegate.roles.includes("admin")
+      !delegate.roles.some((role) => role.name === "approver") &&
+      !delegate.roles.some((role) => role.name === "admin")
     ) {
       throw new ApiError(
         "DELEGATION_DELEGATE_ROLE_REQUIRED",

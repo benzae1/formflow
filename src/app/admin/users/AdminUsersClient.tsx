@@ -7,13 +7,16 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { mutationHeaders } from "@/lib/mutation-headers";
 import { formatDateTime, getRoleLabel } from "@/lib/ui";
 
-type AppRole = "admin" | "submitter" | "approver" | "compliance";
+type RoleRecord = {
+  name: string;
+  label: string | null;
+};
 
 type UserRecord = {
   id: string;
   email: string;
   name: string | null;
-  roles: AppRole[];
+  roles: RoleRecord[];
   deactivatedAt: string | null;
   updatedAt: string;
   memberships: Array<{
@@ -39,14 +42,14 @@ type DelegateOption = {
   email: string;
 };
 
-const roleOptions: AppRole[] = ["submitter", "approver", "admin", "compliance"];
-
 export default function AdminUsersClient({
   users,
+  availableRoles,
   delegations,
   delegateOptions,
 }: {
   users: UserRecord[];
+  availableRoles: RoleRecord[];
   delegations: DelegationRecord[];
   delegateOptions: DelegateOption[];
 }) {
@@ -54,7 +57,7 @@ export default function AdminUsersClient({
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function updateRoles(userId: string, roles: AppRole[]) {
+  async function updateRoles(userId: string, roles: string[]) {
     setPendingUserId(userId);
     setError(null);
 
@@ -85,6 +88,7 @@ export default function AdminUsersClient({
         <UserCard
           key={user.id}
           user={user}
+          availableRoles={availableRoles}
           delegations={delegations.filter((delegation) => delegation.approverId === user.id)}
           delegateOptions={delegateOptions}
           pending={pendingUserId === user.id}
@@ -97,28 +101,32 @@ export default function AdminUsersClient({
 
 function UserCard({
   user,
+  availableRoles,
   delegations,
   delegateOptions,
   pending,
   onSaveRoles,
 }: {
   user: UserRecord;
+  availableRoles: RoleRecord[];
   delegations: DelegationRecord[];
   delegateOptions: DelegateOption[];
   pending: boolean;
-  onSaveRoles: (roles: AppRole[]) => Promise<void>;
+  onSaveRoles: (roles: string[]) => Promise<void>;
 }) {
-  const [roles, setRoles] = useState<AppRole[]>(user.roles);
+  const [roles, setRoles] = useState<string[]>(user.roles.map((role) => role.name));
 
-  function toggleRole(role: AppRole) {
+  function toggleRole(roleName: string) {
     setRoles((current) => {
-      if (current.includes(role)) {
-        return current.filter((value) => value !== role);
+      if (current.includes(roleName)) {
+        return current.filter((value) => value !== roleName);
       }
 
-      return [...current, role].sort(
-        (left, right) => roleOptions.indexOf(left) - roleOptions.indexOf(right),
-      );
+      return [...current, roleName].sort((left, right) => {
+        const leftIndex = availableRoles.findIndex((role) => role.name === left);
+        const rightIndex = availableRoles.findIndex((role) => role.name === right);
+        return leftIndex - rightIndex;
+      });
     });
   }
 
@@ -135,7 +143,7 @@ function UserCard({
 
         <div className="flex flex-wrap gap-2">
           {user.roles.map((role) => (
-            <StatusBadge key={role} status={role} />
+            <StatusBadge key={role.name} status={role.name} />
           ))}
           {user.deactivatedAt ? <StatusBadge status="archived" /> : null}
         </div>
@@ -145,10 +153,14 @@ function UserCard({
         <div className="bf-panel-muted px-4 py-4">
           <p className="bf-eyebrow">Roles</p>
           <div className="mt-3 space-y-3">
-            {roleOptions.map((role) => (
-              <label key={role} className="flex items-center gap-3 text-sm text-[var(--ink)]">
-                <input type="checkbox" checked={roles.includes(role)} onChange={() => toggleRole(role)} />
-                <span>{getRoleLabel(role)}</span>
+            {availableRoles.map((role) => (
+              <label key={role.name} className="flex items-center gap-3 text-sm text-[var(--ink)]">
+                <input
+                  type="checkbox"
+                  checked={roles.includes(role.name)}
+                  onChange={() => toggleRole(role.name)}
+                />
+                <span>{role.label ?? getRoleLabel(role.name)}</span>
               </label>
             ))}
           </div>

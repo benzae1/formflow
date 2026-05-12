@@ -29,7 +29,7 @@ export async function syncOrg(adapter: OrgAdapter) {
         email: user.email,
         name: user.name,
         externalId: user.externalId,
-        roles: ["submitter"],
+        roles: { connect: [{ name: "submitter" }] },
       },
     });
   }
@@ -208,7 +208,7 @@ async function flagTasksForDeactivatedUsers(userIds: string[]) {
   if (stuckTasks.length === 0) return;
 
   const admins = await db.user.findMany({
-    where: { roles: { has: "admin" }, deactivatedAt: null },
+    where: { roles: { some: { name: "admin" } }, deactivatedAt: null },
     select: { id: true },
   });
 

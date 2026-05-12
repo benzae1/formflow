@@ -1,4 +1,3 @@
-import { AppRole } from "@/domain/roles";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/routing";
@@ -15,7 +14,7 @@ export type NavGroup = {
 };
 
 export function getWorkspaceNavigation(
-  roles: AppRole[],
+  roles: readonly string[],
   locale: Locale,
   dictionary: Dictionary,
 ): NavGroup[] {

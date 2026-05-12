@@ -1,4 +1,3 @@
-import { AppRole } from "@/domain/roles";
 import { db } from "./db";
 import { ApiError } from "./errors";
 
@@ -6,7 +5,7 @@ export async function requirePendingApprovalTask(input: {
   submissionId: string;
   taskId: string;
   actorId: string;
-  actorRoles: AppRole[];
+  actorRoles: string[];
 }) {
   const task = await db.approvalTask.findFirst({
     where: {

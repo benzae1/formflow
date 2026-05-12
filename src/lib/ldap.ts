@@ -1,12 +1,11 @@
 import { Client, EqualityFilter, InvalidCredentialsError } from "ldapts";
-import { AppRole } from "@/domain/roles";
 
 type LdapProfile = {
   uid: string;
   dn: string;
   email: string;
   name: string | null;
-  roles: AppRole[];
+  roles: string[];
 };
 
 type LdapEntryValue = Buffer | Buffer[] | string[] | string | undefined;
@@ -129,7 +128,7 @@ function getDisplayName(entry: { [index: string]: LdapEntryValue }) {
 }
 
 function getRolesForEntry(entry: { [index: string]: LdapEntryValue }, uid: string) {
-  const roles = new Set<AppRole>(["submitter"]);
+  const roles = new Set<string>(["submitter"]);
 
   for (const role of ["admin", "approver", "compliance"] as const) {
     if (getUidAllowlist(role).has(uid.toLowerCase())) {
@@ -139,21 +138,18 @@ function getRolesForEntry(entry: { [index: string]: LdapEntryValue }, uid: strin
 
   const attribute = process.env.LDAP_ROLE_ATTRIBUTE?.trim();
   if (attribute) {
-    const values = getValues(getAttribute(entry, attribute)).map((value) => value.toLowerCase());
+    const values = getValues(getAttribute(entry, attribute));
     const roleMap = getRoleAttributeMap();
 
     for (const value of values) {
-      const role = roleMap.get(value);
-      if (role) {
-        roles.add(role);
-      }
+      roles.add(roleMap.get(value.toLowerCase()) ?? value);
     }
   }
 
   return Array.from(roles);
 }
 
-function getUidAllowlist(role: Exclude<AppRole, "submitter">) {
+function getUidAllowlist(role: "admin" | "approver" | "compliance") {
   return new Set(
     splitEnvList(process.env[`LDAP_${role.toUpperCase()}_UIDS`]).map((uid) =>
       uid.toLowerCase(),
@@ -162,17 +158,15 @@ function getUidAllowlist(role: Exclude<AppRole, "submitter">) {
 }
 
 function getRoleAttributeMap() {
-  const roleMap = new Map<string, AppRole>();
+  const roleMap = new Map<string, string>();
 
   for (const pair of splitEnvList(process.env.LDAP_ROLE_ATTRIBUTE_MAP)) {
     const [rawValue, rawRole] = pair.split("=");
-    const role = rawRole?.trim() as AppRole | undefined;
+    const value = rawValue?.trim();
+    const role = rawRole?.trim();
 
-    if (
-      rawValue &&
-      (role === "admin" || role === "approver" || role === "compliance" || role === "submitter")
-    ) {
-      roleMap.set(rawValue.trim().toLowerCase(), role);
+    if (value && role) {
+      roleMap.set(value.toLowerCase(), role);
     }
   }
 

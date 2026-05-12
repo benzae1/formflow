@@ -69,7 +69,10 @@ export default async function InboxPage({
     db.user.findMany({
       where: {
         deactivatedAt: null,
-        OR: [{ roles: { has: "approver" } }, { roles: { has: "admin" } }],
+        OR: [
+          { roles: { some: { name: "approver" } } },
+          { roles: { some: { name: "admin" } } },
+        ],
         NOT: { id: user.id },
       },
       orderBy: {

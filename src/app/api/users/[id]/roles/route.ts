@@ -18,6 +18,7 @@ export async function PATCH(
 
     const existing = await db.user.findUnique({
       where: { id },
+      include: { roles: true },
     });
 
     if (!existing) {
@@ -25,11 +26,36 @@ export async function PATCH(
     }
 
     const roles = Array.from(new Set(input.roles));
+    const resolvedRoles = await db.role.findMany({
+      where: {
+        name: {
+          in: roles,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (resolvedRoles.length !== roles.length) {
+      const foundRoleNames = new Set(resolvedRoles.map((role) => role.name));
+      const missingRoles = roles.filter((role) => !foundRoleNames.has(role));
+
+      throw new ApiError(
+        "ROLE_NOT_FOUND",
+        `Unknown role: ${missingRoles.join(", ")}.`,
+        400,
+      );
+    }
 
     const user = await db.user.update({
       where: { id },
+      include: { roles: true },
       data: {
-        roles,
+        roles: {
+          set: resolvedRoles.map((role) => ({ id: role.id })),
+        },
         ...(input.teamScope !== undefined ? { teamScope: input.teamScope } : {}),
       },
     });
@@ -39,8 +65,8 @@ export async function PATCH(
       action: "user.role_changed",
       resourceType: "user",
       resourceId: user.id,
-      beforeState: { roles: existing.roles, teamScope: existing.teamScope },
-      afterState: { roles: user.roles, teamScope: user.teamScope },
+      beforeState: { roles: existing.roles.map((role) => role.name), teamScope: existing.teamScope },
+      afterState: { roles: user.roles.map((role) => role.name), teamScope: user.teamScope },
       metadata: { email: user.email },
     });
 

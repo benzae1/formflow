@@ -55,7 +55,9 @@ async function resolveSingleTarget(
     const users = await db.user.findMany({
       where: {
         roles: {
-          has: target.value as never,
+          some: {
+            name: target.value,
+          },
         },
         deactivatedAt: null,
       },

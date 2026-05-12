@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const appRoleSchema = z.enum(["admin", "submitter", "approver", "compliance"]);
+const appRoleSchema = z.string().min(1);
 
 export const updateUserRolesSchema = z.object({
   roles: z.array(appRoleSchema).min(1, "Select at least one role."),

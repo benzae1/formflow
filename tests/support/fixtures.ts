@@ -5,6 +5,29 @@ import { encryptSensitiveSubmissionData } from "../../src/lib/submission-encrypt
 import type { FormioSchema } from "../../src/lib/formio-sensitive-fields";
 import { waitFor } from "./polling";
 
+const SYSTEM_ROLES = [
+  { name: "admin", label: "Administrator" },
+  { name: "approver", label: "Approver" },
+  { name: "compliance", label: "Compliance" },
+  { name: "submitter", label: "Submitter" },
+] as const;
+
+function connectRoles(names: string[]) {
+  return {
+    connect: names.map((name) => ({ name })),
+  };
+}
+
+async function ensureSystemRoles() {
+  for (const role of SYSTEM_ROLES) {
+    await db.role.upsert({
+      where: { name: role.name },
+      update: { label: role.label },
+      create: role,
+    });
+  }
+}
+
 const baseSchema: FormioSchema = {
   display: "form",
   components: [
@@ -63,39 +86,46 @@ export async function resetDatabase() {
   await db.orgMembership.deleteMany();
   await db.orgUnit.deleteMany();
   await db.user.deleteMany();
+  await db.role.deleteMany();
 }
 
 export async function seedBaseUsers() {
+  await ensureSystemRoles();
+
   const admin = await db.user.create({
     data: {
       email: "admin@example.com",
       name: "Admin User",
-      roles: ["admin", "submitter"],
+      roles: connectRoles(["admin", "submitter"]),
     },
+    include: { roles: true },
   });
 
   const approver = await db.user.create({
     data: {
       email: "approver@example.com",
       name: "Approver User",
-      roles: ["approver", "submitter"],
+      roles: connectRoles(["approver", "submitter"]),
     },
+    include: { roles: true },
   });
 
   const submitter = await db.user.create({
     data: {
       email: "submitter@example.com",
       name: "Submitter User",
-      roles: ["submitter"],
+      roles: connectRoles(["submitter"]),
     },
+    include: { roles: true },
   });
 
   const compliance = await db.user.create({
     data: {
       email: "compliance@example.com",
       name: "Compliance User",
-      roles: ["compliance"],
+      roles: connectRoles(["compliance"]),
     },
+    include: { roles: true },
   });
 
   return { admin, approver, submitter, compliance };

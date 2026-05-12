@@ -1,9 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { AppRole } from "@/domain/roles";
 
 export function submissionVisibilityWhere(user: {
   id: string;
-  roles: AppRole[];
+  roles: string[];
   teamScope?: boolean;
   orgUnitIds?: string[];
 }, options?: {

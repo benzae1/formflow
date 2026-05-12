@@ -5,7 +5,7 @@ export type TestSessionUser = {
   id: string;
   email: string;
   name?: string | null;
-  roles: Array<"admin" | "submitter" | "approver" | "compliance">;
+  roles: string[];
 };
 
 const mockGetSession = vi.hoisted(() => vi.fn());
@@ -27,8 +27,21 @@ afterAll(async () => {
   await db.$disconnect();
 });
 
-export function setMockSession(user: TestSessionUser | null) {
-  mockGetSession.mockResolvedValue(user ? { user } : null);
+export function setMockSession(
+  user:
+    | (Omit<TestSessionUser, "roles"> & { roles: string[] | Array<{ name: string }> })
+    | null,
+) {
+  mockGetSession.mockResolvedValue(
+    user
+      ? {
+          user: {
+            ...user,
+            roles: user.roles.map((role) => (typeof role === "string" ? role : role.name)),
+          },
+        }
+      : null,
+  );
 }
 
 export function clearMockSession() {

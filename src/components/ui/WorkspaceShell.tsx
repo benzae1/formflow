@@ -1,4 +1,3 @@
-import { AppRole } from "@/domain/roles";
 import { getWorkspaceNavigation } from "@/lib/navigation";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -11,7 +10,7 @@ type WorkspaceUser = {
   id: string;
   email: string;
   name?: string | null;
-  roles: AppRole[];
+  roles: string[];
 };
 
 export function WorkspaceShell({

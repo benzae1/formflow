@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "AppRole" AS ENUM ('admin', 'submitter', 'approver', 'compliance');
-
--- CreateEnum
 CREATE TYPE "FormStatus" AS ENUM ('draft', 'published', 'archived');
 
 -- CreateEnum
@@ -21,13 +18,22 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
-    "roles" "AppRole"[] DEFAULT ARRAY['submitter']::"AppRole"[],
     "externalId" TEXT,
     "deactivatedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Role" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "label" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -171,6 +177,9 @@ CREATE TABLE "AuditLog" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Form_slug_key" ON "Form"("slug");
 
 -- CreateIndex
@@ -181,6 +190,18 @@ CREATE UNIQUE INDEX "OrgUnit_externalId_key" ON "OrgUnit"("externalId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "OrgMembership_userId_orgUnitId_key" ON "OrgMembership"("userId", "orgUnitId");
+
+-- CreateTable
+CREATE TABLE "_UserRoles" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_UserRoles_AB_unique" ON "_UserRoles"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_UserRoles_B_index" ON "_UserRoles"("B");
 
 -- AddForeignKey
 ALTER TABLE "Form" ADD CONSTRAINT "Form_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "Workflow"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -220,3 +241,9 @@ ALTER TABLE "OrgMembership" ADD CONSTRAINT "OrgMembership_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "OrgMembership" ADD CONSTRAINT "OrgMembership_orgUnitId_fkey" FOREIGN KEY ("orgUnitId") REFERENCES "OrgUnit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_UserRoles" ADD CONSTRAINT "_UserRoles_A_fkey" FOREIGN KEY ("A") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_UserRoles" ADD CONSTRAINT "_UserRoles_B_fkey" FOREIGN KEY ("B") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

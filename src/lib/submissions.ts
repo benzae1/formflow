@@ -3,11 +3,10 @@ import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { filterSubmissionDataForUser } from "@/lib/field-access";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
-import { AppRole } from "@/domain/roles";
 
 export type VisibleSubmissionUser = {
   id: string;
-  roles: AppRole[];
+  roles: string[];
 };
 
 export type VisibleSubmissionRecord = Prisma.SubmissionGetPayload<{

@@ -6,9 +6,10 @@ import AdminUsersClient from "./AdminUsersClient";
 export default async function AdminUsersPage() {
   await requirePageRole(["admin"]);
 
-  const [users, delegations] = await Promise.all([
+  const [users, roles, delegations] = await Promise.all([
     db.user.findMany({
       include: {
+        roles: true,
         memberships: {
           include: {
             orgUnit: true,
@@ -17,6 +18,11 @@ export default async function AdminUsersPage() {
       },
       orderBy: {
         updatedAt: "desc",
+      },
+    }),
+    db.role.findMany({
+      orderBy: {
+        name: "asc",
       },
     }),
     db.delegation.findMany({
@@ -38,7 +44,7 @@ export default async function AdminUsersPage() {
     .filter(
       (user) =>
         !user.deactivatedAt &&
-        (user.roles.includes("approver") || user.roles.includes("admin")),
+        user.roles.some((role) => role.name === "approver" || role.name === "admin"),
     )
     .map((user) => ({
       id: user.id,
@@ -57,8 +63,16 @@ export default async function AdminUsersPage() {
       <AdminUsersClient
         users={users.map((user) => ({
           ...user,
+          roles: user.roles.map((role) => ({
+            name: role.name,
+            label: role.label,
+          })),
           updatedAt: user.updatedAt.toISOString(),
           deactivatedAt: user.deactivatedAt?.toISOString() ?? null,
+        }))}
+        availableRoles={roles.map((role) => ({
+          name: role.name,
+          label: role.label,
         }))}
         delegations={delegations.map((delegation) => ({
           id: delegation.id,

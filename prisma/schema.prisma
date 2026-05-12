@@ -6,13 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum AppRole {
-  admin
-  submitter
-  approver
-  compliance
-}
-
 enum FormStatus {
   draft
   published
@@ -52,7 +45,7 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   name          String?
-  roles         AppRole[] @default([submitter])
+  roles         Role[]    @relation("UserRoles")
   externalId    String?
   passwordHash  String?
   deactivatedAt DateTime?
@@ -68,6 +61,14 @@ model User {
   memberships   OrgMembership[]
   delegationsFrom Delegation[] @relation("DelegationApprover")
   delegationsTo   Delegation[] @relation("DelegationDelegate")
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  label     String?
+  createdAt DateTime @default(now())
+  users     User[]   @relation("UserRoles")
 }
 
 model Form {

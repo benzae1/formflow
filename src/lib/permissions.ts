@@ -20,11 +20,11 @@ export async function requireUser() {
   return session.user as {
     id: string;
     email: string;
-    roles: AppRole[];
+    roles: string[];
   };
 }
 
-export async function requireRole(allowedRoles: AppRole[]) {
+export async function requireRole(allowedRoles: readonly string[]) {
   const user = await requireUser();
 
   const hasRole = user.roles.some((role) => allowedRoles.includes(role));

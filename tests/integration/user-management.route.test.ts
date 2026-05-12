@@ -31,9 +31,10 @@ describe("user and delegation management routes", () => {
 
     const updated = await db.user.findUniqueOrThrow({
       where: { id: submitter.id },
+      include: { roles: true },
     });
 
-    expect(updated.roles).toEqual(["submitter", "approver"]);
+    expect(updated.roles.map((role) => role.name).sort()).toEqual(["approver", "submitter"]);
   });
 
   test("approvers can manage their own delegation windows", async () => {
@@ -42,8 +43,9 @@ describe("user and delegation management routes", () => {
       data: {
         email: "delegate@example.com",
         name: "Delegate User",
-        roles: ["approver"],
+        roles: { connect: [{ name: "approver" }] },
       },
+      include: { roles: true },
     });
 
     setMockSession(approver);
@@ -87,15 +89,17 @@ describe("user and delegation management routes", () => {
       data: {
         email: "another-approver@example.com",
         name: "Another Approver",
-        roles: ["approver"],
+        roles: { connect: [{ name: "approver" }] },
       },
+      include: { roles: true },
     });
     const delegate = await db.user.create({
       data: {
         email: "delegate@example.com",
         name: "Delegate User",
-        roles: ["approver"],
+        roles: { connect: [{ name: "approver" }] },
       },
+      include: { roles: true },
     });
 
     setMockSession(approver);

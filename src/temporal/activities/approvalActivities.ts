@@ -166,7 +166,9 @@ export async function markTaskOverdueIfPending(taskId: string) {
   const admins = await db.user.findMany({
     where: {
       roles: {
-        has: "admin",
+        some: {
+          name: "admin",
+        },
       },
     },
   });
@@ -248,6 +250,7 @@ export async function getSubmissionWorkflowContext(submissionId: string) {
       form: true,
       submittedBy: {
         include: {
+          roles: true,
           memberships: {
             include: {
               orgUnit: true,
@@ -274,7 +277,7 @@ export async function getSubmissionWorkflowContext(submissionId: string) {
     },
     submitter: {
       id: submission.submittedBy.id,
-      roles: submission.submittedBy.roles,
+      roles: submission.submittedBy.roles.map((role) => role.name),
       orgUnits: submission.submittedBy.memberships.map((membership) => ({
         id: membership.orgUnit.id,
         name: membership.orgUnit.name,

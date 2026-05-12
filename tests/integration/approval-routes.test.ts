@@ -176,8 +176,9 @@ describe("approval signal routes", () => {
       data: {
         email: "backup-approver@example.com",
         name: "Backup Approver",
-        roles: ["approver"],
+        roles: { connect: [{ name: "approver" }] },
       },
+      include: { roles: true },
     });
     const workflow = await createWorkflowFixture({
       createdById: admin.id,
