@@ -76,20 +76,15 @@ export function SubmissionActionPanel({
   }
 
   return (
-    <section className=" border border-[var(--line)] bg-[var(--panel)] p-6">
-      <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">
-        Next action
-      </p>
+    <section className="bf-panel p-6">
+      <p className="bf-eyebrow">Next action</p>
 
       {canEdit ? (
         <div className="mt-4 space-y-3">
-          <p className="text-sm leading-7 text-[var(--muted)]">
+          <p className="text-sm leading-7 text-[var(--muted-strong)]">
             This submission can still be edited and sent back into the workflow.
           </p>
-          <Link
-            href={`/forms/${formSlug}?submissionId=${submissionId}`}
-            className="inline-flex bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-          >
+          <Link href={`/forms/${formSlug}?submissionId=${submissionId}`} className="bf-btn bf-btn-primary">
             {status === "draft" ? "Continue draft" : "Edit and resubmit"}
           </Link>
         </div>
@@ -99,7 +94,7 @@ export function SubmissionActionPanel({
         <div className="mt-4">
           {decision ? (
             <form onSubmit={submitDecision} className="space-y-4">
-              <div className=" border border-[var(--line)] bg-white p-4">
+              <div className="bf-panel-muted p-4">
                 <p className="text-sm font-semibold text-[var(--ink)]">
                   {decisions.find((item) => item.action === decision)?.label}
                 </p>
@@ -107,50 +102,34 @@ export function SubmissionActionPanel({
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   rows={4}
-                  className="mt-3 w-full border border-[var(--line)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)]"
+                  className="bf-textarea mt-3"
                   placeholder="Add context for the audit trail or the submitter."
                 />
               </div>
 
-              {error ? (
-                <div className=" border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-                  {error}
-                </div>
-              ) : null}
+              {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
 
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className=" bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
+              <div className="bf-action-row">
+                <button type="submit" disabled={pending} className="bf-btn bf-btn-primary disabled:opacity-60">
                   {pending ? "Recording..." : "Confirm decision"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setDecision(null)}
-                  className=" border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--line-strong)] hover:bg-[var(--canvas)]"
-                >
+                <button type="button" onClick={() => setDecision(null)} className="bf-btn bf-btn-segment">
                   Cancel
                 </button>
               </div>
             </form>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm leading-7 text-[var(--muted)]">
+              <p className="text-sm leading-7 text-[var(--muted-strong)]">
                 A pending approval task is assigned to you for this submission.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="bf-action-row">
                 {decisions.map((item) => (
                   <button
                     key={item.action}
                     type="button"
                     onClick={() => setDecision(item.action)}
-                    className={
-                      item.tone === "primary"
-                        ? " bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-                        : " border border-[var(--line)] bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--line-strong)] hover:bg-[var(--canvas)]"
-                    }
+                    className={`bf-btn ${item.tone === "primary" ? "bf-btn-primary" : ""} bf-btn-segment`}
                   >
                     {item.label}
                   </button>
@@ -162,7 +141,7 @@ export function SubmissionActionPanel({
       ) : null}
 
       {!canEdit && !(canAct && pendingTask) ? (
-        <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+        <p className="mt-4 text-sm leading-7 text-[var(--muted-strong)]">
           No further action is required from this screen right now.
         </p>
       ) : null}

@@ -45,66 +45,47 @@ export default async function AuditLogPage({
   exportParams.set("format", "csv");
 
   return (
-    <div className="space-y-6">
+    <div className="bf-stack">
       <PageHeader
         eyebrow="Audit trail"
         title="Sensitive access and control-plane events"
-        description="Compliance and admin can filter the latest audit entries, inspect actor/resource combinations, and export the current slice."
+        description="Compliance and admin can filter the latest audit entries, inspect actor-resource combinations, and export the current slice."
       >
-        <Link
-          href={`/api/audit-log?${exportParams.toString()}`}
-          className=" bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-        >
+        <Link href={`/api/audit-log?${exportParams.toString()}`} className="bf-btn bf-btn-primary">
           Export CSV
         </Link>
       </PageHeader>
 
-      <form className="flex flex-col gap-3 border border-[var(--line)] bg-[var(--panel)] p-5 lg:flex-row">
-        <input
-          name="action"
-          defaultValue={filters.action ?? ""}
-          placeholder="Action filter"
-          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
-        />
+      <form className="bf-filter-bar">
+        <input name="action" defaultValue={filters.action ?? ""} placeholder="Action filter" className="bf-input" />
         <input
           name="resourceType"
           defaultValue={filters.resourceType ?? ""}
           placeholder="Resource type"
-          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
+          className="bf-input"
         />
-        <input
-          name="actorId"
-          defaultValue={filters.actorId ?? ""}
-          placeholder="Actor ID"
-          className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
-        />
-        <button
-          type="submit"
-          className=" bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-        >
+        <input name="actorId" defaultValue={filters.actorId ?? ""} placeholder="Actor ID" className="bf-input" />
+        <button type="submit" className="bf-btn bf-btn-primary">
           Filter
         </button>
       </form>
 
-      <section className="space-y-3">
+      <section className="bf-list">
         {page.map((log) => (
-          <article
-            key={log.id}
-            className=" border border-[var(--line)] bg-[var(--panel)] p-5"
-          >
+          <article key={log.id} className="bf-list-card">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-                  {log.resourceType}
-                </p>
-                <h2 className="mt-2 text-xl font-semibold">{log.action}</h2>
-                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                  Resource {log.resourceId} • Actor {log.actorId ?? "system"} •{" "}
-                  {formatDateTime(log.createdAt)}
+                <p className="bf-eyebrow">{log.resourceType}</p>
+                <h2 className="mt-3 text-[28px] font-extrabold leading-none">{log.action}</h2>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted-strong)]">
+                  Resource {log.resourceId} | Actor {log.actorId ?? "system"} | {formatDateTime(log.createdAt)}
                 </p>
               </div>
               {log.action === "sensitive.accessed" ? (
-                <span className=" border border-[var(--danger)]/20 bg-[var(--danger-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--danger)]">
+                <span
+                  className="bf-pill"
+                  style={{ borderColor: "var(--haus-red)", background: "var(--accent-soft)" }}
+                >
                   Sensitive
                 </span>
               ) : null}
@@ -122,7 +103,7 @@ export default async function AuditLogPage({
               ...(filters.actorId ? { actorId: filters.actorId } : {}),
               cursor: nextCursor,
             }).toString()}`}
-            className=" border border-[var(--line)] bg-[var(--panel)] px-6 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+            className="bf-btn"
           >
             Load next {PAGE_SIZE}
           </Link>

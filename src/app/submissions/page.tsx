@@ -4,6 +4,7 @@ import { requirePageUser } from "@/lib/page-auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import { formatDateTime, titleCaseStatus } from "@/lib/ui";
 
 type SearchParams = Promise<{
@@ -79,7 +80,7 @@ export default async function SubmissionsPage({
   ) as Record<(typeof buckets)[number], number>;
 
   return (
-    <div className="space-y-6">
+    <div className="bf-stack">
       <PageHeader
         eyebrow="Submitter workspace"
         title="My submissions"
@@ -87,42 +88,33 @@ export default async function SubmissionsPage({
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {buckets.map((bucket) => (
-          <article
-            key={bucket}
-            className=" border border-[var(--line)] bg-[var(--panel)] px-5 py-5"
-          >
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-              {titleCaseStatus(bucket)}
-            </p>
-            <p className="mt-3 text-3xl font-semibold">{counts[bucket]}</p>
+        {buckets.map((bucket, index) => (
+          <article key={bucket} className="bf-metric-card">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="bf-eyebrow">{titleCaseStatus(bucket)}</p>
+                <p className="bf-metric-value">{counts[bucket]}</p>
+              </div>
+              <PrimitiveMark
+                shape={index % 3 === 0 ? "square" : index % 3 === 1 ? "circle" : "triangle"}
+                color={index % 3 === 0 ? "var(--haus-red)" : index % 3 === 1 ? "var(--haus-teal)" : "var(--haus-yellow)"}
+              />
+            </div>
           </article>
         ))}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-4 border border-[var(--line)] bg-[var(--panel)] p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="bf-panel p-6">
+          <div className="flex flex-col gap-4 border-b border-[var(--line)] pb-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-                Submission list
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold">Current work</h2>
+              <p className="bf-eyebrow">Submission list</p>
+              <h2 className="mt-3 text-[32px] font-extrabold leading-none">Current work</h2>
             </div>
 
-            <form className="flex flex-col gap-3 sm:flex-row">
-              <input
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Search by form title"
-                className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
-              />
-              <select
-                name="status"
-                defaultValue={status ?? ""}
-                className=" border border-[var(--line)] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[var(--brand)]"
-              >
+            <form className="bf-filter-group">
+              <input type="search" name="q" defaultValue={q} placeholder="Search by form title" className="bf-input" />
+              <select name="status" defaultValue={status ?? ""} className="bf-select">
                 <option value="">All statuses</option>
                 {buckets.map((bucket) => (
                   <option key={bucket} value={bucket}>
@@ -130,47 +122,36 @@ export default async function SubmissionsPage({
                   </option>
                 ))}
               </select>
-              <button
-                type="submit"
-                className=" bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-              >
+              <button type="submit" className="bf-btn bf-btn-primary">
                 Filter
               </button>
             </form>
           </div>
 
           {submissions.length === 0 ? (
-            <EmptyState
-              eyebrow="Nothing here yet"
-              title="No submissions match this view"
-              description="Try a different filter or start a fresh request from one of the published forms on the right."
-            />
+            <div className="mt-5">
+              <EmptyState
+                eyebrow="Nothing here yet"
+                title="No submissions match this view"
+                description="Try a different filter or start a fresh request from one of the published forms on the right."
+              />
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="mt-5 bf-list">
               {submissions.map((submission) => (
-                <Link
-                  key={submission.id}
-                  href={`/submissions/${submission.id}`}
-                  className="flex flex-col gap-4 border border-[var(--line)] bg-white px-5 py-5 transition hover:border-[var(--line-strong)]"
-                >
+                <Link key={submission.id} href={`/submissions/${submission.id}`} className="bf-link-card">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-                        {submission.form.slug}
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold">
-                        {submission.form.title}
-                      </h3>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
-                        Updated {formatDateTime(submission.updatedAt)}
-                      </p>
+                      <p className="bf-eyebrow">{submission.form.slug}</p>
+                      <h3 className="mt-3 text-[28px] font-extrabold leading-none">{submission.form.title}</h3>
+                      <p className="mt-2 text-sm text-[var(--muted-strong)]">Updated {formatDateTime(submission.updatedAt)}</p>
                     </div>
 
                     <StatusBadge status={submission.status} />
                   </div>
 
                   {submission.approvalTasks[0]?.note ? (
-                    <div className=" bg-[var(--canvas)] px-4 py-3 text-sm leading-7 text-[var(--muted)]">
+                    <div className="bf-panel-muted mt-4 px-4 py-3 text-sm leading-7 text-[var(--muted-strong)]">
                       Latest note: {submission.approvalTasks[0].note}
                     </div>
                   ) : null}
@@ -180,34 +161,28 @@ export default async function SubmissionsPage({
           )}
         </div>
 
-        <aside className="space-y-4 border border-[var(--line)] bg-[var(--panel)] p-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-              Published forms
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">Start something new</h2>
+        <aside className="bf-panel p-6">
+          <div className="border-b border-[var(--line)] pb-4">
+            <p className="bf-eyebrow">Published forms</p>
+            <h2 className="mt-3 text-[32px] font-extrabold leading-none">Start something new</h2>
           </div>
 
           {publishedForms.length === 0 ? (
-            <EmptyState
-              eyebrow="No forms published"
-              title="Nothing is open for submission"
-              description="Ask an administrator to publish a form and attach a workflow."
-            />
+            <div className="mt-5">
+              <EmptyState
+                eyebrow="No forms published"
+                title="Nothing is open for submission"
+                description="Ask an administrator to publish a form and attach a workflow."
+              />
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="mt-5 bf-list">
               {publishedForms.map((form) => (
-                <Link
-                  key={form.id}
-                  href={`/forms/${form.slug}`}
-                  className="block border border-[var(--line)] bg-white px-5 py-4 transition hover:border-[var(--line-strong)]"
-                >
+                <Link key={form.id} href={`/forms/${form.slug}`} className="bf-link-card">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-semibold">{form.title}</h3>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
-                        {form.slug}
-                      </p>
+                      <p className="mt-2 text-sm text-[var(--muted-strong)]">{form.slug}</p>
                     </div>
                     <StatusBadge status={form.sensitivity} />
                   </div>

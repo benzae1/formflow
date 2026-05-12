@@ -23,7 +23,7 @@ export default function OrgSyncButton() {
       type="button"
       onClick={sync}
       disabled={pending}
-      className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+      className="bf-btn bf-btn-primary disabled:opacity-60"
     >
       {pending ? "Syncing..." : "Run org sync"}
     </button>

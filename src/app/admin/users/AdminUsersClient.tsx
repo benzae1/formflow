@@ -78,12 +78,8 @@ export default function AdminUsersClient({
   }
 
   return (
-    <section className="space-y-3">
-      {error ? (
-        <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-          {error}
-        </div>
-      ) : null}
+    <section className="bf-list">
+      {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
 
       {users.map((user) => (
         <UserCard
@@ -129,14 +125,12 @@ function UserCard({
   const canManageDelegation = roles.includes("approver") || roles.includes("admin");
 
   return (
-    <article className="border border-[var(--line-strong)] bg-white p-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <article className="bf-list-card">
+      <div className="flex flex-col gap-4 border-b border-[var(--line)] pb-5 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">{user.name ?? user.email}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{user.email}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Updated {formatDateTime(user.updatedAt)}
-          </p>
+          <h2 className="text-[30px] font-extrabold leading-none">{user.name ?? user.email}</h2>
+          <p className="mt-2 text-sm text-[var(--muted-strong)]">{user.email}</p>
+          <p className="mt-1 text-sm text-[var(--muted-strong)]">Updated {formatDateTime(user.updatedAt)}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -148,19 +142,12 @@ function UserCard({
       </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
-        <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-            Roles
-          </p>
+        <div className="bf-panel-muted px-4 py-4">
+          <p className="bf-eyebrow">Roles</p>
           <div className="mt-3 space-y-3">
             {roleOptions.map((role) => (
               <label key={role} className="flex items-center gap-3 text-sm text-[var(--ink)]">
-                <input
-                  type="checkbox"
-                  checked={roles.includes(role)}
-                  onChange={() => toggleRole(role)}
-                  className="h-4 w-4 border-[var(--line-strong)]"
-                />
+                <input type="checkbox" checked={roles.includes(role)} onChange={() => toggleRole(role)} />
                 <span>{getRoleLabel(role)}</span>
               </label>
             ))}
@@ -169,24 +156,22 @@ function UserCard({
             type="button"
             disabled={pending || roles.length === 0}
             onClick={() => onSaveRoles(roles)}
-            className="mt-4 bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            className="bf-btn bf-btn-primary mt-4 disabled:opacity-60"
           >
             Save roles
           </button>
         </div>
 
-        <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-            Org memberships
-          </p>
+        <div className="bf-panel-muted px-4 py-4">
+          <p className="bf-eyebrow">Org memberships</p>
           <div className="mt-3 space-y-2">
             {user.memberships.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">No memberships synced.</p>
+              <p className="text-sm text-[var(--muted-strong)]">No memberships synced.</p>
             ) : (
               user.memberships.map((membership) => (
                 <p key={membership.id} className="text-sm text-[var(--ink)]">
-                  {membership.orgUnit.name} · {membership.roleInUnit ?? "member"}
-                  {membership.isManager ? " · manager" : ""}
+                  {membership.orgUnit.name} | {membership.roleInUnit ?? "member"}
+                  {membership.isManager ? " | manager" : ""}
                 </p>
               ))
             )}

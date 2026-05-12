@@ -64,7 +64,7 @@ export function SubmissionFormView({
 
   if (entries.length === 0) {
     return (
-      <div className=" border border-dashed border-[var(--line)] bg-white px-4 py-8 text-center text-sm text-[var(--muted)]">
+      <div className="bf-panel px-4 py-8 text-center text-sm text-[var(--muted-strong)]">
         No response data has been stored yet.
       </div>
     );
@@ -75,9 +75,9 @@ export function SubmissionFormView({
       {entries.map(([key, value]) => (
         <article
           key={key}
-          className=" border border-[var(--line)] bg-white px-4 py-4"
+          className="bf-panel-muted px-4 py-4"
         >
-          <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+          <p className="bf-kicker">
             {labels[key] ?? key}
           </p>
           <div className="mt-3 text-sm leading-7 text-[var(--ink)]">

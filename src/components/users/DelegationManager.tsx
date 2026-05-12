@@ -97,26 +97,24 @@ export default function DelegationManager({
   }
 
   return (
-    <div className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-4">
+    <div className="bf-panel-muted px-4 py-4">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-          {title}
-        </p>
-        <p className="mt-2 text-sm text-[var(--muted)]">{description}</p>
+        <p className="bf-eyebrow">{title}</p>
+        <p className="mt-3 text-sm text-[var(--muted-strong)]">{description}</p>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 bf-list">
         {delegations.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No active delegation records.</p>
+          <p className="text-sm text-[var(--muted-strong)]">No active delegation records.</p>
         ) : (
           delegations.map((delegation) => (
             <div
               key={delegation.id}
-              className="flex flex-col gap-3 border border-[var(--line)] px-3 py-3 md:flex-row md:items-center md:justify-between"
+              className="bf-panel flex flex-col gap-3 px-3 py-3 md:flex-row md:items-center md:justify-between"
             >
               <div className="text-sm text-[var(--ink)]">
                 <p className="font-semibold">{delegation.delegateName}</p>
-                <p className="text-[var(--muted)]">
+                <p className="text-[var(--muted-strong)]">
                   {formatDateTime(delegation.startsAt)} to {formatDateTime(delegation.endsAt)}
                 </p>
               </div>
@@ -125,7 +123,7 @@ export default function DelegationManager({
                   type="button"
                   disabled={pending}
                   onClick={() => removeDelegation(delegation.id)}
-                  className="border border-[var(--line-strong)] bg-white px-4 py-1.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
+                  className="bf-btn disabled:opacity-60"
                 >
                   Remove
                 </button>
@@ -136,12 +134,8 @@ export default function DelegationManager({
       </div>
 
       {canManage ? (
-        <div className="mt-4 space-y-3">
-          <select
-            value={delegateId}
-            onChange={(event) => setDelegateId(event.target.value)}
-            className="w-full border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
-          >
+        <div className="mt-4 bf-stack">
+          <select value={delegateId} onChange={(event) => setDelegateId(event.target.value)} className="bf-select">
             <option value="">Choose delegate</option>
             {availableDelegates.map((delegate) => (
               <option key={delegate.id} value={delegate.id}>
@@ -152,36 +146,32 @@ export default function DelegationManager({
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1 text-sm">
-              <span className="text-[var(--muted)]">Starts</span>
+              <span className="bf-kicker">Starts</span>
               <input
                 type="datetime-local"
                 value={startsAt}
                 onChange={(event) => setStartsAt(event.target.value)}
-                className="w-full border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
+                className="bf-input"
               />
             </label>
             <label className="space-y-1 text-sm">
-              <span className="text-[var(--muted)]">Ends</span>
+              <span className="bf-kicker">Ends</span>
               <input
                 type="datetime-local"
                 value={endsAt}
                 onChange={(event) => setEndsAt(event.target.value)}
-                className="w-full border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
+                className="bf-input"
               />
             </label>
           </div>
 
-          {error ? (
-            <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-              {error}
-            </div>
-          ) : null}
+          {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
 
           <button
             type="button"
             disabled={pending}
             onClick={createDelegation}
-            className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            className="bf-btn bf-btn-primary w-full disabled:opacity-60"
           >
             Save delegation
           </button>

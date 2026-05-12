@@ -103,131 +103,106 @@ export default function WorkflowsManagerClient({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="space-y-3 border border-[var(--line-strong)] bg-white p-5">
-        <div className="flex items-center justify-between gap-4">
+      <section className="bf-panel p-5">
+        <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-              Workflow library
-            </p>
-            <h2 className="mt-2 text-2xl font-bold">Definitions</h2>
+            <p className="bf-eyebrow">Workflow library</p>
+            <h2 className="mt-3 text-[32px] font-extrabold leading-none">Definitions</h2>
           </div>
-          <button
-            type="button"
-            onClick={newWorkflow}
-            className="bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
+          <button type="button" onClick={newWorkflow} className="bf-btn bf-btn-primary">
             New workflow
           </button>
         </div>
 
-        {workflows.map((workflow) => (
-          <button
-            key={workflow.id}
-            type="button"
-            onClick={() => chooseWorkflow(workflow.id)}
-            className={`w-full border px-4 py-4 text-left ${
-              selectedId === workflow.id
-                ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                : "border-[var(--line-strong)] bg-white hover:bg-[var(--canvas)]"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-base font-semibold">{workflow.name}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  Version {workflow.version} · {workflow.forms.length} attached forms
-                </p>
+        <div className="mt-4 bf-list">
+          {workflows.map((workflow) => (
+            <button
+              key={workflow.id}
+              type="button"
+              onClick={() => chooseWorkflow(workflow.id)}
+              className="w-full border px-4 py-4 text-left"
+              style={{
+                borderColor: selectedId === workflow.id ? "var(--accent)" : "var(--line-strong)",
+                background: selectedId === workflow.id ? "var(--canvas-soft)" : "var(--panel)",
+              }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-base font-semibold">{workflow.name}</p>
+                  <p className="mt-1 text-sm text-[var(--muted-strong)]">
+                    Version {workflow.version} | {workflow.forms.length} attached forms
+                  </p>
+                </div>
+                <StatusBadge status="approval" />
               </div>
-              <StatusBadge status="approval" />
-            </div>
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
       </section>
 
-      <section className="space-y-4 border border-[var(--line-strong)] bg-white p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <section className="bf-panel p-6">
+        <div className="flex flex-col gap-3 border-b border-[var(--line)] pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-              Editor
-            </p>
-            <h2 className="mt-2 text-2xl font-bold">
+            <p className="bf-eyebrow">Editor</p>
+            <h2 className="mt-3 text-[32px] font-extrabold leading-none">
               {selectedId ? "Edit workflow" : "Create workflow"}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending}
-            className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-          >
+          <button type="button" onClick={save} disabled={pending} className="bf-btn bf-btn-primary disabled:opacity-60">
             {pending ? "Saving..." : "Save workflow"}
           </button>
         </div>
 
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className="w-full border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
-          placeholder="Workflow name"
-        />
+        <div className="mt-5 bf-stack">
+          <input value={name} onChange={(event) => setName(event.target.value)} className="bf-input" placeholder="Workflow name" />
 
-        {error ? (
-          <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-            {error}
-          </div>
-        ) : null}
+          {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
 
-        <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-          <textarea
-            value={definitionText}
-            onChange={(event) => setDefinitionText(event.target.value)}
-            rows={24}
-            className="w-full border border-[var(--line-strong)] bg-[var(--ink)] px-4 py-4 font-mono text-sm leading-7 text-white outline-none focus:border-[var(--brand)]"
-          />
+          <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+            <textarea
+              value={definitionText}
+              onChange={(event) => setDefinitionText(event.target.value)}
+              rows={24}
+              className="w-full border border-[var(--line-strong)] bg-[var(--ink)] px-4 py-4 font-mono text-sm leading-7 text-white outline-none"
+            />
 
-          <div className="space-y-3">
-            <div className="border border-[var(--line-strong)] bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-                Stage summary
-              </p>
-              <div className="mt-4 space-y-3">
-                {stageSummary.map((stage) => (
-                  <article
-                    key={stage.id}
-                    className="border border-[var(--line)] bg-[var(--canvas)] px-4 py-3"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold">{stage.name}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">{stage.description}</p>
+            <div className="bf-stack">
+              <div className="bf-panel-muted p-4">
+                <p className="bf-kicker">Stage summary</p>
+                <div className="mt-4 bf-list">
+                  {stageSummary.map((stage) => (
+                    <article key={stage.id} className="bf-panel px-4 py-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold">{stage.name}</p>
+                          <p className="mt-1 text-sm text-[var(--muted-strong)]">{stage.description}</p>
+                        </div>
+                        <StatusBadge status={stage.type} />
                       </div>
-                      <StatusBadge status={stage.type} />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            {selectedWorkflow ? (
-              <div className="border border-[var(--line-strong)] bg-white p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-                  Attached forms
-                </p>
-                <div className="mt-3 space-y-2">
-                  {selectedWorkflow.forms.length === 0 ? (
-                    <p className="text-sm text-[var(--muted)]">
-                      No forms currently reference this workflow.
-                    </p>
-                  ) : (
-                    selectedWorkflow.forms.map((form) => (
-                      <p key={form.id} className="border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm">
-                        {form.title}
-                      </p>
-                    ))
-                  )}
+                    </article>
+                  ))}
                 </div>
               </div>
-            ) : null}
+
+              {selectedWorkflow ? (
+                <div className="bf-panel-muted p-4">
+                  <p className="bf-kicker">Attached forms</p>
+                  <div className="mt-3 bf-list">
+                    {selectedWorkflow.forms.length === 0 ? (
+                      <p className="text-sm text-[var(--muted-strong)]">
+                        No forms currently reference this workflow.
+                      </p>
+                    ) : (
+                      selectedWorkflow.forms.map((form) => (
+                        <p key={form.id} className="bf-panel px-3 py-2 text-sm">
+                          {form.title}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>

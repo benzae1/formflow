@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requirePageRole } from "@/lib/page-auth";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import { formatDateTime } from "@/lib/ui";
 import OrgSyncButton from "./OrgSyncButton";
 
@@ -31,58 +32,57 @@ export default async function AdminOrgPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="bf-stack">
       <PageHeader
         eyebrow="Organization sync"
         title="Directory and routing cache"
-        description="Inspect the current org graph, verify manager/head resolution, and refresh development data from the adapter."
+        description="Inspect the current org graph, verify manager and head resolution, and refresh development data from the adapter."
       >
         <OrgSyncButton />
       </PageHeader>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="bf-metrics md:grid-cols-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
         {[
           ["Synced users", String(users.length)],
-          [
-            "Deactivated users",
-            String(users.filter((user) => user.deactivatedAt).length),
-          ],
+          ["Deactivated users", String(users.filter((user) => user.deactivatedAt).length)],
           ["Most recent sync", formatDateTime(users[0]?.updatedAt ?? null)],
-        ].map(([label, value]) => (
-          <article
-            key={label}
-            className=" border border-[var(--line)] bg-[var(--panel)] px-5 py-5"
-          >
-            <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-              {label}
-            </p>
-            <p className="mt-3 text-2xl font-semibold">{value}</p>
+        ].map(([label, value], index) => (
+          <article key={label} className="bf-metric-card">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="bf-eyebrow">{label}</p>
+                <p className="bf-metric-value">{value}</p>
+              </div>
+              <PrimitiveMark
+                shape={index === 0 ? "circle" : index === 1 ? "square" : "triangle"}
+                color={index === 0 ? "var(--haus-teal)" : index === 1 ? "var(--haus-red)" : "var(--haus-yellow)"}
+              />
+            </div>
           </article>
         ))}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        {units.map((unit) => (
-          <article
-            key={unit.id}
-            className=" border border-[var(--line)] bg-[var(--panel)] p-5"
-          >
-            <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-              {unit.type}
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold">{unit.name}</h2>
-            <div className="mt-4 space-y-3">
+        {units.map((unit, index) => (
+          <article key={unit.id} className="bf-list-card">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="bf-eyebrow">{unit.type}</p>
+                <h2 className="mt-3 text-[30px] font-extrabold leading-none">{unit.name}</h2>
+              </div>
+              <PrimitiveMark
+                shape={index % 3 === 0 ? "square" : index % 3 === 1 ? "circle" : "triangle"}
+                color={index % 3 === 0 ? "var(--haus-red)" : index % 3 === 1 ? "var(--haus-teal)" : "var(--haus-yellow)"}
+              />
+            </div>
+
+            <div className="mt-4 bf-list">
               {unit.memberships.map((membership) => (
-                <div
-                  key={membership.id}
-                  className=" border border-[var(--line)] bg-white px-4 py-3"
-                >
-                  <p className="text-sm font-semibold">
-                    {membership.user.name ?? membership.user.email}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                <div key={membership.id} className="bf-panel-muted px-4 py-3">
+                  <p className="text-sm font-semibold">{membership.user.name ?? membership.user.email}</p>
+                  <p className="mt-1 text-sm text-[var(--muted-strong)]">
                     {membership.roleInUnit ?? "member"}
-                    {membership.isManager ? " • manager" : ""}
+                    {membership.isManager ? " | manager" : ""}
                   </p>
                 </div>
               ))}

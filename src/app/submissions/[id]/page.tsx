@@ -67,7 +67,7 @@ export default async function SubmissionDetailPage({
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="bf-stack">
       <PageHeader
         eyebrow="Submission detail"
         title={submission.form.title}
@@ -77,7 +77,7 @@ export default async function SubmissionDetailPage({
       </PageHeader>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="space-y-5 border border-[var(--line)] bg-[var(--panel)] p-6">
+        <section className="bf-panel p-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {[
               ["Form version", String(submission.formVersion)],
@@ -85,23 +85,16 @@ export default async function SubmissionDetailPage({
               ["Created", formatDateTime(submission.createdAt)],
               ["Updated", formatDateTime(submission.updatedAt)],
             ].map(([label, value]) => (
-              <article
-                key={label}
-                className=" border border-[var(--line)] bg-white px-4 py-4"
-              >
-                <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
-                  {label}
-                </p>
+              <article key={label} className="bf-panel-muted px-4 py-4">
+                <p className="bf-kicker">{label}</p>
                 <p className="mt-3 text-sm leading-7 text-[var(--ink)]">{value}</p>
               </article>
             ))}
           </div>
 
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-              Submitted answers
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">Response snapshot</h2>
+          <div className="mt-6">
+            <p className="bf-eyebrow">Submitted answers</p>
+            <h2 className="mt-3 text-[32px] font-extrabold leading-none">Response snapshot</h2>
             <div className="mt-4">
               <SubmissionFormView
                 schema={getSubmissionSchema({
@@ -117,24 +110,18 @@ export default async function SubmissionDetailPage({
           </div>
 
           {submission.childSubmissions.length > 0 ? (
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-                Follow-up work
-              </p>
-              <div className="mt-3 space-y-3">
+            <div className="mt-6">
+              <p className="bf-eyebrow">Follow-up work</p>
+              <div className="mt-3 bf-list">
                 {submission.childSubmissions.map((child) => (
-                  <Link
-                    key={child.id}
-                    href={`/submissions/${child.id}`}
-                    className="flex items-center justify-between border border-[var(--line)] bg-white px-4 py-4 transition hover:border-[var(--line-strong)]"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold">{child.form.title}</p>
-                      <p className="text-sm text-[var(--muted)]">
-                        Child submission {child.id}
-                      </p>
+                  <Link key={child.id} href={`/submissions/${child.id}`} className="bf-link-card">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold">{child.form.title}</p>
+                        <p className="text-sm text-[var(--muted-strong)]">Child submission {child.id}</p>
+                      </div>
+                      <StatusBadge status={child.status} />
                     </div>
-                    <StatusBadge status={child.status} />
                   </Link>
                 ))}
               </div>
@@ -142,7 +129,7 @@ export default async function SubmissionDetailPage({
           ) : null}
         </section>
 
-        <div className="space-y-6">
+        <div className="bf-stack">
           <SubmissionActionPanel
             submissionId={submission.id}
             formSlug={submission.form.slug}
@@ -161,37 +148,28 @@ export default async function SubmissionDetailPage({
             }
           />
 
-          <section className=" border border-[var(--line)] bg-[var(--panel)] p-6">
-            <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">
-              Approval timeline
-            </p>
-            <div className="mt-4 space-y-3">
+          <section className="bf-panel p-6">
+            <p className="bf-eyebrow">Approval timeline</p>
+            <div className="mt-4 bf-list">
               {submission.approvalTasks.length === 0 ? (
-                <p className="text-sm leading-7 text-[var(--muted)]">
+                <p className="text-sm leading-7 text-[var(--muted-strong)]">
                   No approval tasks have been created yet.
                 </p>
               ) : (
                 submission.approvalTasks.map((task) => (
-                  <article
-                    key={task.id}
-                    className=" border border-[var(--line)] bg-white px-4 py-4"
-                  >
+                  <article key={task.id} className="bf-panel-muted px-4 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.26em] text-[var(--muted)]">
-                          Stage {task.stageIndex + 1}
-                        </p>
-                        <p className="mt-2 text-sm font-semibold">
-                          {task.assignedTo.name ?? task.assignedTo.email}
-                        </p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
+                        <p className="bf-kicker">Stage {task.stageIndex + 1}</p>
+                        <p className="mt-2 text-sm font-semibold">{task.assignedTo.name ?? task.assignedTo.email}</p>
+                        <p className="mt-1 text-sm text-[var(--muted-strong)]">
                           Due {formatDateTime(task.dueAt)}
                         </p>
                       </div>
                       <StatusBadge status={task.status} />
                     </div>
                     {task.note ? (
-                      <p className="mt-3 bg-[var(--canvas)] px-3 py-3 text-sm leading-7 text-[var(--muted)]">
+                      <p className="bf-panel mt-3 px-3 py-3 text-sm leading-7 text-[var(--muted-strong)]">
                         {task.note}
                       </p>
                     ) : null}
@@ -201,25 +179,20 @@ export default async function SubmissionDetailPage({
             </div>
           </section>
 
-          <section className=" border border-[var(--line)] bg-[var(--panel)] p-6">
-            <p className="text-xs uppercase tracking-[0.32em] text-[var(--muted)]">
-              Workflow context
-            </p>
-            <div className="mt-4 space-y-3">
+          <section className="bf-panel p-6">
+            <p className="bf-eyebrow">Workflow context</p>
+            <div className="mt-4 bf-list">
               {workflowSummary.length === 0 ? (
-                <p className="text-sm leading-7 text-[var(--muted)]">
+                <p className="text-sm leading-7 text-[var(--muted-strong)]">
                   No workflow summary is available for this form.
                 </p>
               ) : (
                 workflowSummary.map((stage) => (
-                  <article
-                    key={stage.id}
-                    className=" border border-[var(--line)] bg-white px-4 py-4"
-                  >
+                  <article key={stage.id} className="bf-panel-muted px-4 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold">{stage.name}</p>
-                        <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                        <p className="mt-2 text-sm leading-7 text-[var(--muted-strong)]">
                           {stage.description}
                         </p>
                       </div>

@@ -120,7 +120,13 @@ export default function FormsManagerClient({
 
     const json = (await response.json()) as { form: { id: string } };
     setCreateOpen(false);
-    setFormState({ slug: "", title: "", sensitivity: "standard", workflowId: "", parentFormId: "" });
+    setFormState({
+      slug: "",
+      title: "",
+      sensitivity: "standard",
+      workflowId: "",
+      parentFormId: "",
+    });
     setSlugTouched(false);
     router.push(`/admin/forms/${json.form.id}/builder`);
     router.refresh();
@@ -138,19 +144,19 @@ export default function FormsManagerClient({
   }
 
   return (
-    <div className="space-y-4">
-      <section className="flex flex-col gap-4 border border-[var(--line-strong)] bg-white p-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col gap-3 md:flex-row">
+    <div className="bf-stack">
+      <section className="bf-filter-bar">
+        <div className="bf-filter-group">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search title or slug"
-            className="border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
+            className="bf-input"
           />
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value)}
-            className="border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
+            className="bf-select"
           >
             <option value="all">All statuses</option>
             <option value="draft">Draft</option>
@@ -159,47 +165,31 @@ export default function FormsManagerClient({
           </select>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
-        >
+        <button type="button" onClick={() => setCreateOpen(true)} className="bf-btn bf-btn-primary">
           Create form
         </button>
       </section>
 
-      {error ? (
-        <div className="border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
 
-      <section className="space-y-3">
+      <section className="bf-list">
         {visibleForms.map((form) => (
-          <article
-            key={form.id}
-            className="border border-[var(--line-strong)] bg-white p-5"
-          >
+          <article key={form.id} className="bf-list-card">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-                  {form.slug}
-                </p>
-                <h2 className="text-2xl font-bold">{form.title}</h2>
+                <p className="bf-eyebrow">{form.slug}</p>
+                <h2 className="text-[30px] font-extrabold leading-none">{form.title}</h2>
                 <div className="flex flex-wrap gap-2">
                   <StatusBadge status={form.status} />
                   <StatusBadge status={form.sensitivity} />
                 </div>
-                <p className="text-sm text-[var(--muted)]">
-                  Version {form.version} · Workflow {form.workflow?.name ?? "Unassigned"}
+                <p className="bf-copy">
+                  Version {form.version} | Workflow {form.workflow?.name ?? "Unassigned"}
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href={`/admin/forms/${form.id}/builder`}
-                  className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
-                >
+              <div className="bf-action-row">
+                <Link href={`/admin/forms/${form.id}/builder`} className="bf-btn bf-btn-primary bf-btn-segment">
                   Open builder
                 </Link>
                 <button
@@ -208,7 +198,7 @@ export default function FormsManagerClient({
                   onClick={() =>
                     updateStatus(form.id, form.status === "published" ? "archived" : "published")
                   }
-                  className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)] disabled:opacity-60"
+                  className="bf-btn bf-btn-segment disabled:opacity-60"
                 >
                   {form.status === "published" ? "Archive" : "Publish"}
                 </button>
@@ -220,19 +210,14 @@ export default function FormsManagerClient({
 
       {createOpen ? (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-xl border border-[var(--line-strong)] bg-white p-6">
+          <div className="bf-panel w-full max-w-xl p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-                  New form
-                </p>
-                <h2 className="mt-2 text-2xl font-bold">Start with a fresh shell</h2>
+                <p className="bf-eyebrow">New form</p>
+                <div className="bf-rule-sm mt-3" />
+                <h2 className="mt-4 text-[32px] font-extrabold leading-none">Start with a fresh shell</h2>
               </div>
-              <button
-                type="button"
-                onClick={() => setCreateOpen(false)}
-                className="border border-[var(--line-strong)] px-3 py-1 text-sm font-semibold hover:bg-[var(--canvas)]"
-              >
+              <button type="button" onClick={() => setCreateOpen(false)} className="bf-btn">
                 Close
               </button>
             </div>
@@ -249,7 +234,7 @@ export default function FormsManagerClient({
                   }));
                 }}
                 placeholder="Form title"
-                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
+                className="bf-input"
               />
               <input
                 value={formState.slug}
@@ -261,14 +246,14 @@ export default function FormsManagerClient({
                   }));
                 }}
                 placeholder="form-slug"
-                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
+                className="bf-input"
               />
               <select
                 value={formState.sensitivity}
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, sensitivity: event.target.value }))
                 }
-                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
+                className="bf-select"
               >
                 <option value="standard">Standard</option>
                 <option value="pii">PII</option>
@@ -279,7 +264,7 @@ export default function FormsManagerClient({
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, workflowId: event.target.value }))
                 }
-                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)]"
+                className="bf-select"
               >
                 <option value="">No workflow yet</option>
                 {workflows.map((workflow) => (
@@ -293,7 +278,7 @@ export default function FormsManagerClient({
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, parentFormId: event.target.value }))
                 }
-                className="border border-[var(--line-strong)] bg-[var(--canvas)] px-4 py-3 text-sm outline-none focus:border-[var(--brand)] md:col-span-2"
+                className="bf-select md:col-span-2"
               >
                 <option value="">No parent form</option>
                 {parentForms.map((form) => (
@@ -304,16 +289,16 @@ export default function FormsManagerClient({
               </select>
             </div>
 
-            <p className="mt-3 text-xs text-[var(--muted)]">
+            <p className="mt-3 text-xs text-[var(--muted-strong)]">
               Slugs use lowercase letters, numbers, and hyphens. Leave the workflow blank to attach one later.
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 bf-action-row">
               <button
                 type="button"
                 onClick={createForm}
                 disabled={pending}
-                className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                className="bf-btn bf-btn-primary disabled:opacity-60"
               >
                 {pending ? "Creating..." : "Create and open builder"}
               </button>
