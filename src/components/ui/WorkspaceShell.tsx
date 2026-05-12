@@ -32,7 +32,6 @@ export function WorkspaceShell({
         fontFamily: "var(--font-sans)",
       }}
     >
-      {/* ── Header ── */}
       <header
         style={{
           gridColumn: "1 / -1",
@@ -43,7 +42,6 @@ export function WorkspaceShell({
           background: "var(--panel)",
         }}
       >
-        {/* Logo block */}
         <div
           style={{
             background: "#000",
@@ -56,12 +54,11 @@ export function WorkspaceShell({
             alignItems: "center",
           }}
         >
-          Bauhaus-Universität
+          Bauhaus-Universitaet
           <br />
           Weimar
         </div>
 
-        {/* App title */}
         <div
           style={{
             display: "flex",
@@ -72,12 +69,11 @@ export function WorkspaceShell({
           }}
         >
           <span style={{ fontSize: 15, fontWeight: 700 }}>Bauhaus Forms</span>
-          <span style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>
+          <span style={{ fontSize: 11, color: "var(--muted-strong)", marginTop: 1 }}>
             University Communications
           </span>
         </div>
 
-        {/* Right controls */}
         <div style={{ display: "flex", alignItems: "stretch" }}>
           <div
             style={{
@@ -86,9 +82,11 @@ export function WorkspaceShell({
               justifyContent: "center",
               padding: "0 20px",
               borderLeft: "1px solid var(--line)",
+              minWidth: 180,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 700 }}>
+            <span className="bf-kicker">Signed in</span>
+            <span style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>
               {user.name ?? user.email}
             </span>
           </div>
@@ -97,7 +95,6 @@ export function WorkspaceShell({
               display: "flex",
               alignItems: "center",
               borderLeft: "1px solid var(--line)",
-              padding: "0 4px",
             }}
           >
             <NotificationPanel />
@@ -107,7 +104,6 @@ export function WorkspaceShell({
               display: "flex",
               alignItems: "center",
               borderLeft: "1px solid var(--line)",
-              padding: "0 4px",
             }}
           >
             <SignOutButton />
@@ -115,7 +111,6 @@ export function WorkspaceShell({
         </div>
       </header>
 
-      {/* ── Sidebar ── */}
       <aside
         style={{
           background: "var(--panel)",
@@ -125,14 +120,13 @@ export function WorkspaceShell({
         <SidebarNav groups={navigation} />
       </aside>
 
-      {/* ── Main content ── */}
       <main
         style={{
-          padding: "48px 56px 80px",
+          padding: "40px 48px 80px",
           minWidth: 0,
         }}
       >
-        {children}
+        <div className="bf-shell-content">{children}</div>
       </main>
     </div>
   );

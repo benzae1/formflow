@@ -10,7 +10,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header style={{ marginBottom: 40 }}>
+    <header style={{ marginBottom: 24 }}>
       <div
         style={{
           display: "grid",
@@ -20,32 +20,14 @@ export function PageHeader({
         }}
       >
         <div>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
-              color: "var(--ink)",
-            }}
-          >
-            {eyebrow}
-          </div>
-          <div
-            style={{
-              height: 2,
-              background: "var(--ink)",
-              margin: "12px 0 20px",
-              width: 64,
-            }}
-          />
+          <div className="bf-eyebrow">{eyebrow}</div>
+          <div className="bf-rule" style={{ margin: "12px 0 20px" }} />
           <h1
             style={{
               margin: 0,
               fontSize: "clamp(40px, 5vw, 72px)",
               fontWeight: 800,
               lineHeight: 0.9,
-              letterSpacing: "-.03em",
               color: "var(--ink)",
             }}
           >
@@ -59,7 +41,7 @@ export function PageHeader({
                 lineHeight: 1.4,
                 maxWidth: "44ch",
                 marginTop: 16,
-                color: "var(--muted)",
+                color: "var(--muted-strong)",
               }}
             >
               {description}
@@ -68,7 +50,7 @@ export function PageHeader({
         </div>
 
         {children ? (
-          <div style={{ display: "flex", gap: 0 }}>{children}</div>
+          <div className="bf-action-row">{children}</div>
         ) : null}
       </div>
     </header>

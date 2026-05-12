@@ -8,17 +8,17 @@ export function SidebarNav({ groups }: { groups: NavGroup[] }) {
   const pathname = usePathname();
 
   return (
-    <nav style={{ padding: "32px 0" }}>
+    <nav style={{ padding: "28px 0 36px" }}>
       {groups.map((group, gi) => (
         <div key={group.group}>
           <div
             style={{
               fontSize: 10,
-              fontWeight: 600,
+              fontWeight: 700,
               letterSpacing: ".12em",
               textTransform: "uppercase",
               color: "var(--muted)",
-              padding: gi === 0 ? "0 24px 12px" : "24px 24px 12px",
+              padding: gi === 0 ? "0 24px 12px" : "28px 24px 12px",
             }}
           >
             {group.group}
@@ -34,22 +34,23 @@ export function SidebarNav({ groups }: { groups: NavGroup[] }) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  padding: "10px 24px",
+                  minHeight: 46,
+                  padding: "12px 24px",
                   textDecoration: "none",
                   color: "var(--ink)",
                   fontSize: 14,
-                  fontWeight: isActive ? 700 : 500,
+                  fontWeight: isActive ? 700 : 600,
                   borderLeft: isActive
-                    ? "3px solid var(--accent)"
+                    ? "4px solid var(--accent)"
                     : "3px solid transparent",
                   marginLeft: "-1px",
-                  background: isActive ? "var(--canvas)" : "transparent",
+                  background: isActive ? "var(--canvas-soft)" : "transparent",
                   transition: "background 150ms",
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive)
                     (e.currentTarget as HTMLAnchorElement).style.background =
-                      "var(--canvas)";
+                      "var(--canvas-soft)";
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive)

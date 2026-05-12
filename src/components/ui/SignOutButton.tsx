@@ -7,21 +7,8 @@ export function SignOutButton() {
     <button
       type="button"
       onClick={() => signOut({ callbackUrl: "/" })}
-      style={{
-        background: "transparent",
-        border: "none",
-        fontFamily: "inherit",
-        cursor: "pointer",
-        color: "var(--ink)",
-        padding: "0 18px",
-        display: "flex",
-        alignItems: "center",
-        fontSize: 13,
-        fontWeight: 600,
-        letterSpacing: ".08em",
-        textTransform: "uppercase",
-        height: "100%",
-      }}
+      className="bf-btn"
+      style={{ minHeight: "100%", borderWidth: 0, borderLeftWidth: 1 }}
     >
       Sign out
     </button>

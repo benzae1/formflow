@@ -25,20 +25,8 @@ export function NotificationPanel() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        style={{
-          background: "transparent",
-          border: "none",
-          fontFamily: "inherit",
-          cursor: "pointer",
-          color: "var(--ink)",
-          padding: "0 18px",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontSize: 13,
-          fontWeight: 600,
-          height: "100%",
-        }}
+        className="bf-btn"
+        style={{ minHeight: "100%", borderWidth: 0, gap: 8 }}
       >
         {count > 0 && (
           <span
@@ -54,7 +42,7 @@ export function NotificationPanel() {
         {count > 0 && (
           <span
             style={{
-              color: "var(--muted)",
+              color: "var(--muted-strong)",
               fontVariantNumeric: "tabular-nums",
               marginLeft: 2,
             }}
@@ -65,9 +53,9 @@ export function NotificationPanel() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-1 w-80 border border-[var(--line-strong)] bg-white">
+        <div className="bf-panel absolute right-0 z-20 mt-1 w-80">
           <div className="border-b border-[var(--line)] px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-[.08em] text-[var(--muted)]">
+            <p className="bf-kicker">
               Notifications
             </p>
           </div>
@@ -82,13 +70,13 @@ export function NotificationPanel() {
                   key={item.id}
                   type="button"
                   onClick={() => openNotification(item.id, item.linkUrl)}
-                  className="w-full px-4 py-3 text-left hover:bg-[var(--canvas)]"
+                  className="w-full px-4 py-3 text-left hover:bg-[var(--canvas-soft)]"
                 >
-                  <p className="text-[10px] font-bold uppercase tracking-[.1em] text-[var(--muted)]">
+                  <p className="bf-kicker">
                     {item.type.replaceAll("_", " ")}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{item.title}</p>
-                  <p className="mt-0.5 text-sm text-[var(--muted)]">{item.body}</p>
+                  <p className="mt-0.5 text-sm text-[var(--muted-strong)]">{item.body}</p>
                 </button>
               ))
             )}
