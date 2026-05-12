@@ -3,9 +3,6 @@ import { getTemporalClient } from "@/lib/temporal";
 import { requirePageRole } from "@/lib/page-auth";
 import { db } from "@/lib/db";
 
-type Metric = { label: string; value: number | string; tone?: "default" | "success" | "warning" | "danger" };
-type Section = { title: string; description: string; href: string; metrics: Metric[]; footnote?: string };
-
 async function getFailedTemporalWorkflowCount() {
   try {
     const temporal = await getTemporalClient();
@@ -16,56 +13,168 @@ async function getFailedTemporalWorkflowCount() {
   }
 }
 
-function formatDateTime(value: Date | null) {
+function formatSyncTime(value: Date | null) {
   if (!value) return "No sync recorded";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(value);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(value);
 }
 
-function metricBorder(tone: Metric["tone"]) {
-  switch (tone) {
-    case "success": return "border-l-4 border-l-[var(--success)]";
-    case "warning": return "border-l-4 border-l-[var(--warning)]";
-    case "danger":  return "border-l-4 border-l-[var(--danger)]";
-    default:        return "border-l-4 border-l-[var(--line-strong)]";
-  }
+/* ── Bauhaus primitive shapes ── */
+function Primitive({
+  shape,
+  color,
+  size = 36,
+}: {
+  shape: "circle" | "square" | "triangle";
+  color: string;
+  size?: number;
+}) {
+  if (shape === "circle")
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          background: color,
+          borderRadius: "50%",
+          flexShrink: 0,
+        }}
+      />
+    );
+  if (shape === "square")
+    return (
+      <div
+        style={{ width: size, height: size, background: color, flexShrink: 0 }}
+      />
+    );
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" style={{ flexShrink: 0 }}>
+      <polygon points="20,2 38,36 2,36" fill={color} />
+    </svg>
+  );
 }
 
-function SectionCard({ section }: { section: Section }) {
+type TileStat = { l: string; v: string | number; accent?: boolean };
+type Tile = {
+  id: string;
+  href: string;
+  title: string;
+  sub: string;
+  mark: { shape: "circle" | "square" | "triangle"; color: string };
+  stats: TileStat[];
+};
+
+function TileCard({ tile }: { tile: Tile }) {
   return (
     <Link
-      href={section.href}
-      className="block border border-[var(--line-strong)] bg-white p-6 hover:bg-[var(--canvas)]"
+      href={tile.href}
+      style={{
+        background: "var(--panel)",
+        border: "1px solid var(--line-strong)",
+        padding: "28px 28px 24px",
+        textDecoration: "none",
+        color: "inherit",
+        display: "flex",
+        flexDirection: "column",
+        gap: 18,
+        position: "relative",
+      }}
+      className="group"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+        <Primitive shape={tile.mark.shape} color={tile.mark.color} size={28} />
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-            Admin section
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: "-.01em",
+              lineHeight: 1,
+            }}
+          >
+            {tile.title}
+          </h3>
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--muted)",
+              lineHeight: 1.4,
+              marginTop: 8,
+              maxWidth: "44ch",
+            }}
+          >
+            {tile.sub}
           </p>
-          <h2 className="mt-2 text-2xl font-bold">{section.title}</h2>
-          <p className="mt-1 max-w-xl text-sm text-[var(--muted)]">{section.description}</p>
         </div>
-        <span className="shrink-0 border border-[var(--line-strong)] px-3 py-1 text-[11px] font-bold uppercase tracking-[.08em]">
-          Open →
-        </span>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {section.metrics.map((metric) => (
+      <span
+        style={{
+          position: "absolute",
+          top: 26,
+          right: 28,
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: ".12em",
+          textTransform: "uppercase",
+          opacity: 0,
+          transition: "opacity 150ms",
+        }}
+        className="group-hover:opacity-100"
+      >
+        Open →
+      </span>
+
+      <div
+        style={{
+          display: "flex",
+          borderTop: "1px solid var(--line)",
+          paddingTop: 18,
+          marginTop: "auto",
+        }}
+      >
+        {tile.stats.map((stat, i) => (
           <div
-            key={metric.label}
-            className={`border border-[var(--line)] bg-[var(--canvas)] px-4 py-3 ${metricBorder(metric.tone)}`}
+            key={stat.l}
+            style={{
+              flex: 1,
+              paddingRight: i < tile.stats.length - 1 ? 16 : 0,
+              paddingLeft: i > 0 ? 16 : 0,
+              borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+            }}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--muted)]">
-              {metric.label}
-            </p>
-            <p className="mt-2 text-2xl font-bold">{metric.value}</p>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: ".1em",
+                textTransform: "uppercase",
+                color: "var(--muted)",
+                marginBottom: 4,
+              }}
+            >
+              {stat.l}
+            </div>
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 800,
+                letterSpacing: "-.02em",
+                lineHeight: 1,
+                fontVariantNumeric: "tabular-nums",
+                color: stat.accent ? "var(--accent)" : "var(--ink)",
+              }}
+            >
+              {stat.v}
+            </div>
           </div>
         ))}
       </div>
-
-      {section.footnote && (
-        <p className="mt-4 text-xs text-[var(--muted)]">{section.footnote}</p>
-      )}
     </Link>
   );
 }
@@ -75,11 +184,21 @@ export default async function AdminDashboardPage() {
   const now = new Date();
 
   const [
-    formsDraft, formsPublished, formsArchived,
-    submissionsSubmitted, submissionsInReview, submissionsNeedsRevision,
-    submissionsApproved, submissionsRejected, submissionsClosed,
-    overdueTasks, activeWorkflows, totalUsers, deactivatedUsers,
-    latestSyncedUser, failedTemporalWorkflows,
+    formsDraft,
+    formsPublished,
+    formsArchived,
+    submissionsSubmitted,
+    submissionsInReview,
+    submissionsNeedsRevision,
+    submissionsApproved,
+    submissionsRejected,
+    submissionsClosed,
+    overdueTasks,
+    activeWorkflows,
+    totalUsers,
+    deactivatedUsers,
+    latestSyncedUser,
+    failedTemporalWorkflows,
   ] = await Promise.all([
     db.form.count({ where: { status: "draft" } }),
     db.form.count({ where: { status: "published" } }),
@@ -91,112 +210,521 @@ export default async function AdminDashboardPage() {
     db.submission.count({ where: { status: "rejected" } }),
     db.submission.count({ where: { status: "closed" } }),
     db.approvalTask.count({ where: { status: "pending", dueAt: { lt: now } } }),
-    db.submission.count({ where: { workflowRunId: { not: null }, status: { in: ["submitted", "in_review", "needs_revision"] } } }),
+    db.submission.count({
+      where: {
+        workflowRunId: { not: null },
+        status: { in: ["submitted", "in_review", "needs_revision"] },
+      },
+    }),
     db.user.count(),
     db.user.count({ where: { deactivatedAt: { not: null } } }),
-    db.user.findFirst({ where: { externalId: { not: null } }, orderBy: { updatedAt: "desc" }, select: { updatedAt: true } }),
+    db.user.findFirst({
+      where: { externalId: { not: null } },
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    }),
     getFailedTemporalWorkflowCount(),
   ]);
 
-  const isComplianceOnly = user.roles.includes("compliance") && !user.roles.includes("admin");
+  const isComplianceOnly =
+    user.roles.includes("compliance") && !user.roles.includes("admin");
 
-  const sections: Section[] = [
+  const pipelineStages = [
     {
-      title: "Forms",
-      description: "Track publication state and move quickly into the builder.",
-      href: "/admin/forms",
-      metrics: [
-        { label: "Drafts", value: formsDraft, tone: "warning" },
-        { label: "Published", value: formsPublished, tone: "success" },
-        { label: "Archived", value: formsArchived },
-      ],
+      id: "submitted",
+      label: "Submitted",
+      num: submissionsSubmitted,
+      delta: null,
+      attn: false,
+      hex: "#FFD100",
     },
     {
-      title: "Submissions",
-      description: "Monitor pipeline volume from newly submitted work through final outcomes.",
-      href: "/admin/submissions",
-      metrics: [
-        { label: "Submitted", value: submissionsSubmitted, tone: "warning" },
-        { label: "In review", value: submissionsInReview, tone: "warning" },
-        { label: "Needs revision", value: submissionsNeedsRevision, tone: "warning" },
-        { label: "Approved", value: submissionsApproved, tone: "success" },
-        { label: "Rejected", value: submissionsRejected, tone: "danger" },
-        { label: "Closed", value: submissionsClosed },
-      ],
+      id: "in_review",
+      label: "In Review",
+      num: submissionsInReview,
+      delta: overdueTasks > 0 ? `${overdueTasks} overdue` : null,
+      attn: overdueTasks > 0 && submissionsInReview > 0,
+      hex: "#ED8B00",
     },
     {
-      title: "Workflow Health",
-      description: "Watch execution pressure, SLA risk, and Temporal failures.",
-      href: "/admin/workflows",
-      metrics: [
-        { label: "Active workflows", value: activeWorkflows, tone: "success" },
-        { label: "Overdue tasks", value: overdueTasks, tone: overdueTasks > 0 ? "danger" : "default" },
-        { label: "Failed Temporal", value: failedTemporalWorkflows === null ? "Unavailable" : failedTemporalWorkflows, tone: failedTemporalWorkflows ? "danger" : "default" },
-      ],
-      footnote: failedTemporalWorkflows === null ? "Temporal visibility currently unavailable." : undefined,
+      id: "revision",
+      label: "Needs Revision",
+      num: submissionsNeedsRevision,
+      delta: null,
+      attn: false,
+      hex: "#A50050",
     },
     {
-      title: "Org Sync",
-      description: "Confirm directory freshness and inactive identity coverage.",
-      href: "/admin/org",
-      metrics: [
-        { label: "Last sync", value: formatDateTime(latestSyncedUser?.updatedAt ?? null) },
-        { label: "Users", value: totalUsers },
-        { label: "Deactivated", value: deactivatedUsers, tone: deactivatedUsers > 0 ? "warning" : "default" },
-      ],
+      id: "approved",
+      label: "Approved",
+      num: submissionsApproved,
+      delta: null,
+      attn: false,
+      hex: "#84BD00",
     },
     {
-      title: "Users",
-      description: "Review who is in the system and spot lifecycle changes.",
-      href: "/admin/users",
-      metrics: [
-        { label: "Total", value: totalUsers },
-        { label: "Active", value: totalUsers - deactivatedUsers, tone: "success" },
-        { label: "Deactivated", value: deactivatedUsers, tone: "warning" },
-      ],
+      id: "rejected",
+      label: "Rejected",
+      num: submissionsRejected,
+      delta: null,
+      attn: false,
+      hex: "#D22630",
     },
     {
-      title: "Audit Log",
-      description: "Inspect sensitive access trails and compliance-significant events.",
-      href: "/admin/audit-log",
-      metrics: [
-        { label: "Sensitive submissions", value: submissionsInReview + submissionsApproved + submissionsRejected + submissionsClosed },
-        { label: "Overdue alerts", value: overdueTasks, tone: "danger" },
-        { label: "Failed workflows", value: failedTemporalWorkflows === null ? "Unavailable" : failedTemporalWorkflows },
-      ],
+      id: "closed",
+      label: "Closed",
+      num: submissionsClosed,
+      delta: "Archive",
+      attn: false,
+      hex: "#00677F",
     },
   ];
 
-  const visibleSections = isComplianceOnly
-    ? sections.filter((s) => ["Submissions", "Audit Log", "Workflow Health"].includes(s.title))
-    : sections;
+  const tiles: Tile[] = isComplianceOnly
+    ? [
+        {
+          id: "submissions",
+          href: "/admin/submissions",
+          title: "Submissions",
+          sub: "Pipeline from newly submitted work through final outcomes.",
+          mark: { shape: "square", color: "#FFD100" },
+          stats: [
+            { l: "In Review", v: submissionsInReview },
+            { l: "Needs Revision", v: submissionsNeedsRevision, accent: submissionsNeedsRevision > 0 },
+            { l: "Approved", v: submissionsApproved },
+          ],
+        },
+        {
+          id: "audit",
+          href: "/admin/audit-log",
+          title: "Audit Log",
+          sub: "Sensitive access trails and compliance-significant events.",
+          mark: { shape: "square", color: "#A50050" },
+          stats: [
+            {
+              l: "Sensitive",
+              v:
+                submissionsInReview +
+                submissionsApproved +
+                submissionsRejected +
+                submissionsClosed,
+            },
+            { l: "Overdue alerts", v: overdueTasks, accent: overdueTasks > 0 },
+            {
+              l: "Failed workflows",
+              v: failedTemporalWorkflows ?? "—",
+            },
+          ],
+        },
+      ]
+    : [
+        {
+          id: "forms",
+          href: "/admin/forms",
+          title: "Forms",
+          sub: "Publication status and builder access.",
+          mark: { shape: "square", color: "#D22630" },
+          stats: [
+            { l: "Drafts", v: formsDraft },
+            { l: "Published", v: formsPublished },
+            { l: "Archived", v: formsArchived },
+          ],
+        },
+        {
+          id: "wf",
+          href: "/admin/workflows",
+          title: "Workflow Health",
+          sub: "Execution pressure, SLA risk, and Temporal failures.",
+          mark: { shape: "triangle", color: "#FFD100" },
+          stats: [
+            { l: "Active", v: activeWorkflows },
+            { l: "Overdue", v: overdueTasks, accent: overdueTasks > 0 },
+            { l: "Errors", v: failedTemporalWorkflows ?? "—" },
+          ],
+        },
+        {
+          id: "users",
+          href: "/admin/users",
+          title: "Users",
+          sub: "Directory and lifecycle events.",
+          mark: { shape: "circle", color: "#00677F" },
+          stats: [
+            { l: "Total", v: totalUsers },
+            { l: "Active", v: totalUsers - deactivatedUsers },
+            { l: "Deactivated", v: deactivatedUsers },
+          ],
+        },
+        {
+          id: "audit",
+          href: "/admin/audit-log",
+          title: "Audit Log",
+          sub: "Sensitive access trails and compliance-significant events.",
+          mark: { shape: "square", color: "#A50050" },
+          stats: [
+            {
+              l: "Sensitive",
+              v:
+                submissionsInReview +
+                submissionsApproved +
+                submissionsRejected +
+                submissionsClosed,
+            },
+            { l: "Overdue alerts", v: overdueTasks, accent: overdueTasks > 0 },
+            { l: "Failed workflows", v: failedTemporalWorkflows ?? "—" },
+          ],
+        },
+      ];
+
+  const syncTime = formatSyncTime(latestSyncedUser?.updatedAt ?? null);
+  const syncOk = !!latestSyncedUser;
 
   return (
-    <div className="space-y-6">
-      <header className="border border-[var(--line-strong)] bg-white px-8 py-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--muted)]">
-          {isComplianceOnly ? "Compliance" : "Admin"} · Operations
-        </p>
-        <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <h1 className="text-4xl font-bold">
-            {isComplianceOnly ? "Oversight Dashboard" : "Operations Dashboard"}
-          </h1>
+    <div>
+      {/* ── Hero ── */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          gap: 40,
+          alignItems: "end",
+          marginBottom: 56,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: ".12em",
+              textTransform: "uppercase",
+              color: "var(--ink)",
+            }}
+          >
+            {isComplianceOnly ? "Compliance" : "Admin"} · Operations
+          </div>
+          <div
+            style={{
+              height: 2,
+              background: "var(--ink)",
+              margin: "12px 0 20px",
+              width: 64,
+            }}
+          />
+          <div
+            style={{
+              fontSize: "clamp(64px, 8vw, 112px)",
+              fontWeight: 800,
+              lineHeight: 0.85,
+              letterSpacing: "-.035em",
+              color: "var(--ink)",
+            }}
+          >
+            {isComplianceOnly ? (
+              <>
+                Oversight<span style={{ color: "var(--accent)" }}>.</span>
+              </>
+            ) : (
+              <>
+                Operations<span style={{ color: "var(--accent)" }}>.</span>
+              </>
+            )}
+          </div>
+          <p
+            style={{
+              fontSize: 17,
+              lineHeight: 1.4,
+              maxWidth: "38ch",
+              marginTop: 22,
+              color: "var(--ink)",
+            }}
+          >
+            Bauhaus Forms — submission pipeline, workflows, and directory at a
+            glance.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 28,
+          }}
+        >
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }} aria-hidden="true">
+            <Primitive shape="circle" color="#00677F" size={36} />
+            <Primitive shape="square" color="#D22630" size={36} />
+            <Primitive shape="triangle" color="#FFD100" size={36} />
+          </div>
           {user.roles.includes("admin") && (
-            <div className="flex gap-3">
-              <Link href="/admin/forms" className="bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">
+            <div style={{ display: "flex" }}>
+              <Link
+                href="/admin/forms"
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: "14px 22px",
+                  background: "#000",
+                  color: "#fff",
+                  border: "1px solid #000",
+                  textDecoration: "none",
+                  transition: "background 150ms",
+                }}
+              >
                 Manage forms
               </Link>
-              <Link href="/admin/workflows" className="border border-[var(--line-strong)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--canvas)]">
+              <Link
+                href="/admin/workflows"
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: "14px 22px",
+                  background: "var(--panel)",
+                  color: "var(--ink)",
+                  border: "1px solid var(--line-strong)",
+                  borderLeft: "none",
+                  textDecoration: "none",
+                  transition: "background 150ms",
+                }}
+              >
                 Review workflows
               </Link>
             </div>
           )}
         </div>
-      </header>
+      </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        {visibleSections.map((section) => (
-          <SectionCard key={section.title} section={section} />
+      {/* ── Org-sync strip ── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto auto auto",
+          alignItems: "center",
+          gap: 24,
+          background: "var(--panel)",
+          border: "1px solid var(--line)",
+          padding: "16px 24px",
+          marginBottom: 24,
+          fontSize: 13,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: ".12em",
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            background: "var(--ink)",
+            color: "var(--panel)",
+          }}
+        >
+          Org Sync
+        </span>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            color: "var(--muted)",
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              background: syncOk ? "#84BD00" : "var(--muted)",
+              display: "inline-block",
+            }}
+          />
+          {syncOk
+            ? "Directory current — no inactive identities detected"
+            : "No sync recorded"}
+        </span>
+        <span>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: ".1em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+              marginRight: 8,
+            }}
+          >
+            Last sync
+          </span>
+          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+            {syncTime}
+          </span>
+        </span>
+        <span>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: ".1em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+              marginRight: 8,
+            }}
+          >
+            Users
+          </span>
+          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+            {totalUsers}
+          </span>
+        </span>
+        <Link
+          href="/admin/org"
+          style={{
+            textDecoration: "none",
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: ".08em",
+            textTransform: "uppercase",
+            padding: "6px 12px",
+            border: "1px solid var(--line-strong)",
+          }}
+        >
+          Open →
+        </Link>
+      </div>
+
+      {/* ── Submissions pipeline ── */}
+      <section
+        style={{
+          background: "var(--panel)",
+          border: "1px solid var(--line-strong)",
+          marginBottom: 40,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            padding: "28px 32px 20px",
+            borderBottom: "1px solid var(--line)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "baseline", gap: 18 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 32,
+                fontWeight: 700,
+                letterSpacing: "-.01em",
+                lineHeight: 1,
+              }}
+            >
+              Submissions
+            </h2>
+            <p style={{ fontSize: 13, color: "var(--muted)", maxWidth: "50ch", lineHeight: 1.4 }}>
+              Pipeline from newly submitted work through final outcomes.
+            </p>
+          </div>
+          <Link
+            href="/admin/submissions"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              padding: "8px 14px",
+              border: "1px solid var(--line-strong)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Open pipeline →
+          </Link>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(6, 1fr)",
+          }}
+        >
+          {pipelineStages.map((stage, i) => (
+            <div
+              key={stage.id}
+              style={{
+                padding: "28px 24px",
+                borderRight:
+                  i < pipelineStages.length - 1
+                    ? "1px solid var(--line)"
+                    : "none",
+                position: "relative",
+                background: stage.attn ? "var(--canvas)" : "transparent",
+              }}
+            >
+              {/* color swatch */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: 24,
+                  height: 4,
+                  background: stage.hex,
+                }}
+              />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: ".12em",
+                  textTransform: "uppercase",
+                  color: "var(--muted)",
+                  marginBottom: 10,
+                }}
+              >
+                {stage.label}
+              </div>
+              <div
+                style={{
+                  fontSize: 44,
+                  fontWeight: 800,
+                  letterSpacing: "-.03em",
+                  lineHeight: 1,
+                  fontVariantNumeric: "tabular-nums",
+                  color: stage.attn ? "var(--accent)" : "var(--ink)",
+                }}
+              >
+                {stage.num}
+              </div>
+              {stage.delta && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: stage.attn ? "var(--accent)" : "var(--muted)",
+                    fontWeight: stage.attn ? 700 : 400,
+                    marginTop: 8,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {stage.delta}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Tile grid ── */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 24,
+        }}
+      >
+        {tiles.map((tile) => (
+          <TileCard key={tile.id} tile={tile} />
         ))}
       </section>
     </div>
