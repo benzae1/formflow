@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { resolveDelegateOrSelf } from "@/lib/delegation";
 import { decryptValue } from "@/lib/encryption";
+import { logger } from "@/lib/logger";
 import { sendNotification } from "./notificationActivities";
 
 export async function markSubmissionInReview(submissionId: string) {
@@ -18,24 +19,23 @@ export async function createApprovalTasks(input: {
   dueAt?: string;
 }) {
   const tasks = [];
-  const effectiveAssigneeIds = new Set<string>();
+  const seenAssigneeIds = new Set<string>();
 
   for (const assignedToId of input.assigneeIds) {
-    const effectiveAssigneeId = await resolveDelegateOrSelf(assignedToId);
-    if (effectiveAssigneeIds.has(effectiveAssigneeId)) continue;
-    effectiveAssigneeIds.add(effectiveAssigneeId);
+    if (seenAssigneeIds.has(assignedToId)) continue;
+    seenAssigneeIds.add(assignedToId);
 
     const task = await db.approvalTask.create({
       data: {
         submissionId: input.submissionId,
         stageIndex: input.stageIndex,
-        assignedToId: effectiveAssigneeId,
+        assignedToId,
         dueAt: input.dueAt ? new Date(input.dueAt) : undefined,
       },
     });
 
     await sendNotification({
-      userId: effectiveAssigneeId,
+      userId: assignedToId,
       type: "task_assigned",
       title: "New approval task",
       body: "A submission is waiting for your review.",
@@ -134,14 +134,34 @@ export async function markTaskOverdueIfPending(taskId: string) {
 
   if (!task || task.status !== "pending") return;
 
-  await sendNotification({
-    userId: task.assignedToId,
-    type: "task_overdue",
-    title: "Approval task overdue",
-    body: "Your approval task is overdue.",
-    linkUrl: `/submissions/${task.submissionId}`,
-    email: true,
-  });
+  const delegateId = await resolveDelegateOrSelf(task.assignedToId);
+  const hasDelegation = delegateId !== task.assignedToId;
+
+  if (hasDelegation) {
+    await db.approvalTask.update({
+      where: { id: taskId },
+      data: { assignedToId: delegateId },
+    });
+    logger.info({ taskId, originalId: task.assignedToId, delegateId }, "Task SLA breached — reassigned to delegate");
+
+    await sendNotification({
+      userId: delegateId,
+      type: "task_assigned",
+      title: "Approval task delegated to you",
+      body: "The primary approver's SLA has elapsed. This task is now assigned to you.",
+      linkUrl: `/submissions/${task.submissionId}`,
+      email: true,
+    });
+  } else {
+    await sendNotification({
+      userId: task.assignedToId,
+      type: "task_overdue",
+      title: "Approval task overdue",
+      body: "Your approval task is overdue.",
+      linkUrl: `/submissions/${task.submissionId}`,
+      email: true,
+    });
+  }
 
   const admins = await db.user.findMany({
     where: {
