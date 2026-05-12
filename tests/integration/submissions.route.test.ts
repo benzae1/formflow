@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import type { RoutingTarget, WorkflowDefinition } from "../../src/domain/workflow";
 import { db } from "../../src/lib/db";
-import type { WorkflowDefinition } from "../../src/domain/workflow";
 import {
   createApprovalTaskFixture,
   createFormFixture,
@@ -26,6 +26,12 @@ type WorkflowStartOptions = {
   args: [WorkflowStartInput];
 };
 
+function isDirectUserTarget(
+  target: RoutingTarget | RoutingTarget[] | undefined,
+): target is Extract<RoutingTarget, { type: "user" }> {
+  return !Array.isArray(target) && target?.type === "user";
+}
+
 vi.mock("@/lib/temporal", () => ({
   getTemporalClient: async () => ({
     workflow: {
@@ -44,10 +50,7 @@ describe("submissions route", () => {
       async (_workflow: unknown, options: WorkflowStartOptions) => {
         const input = options.args[0];
         const firstApprovalStage = input.workflowDefinition.find(
-          (stage) =>
-            stage.type === "approval" &&
-            stage.assignTo?.type === "user" &&
-            typeof stage.assignTo.value === "string",
+          (stage) => stage.type === "approval" && isDirectUserTarget(stage.assignTo),
         );
 
         setTimeout(async () => {
@@ -56,7 +59,7 @@ describe("submissions route", () => {
             data: { status: "in_review" },
           });
 
-          if (!firstApprovalStage || firstApprovalStage.assignTo.type !== "user") {
+          if (!firstApprovalStage || !isDirectUserTarget(firstApprovalStage.assignTo)) {
             return;
           }
 
