@@ -2,30 +2,65 @@ import crypto from "crypto";
 
 const algorithm = "aes-256-gcm";
 
-function getKey() {
-  const raw = process.env.FIELD_ENCRYPTION_KEY;
+type KeyMap = Map<string, Buffer>;
 
-  if (!raw) {
-    throw new Error("FIELD_ENCRYPTION_KEY is missing.");
+function parseKeyMap(): KeyMap {
+  const keyMap: KeyMap = new Map();
+
+  // Multi-key format: FIELD_ENCRYPTION_KEYS=id1=hex1,id2=hex2,...
+  const multi = process.env.FIELD_ENCRYPTION_KEYS;
+  if (multi) {
+    for (const entry of multi.split(",")) {
+      const eqIdx = entry.indexOf("=");
+      if (eqIdx === -1) continue;
+      const id = entry.slice(0, eqIdx).trim();
+      const hex = entry.slice(eqIdx + 1).trim();
+      if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+        throw new Error(`FIELD_ENCRYPTION_KEYS: key "${id}" must be 64 hex chars.`);
+      }
+      keyMap.set(id, Buffer.from(hex, "hex"));
+    }
   }
 
-  if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
-    throw new Error(
-      "FIELD_ENCRYPTION_KEY must be a 32-byte key encoded as 64 hex characters.",
-    );
+  // Legacy single-key
+  const single = process.env.FIELD_ENCRYPTION_KEY;
+  if (single) {
+    if (!/^[0-9a-fA-F]{64}$/.test(single)) {
+      throw new Error("FIELD_ENCRYPTION_KEY must be a 32-byte key encoded as 64 hex characters.");
+    }
+    if (!keyMap.has("default")) {
+      keyMap.set("default", Buffer.from(single, "hex"));
+    }
   }
 
-  const key = Buffer.from(raw, "hex");
-
-  if (key.length !== 32) {
-    throw new Error("FIELD_ENCRYPTION_KEY must decode to exactly 32 bytes.");
+  if (keyMap.size === 0) {
+    throw new Error("No encryption key configured. Set FIELD_ENCRYPTION_KEY or FIELD_ENCRYPTION_KEYS.");
   }
 
+  return keyMap;
+}
+
+function getActiveKeyId(): string {
+  const active = process.env.FIELD_ENCRYPTION_KEY_ID;
+  if (active) return active;
+  if (process.env.FIELD_ENCRYPTION_KEYS) {
+    const first = process.env.FIELD_ENCRYPTION_KEYS.split(",")[0];
+    const eqIdx = first.indexOf("=");
+    if (eqIdx !== -1) return first.slice(0, eqIdx).trim();
+  }
+  return "default";
+}
+
+function getKey(keyId: string): Buffer {
+  const map = parseKeyMap();
+  const key = map.get(keyId);
+  if (!key) throw new Error(`Encryption key "${keyId}" not found in key map.`);
   return key;
 }
 
 export function encryptValue(value: unknown) {
-  const key = getKey();
+  const keyId = getActiveKeyId();
+  const key = getKey(keyId);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(algorithm, key, iv);
 
@@ -40,6 +75,7 @@ export function encryptValue(value: unknown) {
 
   return {
     __encrypted: true,
+    keyId,
     iv: iv.toString("hex"),
     tag: tag.toString("hex"),
     value: encrypted.toString("hex"),
@@ -48,13 +84,15 @@ export function encryptValue(value: unknown) {
 
 export function decryptValue(payload: {
   __encrypted?: boolean;
+  keyId?: string;
   iv?: string;
   tag?: string;
   value?: string;
 }) {
   if (!payload?.__encrypted) return payload;
 
-  const key = getKey();
+  const keyId = payload.keyId ?? "default";
+  const key = getKey(keyId);
   const iv = Buffer.from(payload.iv ?? "", "hex");
   const tag = Buffer.from(payload.tag ?? "", "hex");
   const encrypted = Buffer.from(payload.value ?? "", "hex");
