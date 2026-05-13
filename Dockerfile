@@ -15,6 +15,11 @@ RUN npx prisma generate
 
 COPY . .
 
+ARG DATABASE_URL=postgresql://build:build@localhost:5432/build
+ENV DATABASE_URL=${DATABASE_URL}
+
+RUN npm run build
+
 EXPOSE 3000
 
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+CMD ["npm", "start", "--", "--hostname", "0.0.0.0", "--port", "3000"]

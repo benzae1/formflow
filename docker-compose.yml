@@ -82,17 +82,6 @@ services:
         condition: service_healthy
       init:
         condition: service_completed_successfully
-    command:
-      [
-        "npm",
-        "run",
-        "dev",
-        "--",
-        "--hostname",
-        "0.0.0.0",
-        "--port",
-        "3000"
-      ]
     restart: unless-stopped
 
   worker:
