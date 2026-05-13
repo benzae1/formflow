@@ -1,0 +1,4 @@
+1. Fix issue with saving on form builder
+2. Add translations to all pages
+3. Add support for umlaute.
+4. Clean up files, and prep for prod.
