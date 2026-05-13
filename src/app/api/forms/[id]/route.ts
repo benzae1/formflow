@@ -69,7 +69,7 @@ export async function PUT(
         throw new ApiError(
           "WORKFLOW_INVALID",
           isGerman
-            ? "Vor dem Veroeffentlichen muss ein Workflow mit mindestens einer ausfuehrbaren Stufe verknuepft sein."
+            ? "Vor dem Veröffentlichen muss ein Workflow mit mindestens einer ausführbaren Stufe verknüpft sein."
             : "Attach a workflow with at least one executable stage before publishing.",
           409,
         );
@@ -108,7 +108,7 @@ export async function PUT(
       throw new ApiError(
         "FORM_HAS_NO_WORKFLOW",
         isGerman
-          ? "Veroeffentlichte Formulare muessen einen ausfuehrbaren Workflow haben."
+          ? "Veröffentlichte Formulare müssen einen ausführbaren Workflow haben."
           : "Published forms must have a runnable workflow attached.",
         409,
       );

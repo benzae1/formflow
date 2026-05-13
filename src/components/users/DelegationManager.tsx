@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutationHeaders } from "@/lib/mutation-headers";
+import type { Locale } from "@/lib/i18n/config";
 import { formatDateTime } from "@/lib/ui";
 
 type DelegateOption = {
@@ -25,6 +26,7 @@ export default function DelegationManager({
   delegations,
   delegates,
   canManage,
+  locale = "en",
   title = "Delegation",
   description = "Route approvals to a backup reviewer for a specific window.",
 }: {
@@ -32,6 +34,7 @@ export default function DelegationManager({
   delegations: DelegationRecord[];
   delegates: DelegateOption[];
   canManage: boolean;
+  locale?: Locale;
   title?: string;
   description?: string;
 }) {
@@ -46,10 +49,36 @@ export default function DelegationManager({
     () => delegates.filter((delegate) => delegate.id !== approverId),
     [approverId, delegates],
   );
+  const copy =
+    locale === "de"
+      ? {
+          chooseDelegateAndDates: "Wählen Sie eine Vertretung und beide Zeitpunkte aus.",
+          saveError: "Die Vertretung konnte nicht gespeichert werden.",
+          removeError: "Die Vertretung konnte nicht entfernt werden.",
+          noRecords: "Keine aktiven Vertretungen vorhanden.",
+          remove: "Entfernen",
+          chooseDelegate: "Vertretung wählen",
+          starts: "Beginn",
+          ends: "Ende",
+          save: "Vertretung speichern",
+          to: "bis",
+        }
+      : {
+          chooseDelegateAndDates: "Choose a delegate and both dates.",
+          saveError: "Could not save delegation.",
+          removeError: "Could not remove delegation.",
+          noRecords: "No active delegation records.",
+          remove: "Remove",
+          chooseDelegate: "Choose delegate",
+          starts: "Starts",
+          ends: "Ends",
+          save: "Save delegation",
+          to: "to",
+        };
 
   async function createDelegation() {
     if (!delegateId || !startsAt || !endsAt) {
-      setError("Choose a delegate and both dates.");
+      setError(copy.chooseDelegateAndDates);
       return;
     }
 
@@ -66,7 +95,7 @@ export default function DelegationManager({
 
     if (!response.ok) {
       const payload = (await response.json()) as { error?: { message?: string } };
-      setError(payload.error?.message ?? "Could not save delegation.");
+      setError(payload.error?.message ?? copy.saveError);
       return;
     }
 
@@ -89,7 +118,7 @@ export default function DelegationManager({
 
     if (!response.ok) {
       const payload = (await response.json()) as { error?: { message?: string } };
-      setError(payload.error?.message ?? "Could not remove delegation.");
+      setError(payload.error?.message ?? copy.removeError);
       return;
     }
 
@@ -105,7 +134,7 @@ export default function DelegationManager({
 
       <div className="mt-4 bf-list">
         {delegations.length === 0 ? (
-          <p className="text-sm text-[var(--muted-strong)]">No active delegation records.</p>
+          <p className="text-sm text-[var(--muted-strong)]">{copy.noRecords}</p>
         ) : (
           delegations.map((delegation) => (
             <div
@@ -115,7 +144,7 @@ export default function DelegationManager({
               <div className="text-sm text-[var(--ink)]">
                 <p className="font-semibold">{delegation.delegateName}</p>
                 <p className="text-[var(--muted-strong)]">
-                  {formatDateTime(delegation.startsAt)} to {formatDateTime(delegation.endsAt)}
+                  {formatDateTime(delegation.startsAt, locale)} {copy.to} {formatDateTime(delegation.endsAt, locale)}
                 </p>
               </div>
               {canManage ? (
@@ -125,7 +154,7 @@ export default function DelegationManager({
                   onClick={() => removeDelegation(delegation.id)}
                   className="bf-btn disabled:opacity-60"
                 >
-                  Remove
+                  {copy.remove}
                 </button>
               ) : null}
             </div>
@@ -136,7 +165,7 @@ export default function DelegationManager({
       {canManage ? (
         <div className="mt-4 bf-stack">
           <select value={delegateId} onChange={(event) => setDelegateId(event.target.value)} className="bf-select">
-            <option value="">Choose delegate</option>
+            <option value="">{copy.chooseDelegate}</option>
             {availableDelegates.map((delegate) => (
               <option key={delegate.id} value={delegate.id}>
                 {delegate.name} ({delegate.email})
@@ -146,7 +175,7 @@ export default function DelegationManager({
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1 text-sm">
-              <span className="bf-kicker">Starts</span>
+              <span className="bf-kicker">{copy.starts}</span>
               <input
                 type="datetime-local"
                 value={startsAt}
@@ -155,7 +184,7 @@ export default function DelegationManager({
               />
             </label>
             <label className="space-y-1 text-sm">
-              <span className="bf-kicker">Ends</span>
+              <span className="bf-kicker">{copy.ends}</span>
               <input
                 type="datetime-local"
                 value={endsAt}
@@ -173,7 +202,7 @@ export default function DelegationManager({
             onClick={createDelegation}
             className="bf-btn bf-btn-primary w-full disabled:opacity-60"
           >
-            Save delegation
+            {copy.save}
           </button>
         </div>
       ) : null}

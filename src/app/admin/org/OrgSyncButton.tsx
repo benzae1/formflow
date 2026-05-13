@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { Locale } from "@/lib/i18n/config";
 import { mutationHeaders } from "@/lib/mutation-headers";
 
-export default function OrgSyncButton() {
+export default function OrgSyncButton({ locale = "en" }: { locale?: Locale }) {
   const [pending, setPending] = useState(false);
   const router = useRouter();
 
@@ -25,7 +26,7 @@ export default function OrgSyncButton() {
       disabled={pending}
       className="bf-btn bf-btn-primary disabled:opacity-60"
     >
-      {pending ? "Syncing..." : "Run org sync"}
+      {pending ? (locale === "de" ? "Synchronisiert..." : "Syncing...") : locale === "de" ? "Organisationsabgleich starten" : "Run org sync"}
     </button>
   );
 }

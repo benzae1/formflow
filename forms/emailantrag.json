@@ -521,7 +521,7 @@
       "tags": [],
       "type": "textfield",
       "input": true,
-      "label": "Fakultaet/Einrichtung",
+      "label": "Fakultät/Einrichtung",
       "logic": [],
       "addons": [],
       "errors": "",

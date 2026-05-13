@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { getTemporalClient } from "@/lib/temporal";
-import { requirePageRole } from "@/lib/page-auth";
 import { db } from "@/lib/db";
+import { localizePath } from "@/lib/i18n/routing";
+import { getLocaleContextOrDefault } from "@/lib/i18n/server";
+import { requirePageRole } from "@/lib/page-auth";
+import { getTemporalClient } from "@/lib/temporal";
 
 async function getFailedTemporalWorkflowCount() {
   try {
@@ -13,9 +15,10 @@ async function getFailedTemporalWorkflowCount() {
   }
 }
 
-function formatSyncTime(value: Date | null) {
-  if (!value) return "No sync recorded";
-  return new Intl.DateTimeFormat("en-US", {
+function formatSyncTime(value: Date | null, locale: "de" | "en") {
+  if (!value) return locale === "de" ? "Keine Synchronisation erfasst" : "No sync recorded";
+
+  return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -23,7 +26,6 @@ function formatSyncTime(value: Date | null) {
   }).format(value);
 }
 
-/* ── Bauhaus primitive shapes ── */
 function Primitive({
   shape,
   color,
@@ -33,7 +35,7 @@ function Primitive({
   color: string;
   size?: number;
 }) {
-  if (shape === "circle")
+  if (shape === "circle") {
     return (
       <div
         style={{
@@ -45,12 +47,12 @@ function Primitive({
         }}
       />
     );
-  if (shape === "square")
-    return (
-      <div
-        style={{ width: size, height: size, background: color, flexShrink: 0 }}
-      />
-    );
+  }
+
+  if (shape === "square") {
+    return <div style={{ width: size, height: size, background: color, flexShrink: 0 }} />;
+  }
+
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" style={{ flexShrink: 0 }}>
       <polygon points="20,2 38,36 2,36" fill={color} />
@@ -68,7 +70,7 @@ type Tile = {
   stats: TileStat[];
 };
 
-function TileCard({ tile }: { tile: Tile }) {
+function TileCard({ tile, openLabel }: { tile: Tile; openLabel: string }) {
   return (
     <Link
       href={tile.href}
@@ -127,7 +129,7 @@ function TileCard({ tile }: { tile: Tile }) {
         }}
         className="group-hover:opacity-100"
       >
-        Open →
+        {openLabel}
       </span>
 
       <div
@@ -179,9 +181,102 @@ function TileCard({ tile }: { tile: Tile }) {
   );
 }
 
-export default async function AdminDashboardPage() {
-  const user = await requirePageRole(["admin", "compliance"]);
+export default async function AdminDashboardPage({
+  params,
+}: {
+  params?: Promise<{ lang?: string }>;
+}) {
+  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  const user = await requirePageRole(["admin", "compliance"], locale);
   const now = new Date();
+  const copy =
+    locale === "de"
+      ? {
+          submitted: "Eingereicht",
+          inReview: "In Prüfung",
+          overdue: "überfällig",
+          needsRevision: "Revision nötig",
+          approved: "Freigegeben",
+          rejected: "Abgelehnt",
+          closed: "Geschlossen",
+          archive: "Archiv",
+          submissions: "Einreichungen",
+          submissionsSub: "Pipeline von neu eingereichter Arbeit bis zum endgültigen Ergebnis.",
+          auditLog: "Audit-Log",
+          auditSub: "Spuren sensibler Zugriffe und Compliance-relevanter Ereignisse.",
+          sensitive: "Sensibel",
+          overdueAlerts: "Überfällige Hinweise",
+          failedWorkflows: "Fehlgeschlagene Workflows",
+          forms: "Formulare",
+          formsSub: "Veröffentlichungsstatus und Builder-Zugang.",
+          drafts: "Entwürfe",
+          published: "Veröffentlicht",
+          archived: "Archiviert",
+          workflowHealth: "Workflow-Status",
+          workflowHealthSub: "Ausführungsdruck, SLA-Risiko und Temporal-Fehler.",
+          active: "Aktiv",
+          errors: "Fehler",
+          users: "Benutzer",
+          usersSub: "Verzeichnis- und Lebenszyklusereignisse.",
+          total: "Gesamt",
+          deactivated: "Deaktiviert",
+          adminOps: "Administration · Betrieb",
+          complianceOps: "Compliance · Betrieb",
+          oversight: "Aufsicht",
+          operations: "Betrieb",
+          heroDescription: "Bauhaus Forms - Einreichungspipeline, Workflows und Verzeichnis auf einen Blick.",
+          manageForms: "Formulare verwalten",
+          reviewWorkflows: "Workflows prüfen",
+          orgSync: "Organisationsabgleich",
+          orgCurrent: "Verzeichnis aktuell - keine inaktiven Identitäten erkannt",
+          lastSync: "Letzte Synchronisation",
+          open: "Öffnen ->",
+          openPipeline: "Pipeline öffnen ->",
+          usersCount: "Benutzer",
+        }
+      : {
+          submitted: "Submitted",
+          inReview: "In Review",
+          overdue: "overdue",
+          needsRevision: "Needs Revision",
+          approved: "Approved",
+          rejected: "Rejected",
+          closed: "Closed",
+          archive: "Archive",
+          submissions: "Submissions",
+          submissionsSub: "Pipeline from newly submitted work through final outcomes.",
+          auditLog: "Audit Log",
+          auditSub: "Sensitive access trails and compliance-significant events.",
+          sensitive: "Sensitive",
+          overdueAlerts: "Overdue alerts",
+          failedWorkflows: "Failed workflows",
+          forms: "Forms",
+          formsSub: "Publication status and builder access.",
+          drafts: "Drafts",
+          published: "Published",
+          archived: "Archived",
+          workflowHealth: "Workflow Health",
+          workflowHealthSub: "Execution pressure, SLA risk, and Temporal failures.",
+          active: "Active",
+          errors: "Errors",
+          users: "Users",
+          usersSub: "Directory and lifecycle events.",
+          total: "Total",
+          deactivated: "Deactivated",
+          adminOps: "Admin · Operations",
+          complianceOps: "Compliance · Operations",
+          oversight: "Oversight",
+          operations: "Operations",
+          heroDescription: "Bauhaus Forms - submission pipeline, workflows, and directory at a glance.",
+          manageForms: "Manage forms",
+          reviewWorkflows: "Review workflows",
+          orgSync: "Org Sync",
+          orgCurrent: "Directory current - no inactive identities detected",
+          lastSync: "Last sync",
+          open: "Open ->",
+          openPipeline: "Open pipeline ->",
+          usersCount: "Users",
+        };
 
   const [
     formsDraft,
@@ -226,13 +321,11 @@ export default async function AdminDashboardPage() {
     getFailedTemporalWorkflowCount(),
   ]);
 
-  const isComplianceOnly =
-    user.roles.includes("compliance") && !user.roles.includes("admin");
-
+  const isComplianceOnly = user.roles.includes("compliance") && !user.roles.includes("admin");
   const pipelineStages = [
     {
       id: "submitted",
-      label: "Submitted",
+      label: copy.submitted,
       num: submissionsSubmitted,
       delta: null,
       attn: false,
@@ -240,15 +333,15 @@ export default async function AdminDashboardPage() {
     },
     {
       id: "in_review",
-      label: "In Review",
+      label: copy.inReview,
       num: submissionsInReview,
-      delta: overdueTasks > 0 ? `${overdueTasks} overdue` : null,
+      delta: overdueTasks > 0 ? `${overdueTasks} ${copy.overdue}` : null,
       attn: overdueTasks > 0 && submissionsInReview > 0,
       hex: "#ED8B00",
     },
     {
       id: "revision",
-      label: "Needs Revision",
+      label: copy.needsRevision,
       num: submissionsNeedsRevision,
       delta: null,
       attn: false,
@@ -256,7 +349,7 @@ export default async function AdminDashboardPage() {
     },
     {
       id: "approved",
-      label: "Approved",
+      label: copy.approved,
       num: submissionsApproved,
       delta: null,
       attn: false,
@@ -264,7 +357,7 @@ export default async function AdminDashboardPage() {
     },
     {
       id: "rejected",
-      label: "Rejected",
+      label: copy.rejected,
       num: submissionsRejected,
       delta: null,
       attn: false,
@@ -272,9 +365,9 @@ export default async function AdminDashboardPage() {
     },
     {
       id: "closed",
-      label: "Closed",
+      label: copy.closed,
       num: submissionsClosed,
-      delta: "Archive",
+      delta: copy.archive,
       attn: false,
       hex: "#00677F",
     },
@@ -284,103 +377,91 @@ export default async function AdminDashboardPage() {
     ? [
         {
           id: "submissions",
-          href: "/admin/submissions",
-          title: "Submissions",
-          sub: "Pipeline from newly submitted work through final outcomes.",
+          href: localizePath(locale, "/admin/submissions"),
+          title: copy.submissions,
+          sub: copy.submissionsSub,
           mark: { shape: "square", color: "#FFD100" },
           stats: [
-            { l: "In Review", v: submissionsInReview },
-            { l: "Needs Revision", v: submissionsNeedsRevision, accent: submissionsNeedsRevision > 0 },
-            { l: "Approved", v: submissionsApproved },
+            { l: copy.inReview, v: submissionsInReview },
+            { l: copy.needsRevision, v: submissionsNeedsRevision, accent: submissionsNeedsRevision > 0 },
+            { l: copy.approved, v: submissionsApproved },
           ],
         },
         {
           id: "audit",
-          href: "/admin/audit-log",
-          title: "Audit Log",
-          sub: "Sensitive access trails and compliance-significant events.",
+          href: localizePath(locale, "/admin/audit-log"),
+          title: copy.auditLog,
+          sub: copy.auditSub,
           mark: { shape: "square", color: "#A50050" },
           stats: [
             {
-              l: "Sensitive",
-              v:
-                submissionsInReview +
-                submissionsApproved +
-                submissionsRejected +
-                submissionsClosed,
+              l: copy.sensitive,
+              v: submissionsInReview + submissionsApproved + submissionsRejected + submissionsClosed,
             },
-            { l: "Overdue alerts", v: overdueTasks, accent: overdueTasks > 0 },
-            {
-              l: "Failed workflows",
-              v: failedTemporalWorkflows ?? "—",
-            },
+            { l: copy.overdueAlerts, v: overdueTasks, accent: overdueTasks > 0 },
+            { l: copy.failedWorkflows, v: failedTemporalWorkflows ?? "-" },
           ],
         },
       ]
     : [
         {
           id: "forms",
-          href: "/admin/forms",
-          title: "Forms",
-          sub: "Publication status and builder access.",
+          href: localizePath(locale, "/admin/forms"),
+          title: copy.forms,
+          sub: copy.formsSub,
           mark: { shape: "square", color: "#D22630" },
           stats: [
-            { l: "Drafts", v: formsDraft },
-            { l: "Published", v: formsPublished },
-            { l: "Archived", v: formsArchived },
+            { l: copy.drafts, v: formsDraft },
+            { l: copy.published, v: formsPublished },
+            { l: copy.archived, v: formsArchived },
           ],
         },
         {
           id: "wf",
-          href: "/admin/workflows",
-          title: "Workflow Health",
-          sub: "Execution pressure, SLA risk, and Temporal failures.",
+          href: localizePath(locale, "/admin/workflows"),
+          title: copy.workflowHealth,
+          sub: copy.workflowHealthSub,
           mark: { shape: "triangle", color: "#FFD100" },
           stats: [
-            { l: "Active", v: activeWorkflows },
-            { l: "Overdue", v: overdueTasks, accent: overdueTasks > 0 },
-            { l: "Errors", v: failedTemporalWorkflows ?? "—" },
+            { l: copy.active, v: activeWorkflows },
+            { l: locale === "de" ? "Überfällig" : "Overdue", v: overdueTasks, accent: overdueTasks > 0 },
+            { l: copy.errors, v: failedTemporalWorkflows ?? "-" },
           ],
         },
         {
           id: "users",
-          href: "/admin/users",
-          title: "Users",
-          sub: "Directory and lifecycle events.",
+          href: localizePath(locale, "/admin/users"),
+          title: copy.users,
+          sub: copy.usersSub,
           mark: { shape: "circle", color: "#00677F" },
           stats: [
-            { l: "Total", v: totalUsers },
-            { l: "Active", v: totalUsers - deactivatedUsers },
-            { l: "Deactivated", v: deactivatedUsers },
+            { l: copy.total, v: totalUsers },
+            { l: copy.active, v: totalUsers - deactivatedUsers },
+            { l: copy.deactivated, v: deactivatedUsers },
           ],
         },
         {
           id: "audit",
-          href: "/admin/audit-log",
-          title: "Audit Log",
-          sub: "Sensitive access trails and compliance-significant events.",
+          href: localizePath(locale, "/admin/audit-log"),
+          title: copy.auditLog,
+          sub: copy.auditSub,
           mark: { shape: "square", color: "#A50050" },
           stats: [
             {
-              l: "Sensitive",
-              v:
-                submissionsInReview +
-                submissionsApproved +
-                submissionsRejected +
-                submissionsClosed,
+              l: copy.sensitive,
+              v: submissionsInReview + submissionsApproved + submissionsRejected + submissionsClosed,
             },
-            { l: "Overdue alerts", v: overdueTasks, accent: overdueTasks > 0 },
-            { l: "Failed workflows", v: failedTemporalWorkflows ?? "—" },
+            { l: copy.overdueAlerts, v: overdueTasks, accent: overdueTasks > 0 },
+            { l: copy.failedWorkflows, v: failedTemporalWorkflows ?? "-" },
           ],
         },
       ];
 
-  const syncTime = formatSyncTime(latestSyncedUser?.updatedAt ?? null);
+  const syncTime = formatSyncTime(latestSyncedUser?.updatedAt ?? null, locale);
   const syncOk = !!latestSyncedUser;
 
   return (
     <div>
-      {/* ── Hero ── */}
       <section
         style={{
           display: "grid",
@@ -400,7 +481,7 @@ export default async function AdminDashboardPage() {
               color: "var(--ink)",
             }}
           >
-            {isComplianceOnly ? "Compliance" : "Admin"} · Operations
+            {isComplianceOnly ? copy.complianceOps : copy.adminOps}
           </div>
           <div
             style={{
@@ -421,11 +502,13 @@ export default async function AdminDashboardPage() {
           >
             {isComplianceOnly ? (
               <>
-                Oversight<span style={{ color: "var(--accent)" }}>.</span>
+                {copy.oversight}
+                <span style={{ color: "var(--accent)" }}>.</span>
               </>
             ) : (
               <>
-                Operations<span style={{ color: "var(--accent)" }}>.</span>
+                {copy.operations}
+                <span style={{ color: "var(--accent)" }}>.</span>
               </>
             )}
           </div>
@@ -438,8 +521,7 @@ export default async function AdminDashboardPage() {
               color: "var(--ink)",
             }}
           >
-            Bauhaus Forms — submission pipeline, workflows, and directory at a
-            glance.
+            {copy.heroDescription}
           </p>
         </div>
 
@@ -459,7 +541,7 @@ export default async function AdminDashboardPage() {
           {user.roles.includes("admin") && (
             <div style={{ display: "flex" }}>
               <Link
-                href="/admin/forms"
+                href={localizePath(locale, "/admin/forms")}
                 style={{
                   fontFamily: "var(--font-sans)",
                   fontSize: 13,
@@ -472,10 +554,10 @@ export default async function AdminDashboardPage() {
                   transition: "background 150ms",
                 }}
               >
-                Manage forms
+                {copy.manageForms}
               </Link>
               <Link
-                href="/admin/workflows"
+                href={localizePath(locale, "/admin/workflows")}
                 style={{
                   fontFamily: "var(--font-sans)",
                   fontSize: 13,
@@ -489,14 +571,13 @@ export default async function AdminDashboardPage() {
                   transition: "background 150ms",
                 }}
               >
-                Review workflows
+                {copy.reviewWorkflows}
               </Link>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── Org-sync strip ── */}
       <div
         style={{
           display: "grid",
@@ -521,7 +602,7 @@ export default async function AdminDashboardPage() {
             color: "var(--panel)",
           }}
         >
-          Org Sync
+          {copy.orgSync}
         </span>
         <span
           style={{
@@ -539,9 +620,7 @@ export default async function AdminDashboardPage() {
               display: "inline-block",
             }}
           />
-          {syncOk
-            ? "Directory current — no inactive identities detected"
-            : "No sync recorded"}
+          {syncOk ? copy.orgCurrent : formatSyncTime(null, locale)}
         </span>
         <span>
           <span
@@ -554,11 +633,9 @@ export default async function AdminDashboardPage() {
               marginRight: 8,
             }}
           >
-            Last sync
+            {copy.lastSync}
           </span>
-          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-            {syncTime}
-          </span>
+          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{syncTime}</span>
         </span>
         <span>
           <span
@@ -571,14 +648,12 @@ export default async function AdminDashboardPage() {
               marginRight: 8,
             }}
           >
-            Users
+            {copy.usersCount}
           </span>
-          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-            {totalUsers}
-          </span>
+          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{totalUsers}</span>
         </span>
         <Link
-          href="/admin/org"
+          href={localizePath(locale, "/admin/org")}
           style={{
             textDecoration: "none",
             fontSize: 12,
@@ -589,11 +664,10 @@ export default async function AdminDashboardPage() {
             border: "1px solid var(--line-strong)",
           }}
         >
-          Open →
+          {copy.open}
         </Link>
       </div>
 
-      {/* ── Submissions pipeline ── */}
       <section
         style={{
           background: "var(--panel)",
@@ -620,14 +694,14 @@ export default async function AdminDashboardPage() {
                 lineHeight: 1,
               }}
             >
-              Submissions
+              {copy.submissions}
             </h2>
             <p style={{ fontSize: 13, color: "var(--muted)", maxWidth: "50ch", lineHeight: 1.4 }}>
-              Pipeline from newly submitted work through final outcomes.
+              {copy.submissionsSub}
             </p>
           </div>
           <Link
-            href="/admin/submissions"
+            href={localizePath(locale, "/admin/submissions")}
             style={{
               fontSize: 12,
               fontWeight: 700,
@@ -639,7 +713,7 @@ export default async function AdminDashboardPage() {
               whiteSpace: "nowrap",
             }}
           >
-            Open pipeline →
+            {copy.openPipeline}
           </Link>
         </div>
 
@@ -654,15 +728,11 @@ export default async function AdminDashboardPage() {
               key={stage.id}
               style={{
                 padding: "28px 24px",
-                borderRight:
-                  i < pipelineStages.length - 1
-                    ? "1px solid var(--line)"
-                    : "none",
+                borderRight: i < pipelineStages.length - 1 ? "1px solid var(--line)" : "none",
                 position: "relative",
                 background: stage.attn ? "var(--canvas)" : "transparent",
               }}
             >
-              {/* color swatch */}
               <div
                 style={{
                   position: "absolute",
@@ -697,7 +767,7 @@ export default async function AdminDashboardPage() {
               >
                 {stage.num}
               </div>
-              {stage.delta && (
+              {stage.delta ? (
                 <div
                   style={{
                     fontSize: 11,
@@ -709,13 +779,12 @@ export default async function AdminDashboardPage() {
                 >
                   {stage.delta}
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Tile grid ── */}
       <section
         style={{
           display: "grid",
@@ -724,7 +793,7 @@ export default async function AdminDashboardPage() {
         }}
       >
         {tiles.map((tile) => (
-          <TileCard key={tile.id} tile={tile} />
+          <TileCard key={tile.id} tile={tile} openLabel={copy.open} />
         ))}
       </section>
     </div>

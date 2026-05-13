@@ -3,7 +3,7 @@ import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 export function formatDateTime(value: Date | string | null | undefined, locale: Locale = "de") {
-  if (!value) return locale === "de" ? "Nicht verfuegbar" : "Not available";
+  if (!value) return locale === "de" ? "Nicht verfügbar" : "Not available";
 
   return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-US", {
     dateStyle: "medium",
@@ -12,7 +12,7 @@ export function formatDateTime(value: Date | string | null | undefined, locale: 
 }
 
 export function formatDate(value: Date | string | null | undefined, locale: Locale = "de") {
-  if (!value) return locale === "de" ? "Nicht verfuegbar" : "Not available";
+  if (!value) return locale === "de" ? "Nicht verfügbar" : "Not available";
 
   return new Intl.DateTimeFormat(locale === "de" ? "de-DE" : "en-US", {
     dateStyle: "medium",
@@ -54,11 +54,11 @@ export function getStatusLabel(status: string, locale: Locale = "de") {
     locale === "de"
       ? {
           draft: "Entwurf",
-          published: "Veroeffentlicht",
+          published: "Veröffentlicht",
           archived: "Archiviert",
           submitted: "Eingereicht",
-          in_review: "In Pruefung",
-          needs_revision: "Revision noetig",
+          in_review: "In Prüfung",
+          needs_revision: "Revision nötig",
           approved: "Freigegeben",
           rejected: "Abgelehnt",
           closed: "Geschlossen",
@@ -81,27 +81,33 @@ export function getBooleanLabel(value: boolean, dictionary: Dictionary) {
   return value ? dictionary.common.yes : dictionary.common.no;
 }
 
-export function describeStage(stage: WorkflowStage) {
+export function describeStage(stage: WorkflowStage, locale: Locale = "de") {
   const target = Array.isArray(stage.assignTo) ? stage.assignTo : stage.assignTo ? [stage.assignTo] : [];
   const routing =
     target.length === 0
-      ? "No routing"
+      ? locale === "de"
+        ? "Keine Zuordnung"
+        : "No routing"
       : target
           .map((item) => `${item.type}:${item.value}`)
           .join(", ");
 
   const sla = stage.sla
-    ? `${stage.sla.hours}h SLA${stage.sla.reminderAt.length ? ` | reminders at ${stage.sla.reminderAt.join(", ")}h` : ""}`
-    : "No SLA";
+    ? locale === "de"
+      ? `${stage.sla.hours} Std. SLA${stage.sla.reminderAt.length ? ` | Erinnerungen bei ${stage.sla.reminderAt.join(", ")} Std.` : ""}`
+      : `${stage.sla.hours}h SLA${stage.sla.reminderAt.length ? ` | reminders at ${stage.sla.reminderAt.join(", ")}h` : ""}`
+    : locale === "de"
+      ? "Keine SLA"
+      : "No SLA";
 
   return `${routing} | ${sla}`;
 }
 
-export function summarizeWorkflow(definition: WorkflowDefinition) {
+export function summarizeWorkflow(definition: WorkflowDefinition, locale: Locale = "de") {
   return definition.map((stage) => ({
     id: stage.id,
     name: stage.name,
     type: stage.type,
-    description: describeStage(stage),
+    description: describeStage(stage, locale),
   }));
 }

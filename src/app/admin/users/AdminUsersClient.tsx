@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import DelegationManager from "@/components/users/DelegationManager";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import type { Locale } from "@/lib/i18n/config";
 import { mutationHeaders } from "@/lib/mutation-headers";
 import { formatDateTime, getRoleLabel } from "@/lib/ui";
 
@@ -47,11 +48,13 @@ export default function AdminUsersClient({
   availableRoles,
   delegations,
   delegateOptions,
+  locale,
 }: {
   users: UserRecord[];
   availableRoles: RoleRecord[];
   delegations: DelegationRecord[];
   delegateOptions: DelegateOption[];
+  locale: Locale;
 }) {
   const router = useRouter();
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
@@ -60,6 +63,26 @@ export default function AdminUsersClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const copy =
+    locale === "de"
+      ? {
+          saveError: "Rollenänderungen konnten nicht gespeichert werden.",
+          searchPlaceholder: "Nach Name oder E-Mail suchen",
+          allRoles: "Alle Rollen",
+          allStatuses: "Alle Status",
+          active: "Aktiv",
+          deactivated: "Deaktiviert",
+          noMatches: "Keine Benutzer entsprechen den aktuellen Filtern.",
+        }
+      : {
+          saveError: "Could not save role changes.",
+          searchPlaceholder: "Search by name or email",
+          allRoles: "All roles",
+          allStatuses: "All statuses",
+          active: "Active",
+          deactivated: "Deactivated",
+          noMatches: "No users match the current filters.",
+        };
 
   async function updateRoles(userId: string, roles: string[]) {
     setPendingUserId(userId);
@@ -77,7 +100,7 @@ export default function AdminUsersClient({
       const payload = (await response.json()) as {
         error?: { message?: string };
       };
-      setError(payload.error?.message ?? "Could not save role changes.");
+      setError(payload.error?.message ?? copy.saveError);
       return;
     }
 
@@ -112,7 +135,7 @@ export default function AdminUsersClient({
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by name or email"
+          placeholder={copy.searchPlaceholder}
           className="bf-input"
         />
         <select
@@ -120,10 +143,10 @@ export default function AdminUsersClient({
           onChange={(e) => setRoleFilter(e.target.value)}
           className="bf-select"
         >
-          <option value="">All roles</option>
+          <option value="">{copy.allRoles}</option>
           {availableRoles.map((role) => (
             <option key={role.name} value={role.name}>
-              {role.label ?? getRoleLabel(role.name)}
+              {role.label ?? getRoleLabel(role.name, locale)}
             </option>
           ))}
         </select>
@@ -132,15 +155,15 @@ export default function AdminUsersClient({
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bf-select"
         >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="deactivated">Deactivated</option>
+          <option value="">{copy.allStatuses}</option>
+          <option value="active">{copy.active}</option>
+          <option value="deactivated">{copy.deactivated}</option>
         </select>
       </div>
 
       <section className="bf-list">
         {filteredUsers.length === 0 ? (
-          <p className="text-sm text-[var(--muted-strong)] px-1">No users match the current filters.</p>
+          <p className="text-sm text-[var(--muted-strong)] px-1">{copy.noMatches}</p>
         ) : (
           filteredUsers.map((user) => (
             <UserCard
@@ -149,6 +172,7 @@ export default function AdminUsersClient({
               availableRoles={availableRoles}
               delegations={delegations.filter((d) => d.approverId === user.id)}
               delegateOptions={delegateOptions}
+              locale={locale}
               pending={pendingUserId === user.id}
               expanded={expandedUserId === user.id}
               onToggle={() => toggleExpanded(user.id)}
@@ -166,6 +190,7 @@ function UserCard({
   availableRoles,
   delegations,
   delegateOptions,
+  locale,
   pending,
   expanded,
   onToggle,
@@ -175,12 +200,35 @@ function UserCard({
   availableRoles: RoleRecord[];
   delegations: DelegationRecord[];
   delegateOptions: DelegateOption[];
+  locale: Locale;
   pending: boolean;
   expanded: boolean;
   onToggle: () => void;
   onSaveRoles: (roles: string[]) => Promise<void>;
 }) {
   const [roles, setRoles] = useState<string[]>(user.roles.map((role) => role.name));
+  const copy =
+    locale === "de"
+      ? {
+          updated: "Aktualisiert",
+          roles: "Rollen",
+          saveRoles: "Rollen speichern",
+          orgMemberships: "Organisationsmitgliedschaften",
+          noMemberships: "Keine Mitgliedschaften synchronisiert.",
+          member: "Mitglied",
+          manager: "Leitung",
+          delegationDescription: "Administrierende können zeitlich begrenzte Vertretungen für Freigaben festlegen.",
+        }
+      : {
+          updated: "Updated",
+          roles: "Roles",
+          saveRoles: "Save roles",
+          orgMemberships: "Org memberships",
+          noMemberships: "No memberships synced.",
+          member: "member",
+          manager: "manager",
+          delegationDescription: "Admins can set backup approvers for date-bound coverage.",
+        };
 
   function toggleRole(roleName: string) {
     setRoles((current) => {
@@ -210,7 +258,9 @@ function UserCard({
           <div>
             <h2 className="text-[30px] font-extrabold leading-none">{user.name ?? user.email}</h2>
             <p className="mt-2 text-sm text-[var(--muted-strong)]">{user.email}</p>
-            <p className="mt-1 text-sm text-[var(--muted-strong)]">Updated {formatDateTime(user.updatedAt)}</p>
+            <p className="mt-1 text-sm text-[var(--muted-strong)]">
+              {copy.updated} {formatDateTime(user.updatedAt, locale)}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-start gap-2 xl:items-center">
@@ -231,7 +281,7 @@ function UserCard({
       {expanded && (
         <div className="mt-5 grid gap-4 border-t border-[var(--line)] pt-5 xl:grid-cols-3">
           <div className="bf-panel-muted px-4 py-4">
-            <p className="bf-eyebrow">Roles</p>
+            <p className="bf-eyebrow">{copy.roles}</p>
             <div className="mt-3 flex flex-col gap-3">
               {availableRoles.map((role) => (
                 <label key={role.name} className="flex items-center gap-2 text-sm text-[var(--ink)]">
@@ -240,7 +290,7 @@ function UserCard({
                     checked={roles.includes(role.name)}
                     onChange={() => toggleRole(role.name)}
                   />
-                  <span>{role.label ?? getRoleLabel(role.name)}</span>
+                  <span>{role.label ?? getRoleLabel(role.name, locale)}</span>
                 </label>
               ))}
             </div>
@@ -250,20 +300,20 @@ function UserCard({
               onClick={() => onSaveRoles(roles)}
               className="bf-btn bf-btn-primary mt-4 disabled:opacity-60"
             >
-              Save roles
+              {copy.saveRoles}
             </button>
           </div>
 
           <div className="bf-panel-muted px-4 py-4">
-            <p className="bf-eyebrow">Org memberships</p>
+            <p className="bf-eyebrow">{copy.orgMemberships}</p>
             <div className="mt-3 space-y-2">
               {user.memberships.length === 0 ? (
-                <p className="text-sm text-[var(--muted-strong)]">No memberships synced.</p>
+                <p className="text-sm text-[var(--muted-strong)]">{copy.noMemberships}</p>
               ) : (
                 user.memberships.map((membership) => (
                   <p key={membership.id} className="text-sm text-[var(--ink)]">
-                    {membership.orgUnit.name} | {membership.roleInUnit ?? "member"}
-                    {membership.isManager ? " | manager" : ""}
+                    {membership.orgUnit.name} | {membership.roleInUnit ?? copy.member}
+                    {membership.isManager ? ` | ${copy.manager}` : ""}
                   </p>
                 ))
               )}
@@ -275,7 +325,8 @@ function UserCard({
             delegations={delegations}
             delegates={delegateOptions}
             canManage={canManageDelegation}
-            description="Admins can set backup approvers for date-bound coverage."
+            locale={locale}
+            description={copy.delegationDescription}
           />
         </div>
       )}

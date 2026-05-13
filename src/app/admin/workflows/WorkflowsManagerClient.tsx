@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { summarizeWorkflow } from "@/lib/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import type { Locale } from "@/lib/i18n/config";
 import { mutationHeaders } from "@/lib/mutation-headers";
 
 type WorkflowRecord = {
@@ -19,7 +20,7 @@ function emptyDefinition() {
     [
       {
         id: "approval",
-        name: "Approval",
+        name: "Freigabe",
         type: "approval",
         assignTo: { type: "role", value: "approver" },
         onApprove: "close",
@@ -33,8 +34,10 @@ function emptyDefinition() {
 
 export default function WorkflowsManagerClient({
   workflows,
+  locale,
 }: {
   workflows: WorkflowRecord[];
+  locale: Locale;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(workflows[0]?.id ?? null);
   const [name, setName] = useState(workflows[0]?.name ?? "");
@@ -44,16 +47,56 @@ export default function WorkflowsManagerClient({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const copy =
+    locale === "de"
+      ? {
+          invalidJson: "Die Definition muss gültiges JSON sein.",
+          saveError: "Der Workflow konnte nicht gespeichert werden. Prüfen Sie die Struktur der Definition.",
+          newWorkflowName: "Neuer Workflow",
+          libraryEyebrow: "Workflow-Bibliothek",
+          libraryTitle: "Definitionen",
+          newWorkflow: "Neuer Workflow",
+          version: "Version",
+          attachedForms: "verknüpfte Formulare",
+          editorEyebrow: "Editor",
+          editWorkflow: "Workflow bearbeiten",
+          createWorkflow: "Workflow erstellen",
+          saving: "Wird gespeichert...",
+          saveWorkflow: "Workflow speichern",
+          workflowName: "Workflow-Name",
+          stageSummary: "Stufenzusammenfassung",
+          attachedFormsTitle: "Verknüpfte Formulare",
+          noAttachedForms: "Derzeit verweist kein Formular auf diesen Workflow.",
+        }
+      : {
+          invalidJson: "Definition must be valid JSON.",
+          saveError: "Workflow could not be saved. Check the definition shape.",
+          newWorkflowName: "New workflow",
+          libraryEyebrow: "Workflow library",
+          libraryTitle: "Definitions",
+          newWorkflow: "New workflow",
+          version: "Version",
+          attachedForms: "attached forms",
+          editorEyebrow: "Editor",
+          editWorkflow: "Edit workflow",
+          createWorkflow: "Create workflow",
+          saving: "Saving...",
+          saveWorkflow: "Save workflow",
+          workflowName: "Workflow name",
+          stageSummary: "Stage summary",
+          attachedFormsTitle: "Attached forms",
+          noAttachedForms: "No forms currently reference this workflow.",
+        };
 
   const selectedWorkflow = workflows.find((workflow) => workflow.id === selectedId) ?? null;
 
   const stageSummary = useMemo(() => {
     try {
-      return summarizeWorkflow(JSON.parse(definitionText));
+      return summarizeWorkflow(JSON.parse(definitionText), locale);
     } catch {
       return [];
     }
-  }, [definitionText]);
+  }, [definitionText, locale]);
 
   function chooseWorkflow(id: string) {
     const workflow = workflows.find((item) => item.id === id);
@@ -74,7 +117,7 @@ export default function WorkflowsManagerClient({
       definition = JSON.parse(definitionText);
     } catch {
       setPending(false);
-      setError("Definition must be valid JSON.");
+      setError(copy.invalidJson);
       return;
     }
 
@@ -87,7 +130,7 @@ export default function WorkflowsManagerClient({
     setPending(false);
 
     if (!response.ok) {
-      setError("Workflow could not be saved. Check the definition shape.");
+      setError(copy.saveError);
       return;
     }
 
@@ -96,7 +139,7 @@ export default function WorkflowsManagerClient({
 
   function newWorkflow() {
     setSelectedId(null);
-    setName("New workflow");
+    setName(copy.newWorkflowName);
     setDefinitionText(emptyDefinition());
     setError(null);
   }
@@ -106,11 +149,11 @@ export default function WorkflowsManagerClient({
       <section className="bf-panel p-5">
         <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-4">
           <div>
-            <p className="bf-eyebrow">Workflow library</p>
-            <h2 className="mt-3 text-[32px] font-extrabold leading-none">Definitions</h2>
+            <p className="bf-eyebrow">{copy.libraryEyebrow}</p>
+            <h2 className="mt-3 text-[32px] font-extrabold leading-none">{copy.libraryTitle}</h2>
           </div>
           <button type="button" onClick={newWorkflow} className="bf-btn bf-btn-primary">
-            New workflow
+            {copy.newWorkflow}
           </button>
         </div>
 
@@ -130,7 +173,7 @@ export default function WorkflowsManagerClient({
                 <div>
                   <p className="text-base font-semibold">{workflow.name}</p>
                   <p className="mt-1 text-sm text-[var(--muted-strong)]">
-                    Version {workflow.version} | {workflow.forms.length} attached forms
+                    {copy.version} {workflow.version} | {workflow.forms.length} {copy.attachedForms}
                   </p>
                 </div>
                 <StatusBadge status="approval" />
@@ -143,18 +186,18 @@ export default function WorkflowsManagerClient({
       <section className="bf-panel p-6">
         <div className="flex flex-col gap-3 border-b border-[var(--line)] pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="bf-eyebrow">Editor</p>
+            <p className="bf-eyebrow">{copy.editorEyebrow}</p>
             <h2 className="mt-3 text-[32px] font-extrabold leading-none">
-              {selectedId ? "Edit workflow" : "Create workflow"}
+              {selectedId ? copy.editWorkflow : copy.createWorkflow}
             </h2>
           </div>
           <button type="button" onClick={save} disabled={pending} className="bf-btn bf-btn-primary disabled:opacity-60">
-            {pending ? "Saving..." : "Save workflow"}
+            {pending ? copy.saving : copy.saveWorkflow}
           </button>
         </div>
 
         <div className="mt-5 bf-stack">
-          <input value={name} onChange={(event) => setName(event.target.value)} className="bf-input" placeholder="Workflow name" />
+          <input value={name} onChange={(event) => setName(event.target.value)} className="bf-input" placeholder={copy.workflowName} />
 
           {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
 
@@ -168,7 +211,7 @@ export default function WorkflowsManagerClient({
 
             <div className="bf-stack">
               <div className="bf-panel-muted p-4">
-                <p className="bf-kicker">Stage summary</p>
+                <p className="bf-kicker">{copy.stageSummary}</p>
                 <div className="mt-4 bf-list">
                   {stageSummary.map((stage) => (
                     <article key={stage.id} className="bf-panel px-4 py-3">
@@ -186,12 +229,10 @@ export default function WorkflowsManagerClient({
 
               {selectedWorkflow ? (
                 <div className="bf-panel-muted p-4">
-                  <p className="bf-kicker">Attached forms</p>
+                  <p className="bf-kicker">{copy.attachedFormsTitle}</p>
                   <div className="mt-3 bf-list">
                     {selectedWorkflow.forms.length === 0 ? (
-                      <p className="text-sm text-[var(--muted-strong)]">
-                        No forms currently reference this workflow.
-                      </p>
+                      <p className="text-sm text-[var(--muted-strong)]">{copy.noAttachedForms}</p>
                     ) : (
                       selectedWorkflow.forms.map((form) => (
                         <p key={form.id} className="bf-panel px-3 py-2 text-sm">

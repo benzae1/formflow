@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         throw new ApiError(
           "WORKFLOW_NOT_FOUND",
           isGerman
-            ? "Bitte einen gueltigen Workflow waehlen oder das Feld leer lassen."
+            ? "Bitte einen gültigen Workflow wählen oder das Feld leer lassen."
             : "Select a valid workflow or leave the workflow blank for now.",
           404,
         );
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         throw new ApiError(
           "PARENT_FORM_NOT_FOUND",
           isGerman
-            ? "Bitte ein gueltiges Elternformular waehlen oder die Auswahl leeren."
+            ? "Bitte ein gültiges Elternformular wählen oder die Auswahl leeren."
             : "Select a valid parent form or clear the parent form selection.",
           404,
         );
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
       const message = firstIssue
         ? `${firstIssue.path.join(".") || "form"}: ${firstIssue.message}`
         : isGerman
-          ? "Die Formulardaten sind ungueltig."
+          ? "Die Formulardaten sind ungültig."
           : "The form details are invalid.";
 
       return apiErrorResponse(new ApiError("INVALID_FORM_INPUT", message, 400));
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
           new ApiError(
             "FORM_SLUG_TAKEN",
             isGerman
-              ? "Dieser Slug wird bereits verwendet. Bitte einen anderen waehlen."
+              ? "Dieser Slug wird bereits verwendet. Bitte einen anderen wählen."
               : "That slug is already in use. Choose a different slug.",
             409,
           ),
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
           new ApiError(
             "FORM_RELATION_INVALID",
             isGerman
-              ? "Der ausgewaehlte Workflow oder das Elternformular konnte nicht verknuepft werden."
+              ? "Der ausgewählte Workflow oder das Elternformular konnte nicht verknüpft werden."
               : "The selected workflow or parent form could not be linked.",
             400,
           ),

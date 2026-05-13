@@ -32,33 +32,57 @@ const tabs = [
   { id: "completed", label: "Completed" },
 ] as const;
 
-export default function InboxClient({
-  tasks,
-  view,
-  locale,
-  dictionary,
-}: {
+export default function InboxClient(props: {
   tasks: InboxTask[];
   view: string;
   locale: Locale;
   dictionary: Dictionary;
 }) {
+  const { tasks, view, locale } = props;
   const searchParams = useSearchParams();
   const currentParams = useMemo(
     () => new URLSearchParams(searchParams.toString()),
     [searchParams],
   );
+  const copy =
+    locale === "de"
+      ? {
+          eyebrow: "Freigabe-Arbeitsbereich",
+          title: "Freigabe-Postfach",
+          description: "Die Warteschlange sichten, in Falldetails springen und Entscheidungen erst mit vollem Kontext treffen.",
+          tabs: { pending: "Ausstehend", overdue: "Überfällig", completed: "Abgeschlossen" },
+          emptyEyebrow: "Warteschlange leer",
+          emptyTitle: "Keine Aufgaben in dieser Ansicht",
+          emptyDescription: "Neue Freigaben erscheinen hier, sobald Workflow-Stufen auf Sie aufgelöst werden.",
+          completedReview: "Abgeschlossene Prüfung",
+          approvalTask: "Freigabeaufgabe",
+          submission: "Einreichung",
+          created: "Erstellt",
+          due: "Fällig",
+          openSubmission: "Einreichung öffnen",
+        }
+      : {
+          eyebrow: "Approver workspace",
+          title: "Approval inbox",
+          description: "Triage the queue, jump into case detail, and only commit a decision when you have the context you need.",
+          tabs: { pending: "Pending", overdue: "Overdue", completed: "Completed" },
+          emptyEyebrow: "Queue clear",
+          emptyTitle: "No tasks in this view",
+          emptyDescription: "New approval work will appear here as soon as workflow stages resolve to you.",
+          completedReview: "Completed review",
+          approvalTask: "Approval task",
+          submission: "Submission",
+          created: "Created",
+          due: "Due",
+          openSubmission: "Open submission",
+        };
 
   return (
     <div className="bf-stack">
       <PageHeader
-        eyebrow={locale === "de" ? "Freigabe-Arbeitsbereich" : "Approver workspace"}
-        title={locale === "de" ? "Freigabe-Postfach" : "Approval inbox"}
-        description={
-          locale === "de"
-            ? "Die Warteschlange sichten, in Falldetails springen und Entscheidungen erst mit vollem Kontext treffen."
-            : "Triage the queue, jump into case detail, and only commit a decision when you have the context you need."
-        }
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
 
       <section className="flex flex-wrap gap-0">
@@ -74,7 +98,7 @@ export default function InboxClient({
               className={`bf-tab ${active ? "bf-tab-active" : ""}`}
               style={{ marginLeft: active ? 0 : -1 }}
             >
-              {tab.label}
+              {copy.tabs[tab.id]}
             </Link>
           );
         })}
@@ -82,13 +106,9 @@ export default function InboxClient({
 
       {tasks.length === 0 ? (
         <EmptyState
-          eyebrow={locale === "de" ? "Warteschlange leer" : "Queue clear"}
-          title={locale === "de" ? "Keine Aufgaben in dieser Ansicht" : "No tasks in this view"}
-          description={
-            locale === "de"
-              ? "Neue Freigaben erscheinen hier, sobald Workflow-Stufen auf Sie aufloesen."
-              : "New approval work will appear here as soon as workflow stages resolve to you."
-          }
+          eyebrow={copy.emptyEyebrow}
+          title={copy.emptyTitle}
+          description={copy.emptyDescription}
         />
       ) : (
         <section className="grid gap-4 xl:grid-cols-2">
@@ -96,10 +116,10 @@ export default function InboxClient({
             <article key={task.id} className="bf-list-card">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="bf-eyebrow">{view === "completed" ? "Completed review" : "Approval task"}</p>
+                  <p className="bf-eyebrow">{view === "completed" ? copy.completedReview : copy.approvalTask}</p>
                   <h2 className="mt-3 text-[30px] font-extrabold leading-none">{task.submission.form.title}</h2>
                   <p className="mt-2 text-sm text-[var(--muted-strong)]">
-                    {locale === "de" ? "Einreichung" : "Submission"} {task.submission.id}
+                    {copy.submission} {task.submission.id}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -113,18 +133,18 @@ export default function InboxClient({
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="bf-panel-muted px-4 py-3">
-                  <p className="bf-kicker">{locale === "de" ? "Erstellt" : "Created"}</p>
+                  <p className="bf-kicker">{copy.created}</p>
                   <p className="mt-2 text-sm">{formatDateTime(task.createdAt, locale)}</p>
                 </div>
                 <div className="bf-panel-muted px-4 py-3">
-                  <p className="bf-kicker">{locale === "de" ? "Faellig" : "Due"}</p>
+                  <p className="bf-kicker">{copy.due}</p>
                   <p className="mt-2 text-sm">{formatDateTime(task.dueAt, locale)}</p>
                 </div>
               </div>
 
               <div className="mt-5">
                 <Link href={localizePath(locale, `/submissions/${task.submissionId}`)} className="bf-btn bf-btn-primary">
-                  {locale === "de" ? "Einreichung oeffnen" : "Open submission"}
+                  {copy.openSubmission}
                 </Link>
               </div>
             </article>

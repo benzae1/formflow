@@ -39,7 +39,7 @@ describe("form translations", () => {
           type: "select",
           key: "role",
           label: "Rolle",
-          description: "Bitte waehlen",
+          description: "Bitte wählen",
           data: {
             values: [
               { label: "Leitung", value: "lead" },
@@ -52,7 +52,7 @@ describe("form translations", () => {
 
     const entries = collectSchemaTranslationEntries(schema);
     expect(entries.map((entry) => entry.value)).toEqual(
-      expect.arrayContaining(["Rolle", "Bitte waehlen", "Leitung", "Team"]),
+      expect.arrayContaining(["Rolle", "Bitte wählen", "Leitung", "Team"]),
     );
 
     const translated = applySchemaTranslations(schema, {

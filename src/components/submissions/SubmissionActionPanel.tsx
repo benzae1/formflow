@@ -83,13 +83,13 @@ export function SubmissionActionPanel({
 
   return (
     <section className="bf-panel p-6">
-      <p className="bf-eyebrow">{locale === "de" ? "Naechster Schritt" : "Next action"}</p>
+      <p className="bf-eyebrow">{locale === "de" ? "Nächster Schritt" : "Next action"}</p>
 
       {canEdit ? (
         <div className="mt-4 space-y-3">
-          <p className="text-sm leading-7 text-[var(--muted-strong)]">
-            {locale === "de"
-              ? "Diese Einreichung kann noch bearbeitet und erneut in den Workflow geschickt werden."
+            <p className="text-sm leading-7 text-[var(--muted-strong)]">
+              {locale === "de"
+                ? "Diese Einreichung kann noch bearbeitet und erneut in den Workflow geschickt werden."
               : "This submission can still be edited and sent back into the workflow."}
           </p>
           <Link href={`${localizePath(locale, `/forms/${formSlug}`)}?submissionId=${submissionId}`} className="bf-btn bf-btn-primary">
@@ -119,7 +119,7 @@ export function SubmissionActionPanel({
                   className="bf-textarea mt-3"
                   placeholder={
                     locale === "de"
-                      ? "Kontext fuer Audit-Log oder Einreichende ergaenzen."
+                      ? "Kontext für Audit-Log oder Einreichende ergänzen."
                       : "Add context for the audit trail or the submitter."
                   }
                 />
@@ -134,7 +134,7 @@ export function SubmissionActionPanel({
                       ? "Wird gespeichert..."
                       : "Recording..."
                     : locale === "de"
-                      ? "Entscheidung bestaetigen"
+                      ? "Entscheidung bestätigen"
                       : "Confirm decision"}
                 </button>
                 <button type="button" onClick={() => setDecision(null)} className="bf-btn bf-btn-segment">
@@ -146,7 +146,7 @@ export function SubmissionActionPanel({
             <div className="space-y-3">
               <p className="text-sm leading-7 text-[var(--muted-strong)]">
                 {locale === "de"
-                  ? "Fuer diese Einreichung ist Ihnen eine ausstehende Freigabeaufgabe zugewiesen."
+                  ? "Für diese Einreichung ist Ihnen eine ausstehende Freigabeaufgabe zugewiesen."
                   : "A pending approval task is assigned to you for this submission."}
               </p>
               <div className="bf-action-row">

@@ -268,7 +268,7 @@ export default function SignInClient({
         <header className="bu-hdr">
           <div className="bu-hdr-brand">
             <div className="bu-hdr-logo">
-              Bauhaus-Universitaet
+              Bauhaus-Universität
               <br />
               Weimar
             </div>
@@ -345,7 +345,7 @@ export default function SignInClient({
         </main>
 
         <footer className="bu-ftr">
-          <span>Bauhaus-Universitaet Weimar | {dictionary.common.brandSubtitle}</span>
+          <span>Bauhaus-Universität Weimar | {dictionary.common.brandSubtitle}</span>
           <span className="spacer" />
           <a href="#">{dictionary.auth.imprint}</a>
           <a href="#">{dictionary.auth.privacy}</a>

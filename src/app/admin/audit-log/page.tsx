@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getLocaleContextOrDefault } from "@/lib/i18n/server";
+import { localizePath } from "@/lib/i18n/routing";
 import { requirePageRole } from "@/lib/page-auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatDateTime } from "@/lib/ui";
@@ -15,10 +17,13 @@ type SearchParams = Promise<{
 
 export default async function AuditLogPage({
   searchParams,
+  params,
 }: {
   searchParams: SearchParams;
+  params?: Promise<{ lang?: string }>;
 }) {
-  await requirePageRole(["admin", "compliance"]);
+  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  await requirePageRole(["admin", "compliance"], locale);
   const filters = await searchParams;
 
   const where = {
@@ -47,26 +52,40 @@ export default async function AuditLogPage({
   return (
     <div className="bf-stack">
       <PageHeader
-        eyebrow="Audit trail"
-        title="Sensitive access and control-plane events"
-        description="Compliance and admin can filter the latest audit entries, inspect actor-resource combinations, and export the current slice."
+        eyebrow={locale === "de" ? "Audit-Spur" : "Audit trail"}
+        title={locale === "de" ? "Sensible Zugriffe und Steuerungsereignisse" : "Sensitive access and control-plane events"}
+        description={
+          locale === "de"
+            ? "Compliance und Administration können aktuelle Audit-Einträge filtern, Akteur-Ressourcen-Kombinationen prüfen und den aktuellen Ausschnitt exportieren."
+            : "Compliance and admin can filter the latest audit entries, inspect actor-resource combinations, and export the current slice."
+        }
       >
         <Link href={`/api/audit-log?${exportParams.toString()}`} className="bf-btn bf-btn-primary">
-          Export CSV
+          {locale === "de" ? "CSV exportieren" : "Export CSV"}
         </Link>
       </PageHeader>
 
       <form className="bf-filter-bar">
-        <input name="action" defaultValue={filters.action ?? ""} placeholder="Action filter" className="bf-input" />
+        <input
+          name="action"
+          defaultValue={filters.action ?? ""}
+          placeholder={locale === "de" ? "Aktion filtern" : "Action filter"}
+          className="bf-input"
+        />
         <input
           name="resourceType"
           defaultValue={filters.resourceType ?? ""}
-          placeholder="Resource type"
+          placeholder={locale === "de" ? "Ressourcentyp" : "Resource type"}
           className="bf-input"
         />
-        <input name="actorId" defaultValue={filters.actorId ?? ""} placeholder="Actor ID" className="bf-input" />
+        <input
+          name="actorId"
+          defaultValue={filters.actorId ?? ""}
+          placeholder={locale === "de" ? "Akteur-ID" : "Actor ID"}
+          className="bf-input"
+        />
         <button type="submit" className="bf-btn bf-btn-primary">
-          Filter
+          {locale === "de" ? "Filtern" : "Filter"}
         </button>
       </form>
 
@@ -78,7 +97,8 @@ export default async function AuditLogPage({
                 <p className="bf-eyebrow">{log.resourceType}</p>
                 <h2 className="mt-3 text-[28px] font-extrabold leading-none">{log.action}</h2>
                 <p className="mt-2 text-sm leading-7 text-[var(--muted-strong)]">
-                  Resource {log.resourceId} | Actor {log.actorId ?? "system"} | {formatDateTime(log.createdAt)}
+                  {locale === "de" ? "Ressource" : "Resource"} {log.resourceId} | {locale === "de" ? "Akteur" : "Actor"}{" "}
+                  {log.actorId ?? (locale === "de" ? "System" : "system")} | {formatDateTime(log.createdAt, locale)}
                 </p>
               </div>
               {log.action === "sensitive.accessed" ? (
@@ -86,7 +106,7 @@ export default async function AuditLogPage({
                   className="bf-pill"
                   style={{ borderColor: "var(--haus-red)", background: "var(--accent-soft)" }}
                 >
-                  Sensitive
+                  {locale === "de" ? "Sensibel" : "Sensitive"}
                 </span>
               ) : null}
             </div>
@@ -97,7 +117,7 @@ export default async function AuditLogPage({
       {nextCursor ? (
         <div className="flex justify-center">
           <Link
-            href={`/admin/audit-log?${new URLSearchParams({
+            href={`${localizePath(locale, "/admin/audit-log")}?${new URLSearchParams({
               ...(filters.action ? { action: filters.action } : {}),
               ...(filters.resourceType ? { resourceType: filters.resourceType } : {}),
               ...(filters.actorId ? { actorId: filters.actorId } : {}),
@@ -105,7 +125,7 @@ export default async function AuditLogPage({
             }).toString()}`}
             className="bf-btn"
           >
-            Load next {PAGE_SIZE}
+            {locale === "de" ? `Nächste ${PAGE_SIZE} laden` : `Load next ${PAGE_SIZE}`}
           </Link>
         </div>
       ) : null}

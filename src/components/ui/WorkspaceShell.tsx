@@ -60,7 +60,7 @@ export function WorkspaceShell({
             alignItems: "center",
           }}
         >
-          Bauhaus-Universitaet
+          Bauhaus-Universität
           <br />
           Weimar
         </div>
@@ -74,9 +74,9 @@ export function WorkspaceShell({
             borderRight: "1px solid var(--line)",
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700 }}>Bauhaus Forms</span>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>{dictionary.common.appName}</span>
           <span style={{ fontSize: 11, color: "var(--muted-strong)", marginTop: 1 }}>
-            University Communications
+            {dictionary.common.brandSubtitle}
           </span>
         </div>
 
@@ -92,7 +92,7 @@ export function WorkspaceShell({
               minWidth: 180,
             }}
           >
-            <span className="bf-kicker">Signed in</span>
+            <span className="bf-kicker">{dictionary.common.signedIn}</span>
             <span style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>
               {user.name ?? user.email}
             </span>

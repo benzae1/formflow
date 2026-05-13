@@ -65,9 +65,9 @@ export default async function LocalizedSubmissionDetailPage({
   );
   const canAct = user.roles.includes("admin") || user.roles.includes("approver");
   const workflowSummary = submission.workflowDefinition
-    ? summarizeWorkflow(submission.workflowDefinition as never)
+    ? summarizeWorkflow(submission.workflowDefinition as never, locale)
     : submission.form.workflow
-      ? summarizeWorkflow(submission.form.workflow.definition as never)
+      ? summarizeWorkflow(submission.form.workflow.definition as never, locale)
       : [];
 
   return (
@@ -170,7 +170,7 @@ export default async function LocalizedSubmissionDetailPage({
                   <article key={task.id} className="bf-panel-muted px-4 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="bf-kicker">Stage {task.stageIndex + 1}</p>
+                        <p className="bf-kicker">{locale === "de" ? "Stufe" : "Stage"} {task.stageIndex + 1}</p>
                         <p className="mt-2 text-sm font-semibold">{task.assignedTo.name ?? task.assignedTo.email}</p>
                         <p className="mt-1 text-sm text-[var(--muted-strong)]">
                           {dictionary.submissions.due} {formatDateTime(task.dueAt, locale)}

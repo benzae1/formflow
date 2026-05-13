@@ -1,10 +1,16 @@
 import { PageHeader } from "@/components/ui/PageHeader";
 import { db } from "@/lib/db";
+import { getLocaleContextOrDefault } from "@/lib/i18n/server";
 import { requirePageRole } from "@/lib/page-auth";
 import AdminUsersClient from "./AdminUsersClient";
 
-export default async function AdminUsersPage() {
-  await requirePageRole(["admin"]);
+export default async function AdminUsersPage({
+  params,
+}: {
+  params?: Promise<{ lang?: string }>;
+}) {
+  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  await requirePageRole(["admin"], locale);
 
   const [users, roles, delegations] = await Promise.all([
     db.user.findMany({
@@ -55,9 +61,13 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Directory"
-        title="Users and routing context"
-        description="Review who is active, adjust role coverage, and set delegation windows so routing stays reliable."
+        eyebrow={locale === "de" ? "Verzeichnis" : "Directory"}
+        title={locale === "de" ? "Benutzer und Routing-Kontext" : "Users and routing context"}
+        description={
+          locale === "de"
+            ? "Prüfen Sie aktive Konten, passen Sie Rollenabdeckung an und legen Sie Vertretungszeiträume fest, damit das Routing verlässlich bleibt."
+            : "Review who is active, adjust role coverage, and set delegation windows so routing stays reliable."
+        }
       />
 
       <AdminUsersClient
@@ -83,6 +93,7 @@ export default async function AdminUsersPage() {
           endsAt: delegation.endsAt.toISOString(),
         }))}
         delegateOptions={delegateOptions}
+        locale={locale}
       />
     </div>
   );

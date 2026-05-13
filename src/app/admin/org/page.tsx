@@ -1,12 +1,18 @@
 import { db } from "@/lib/db";
+import { getLocaleContextOrDefault } from "@/lib/i18n/server";
 import { requirePageRole } from "@/lib/page-auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import { formatDateTime } from "@/lib/ui";
 import OrgSyncButton from "./OrgSyncButton";
 
-export default async function AdminOrgPage() {
-  await requirePageRole(["admin"]);
+export default async function AdminOrgPage({
+  params,
+}: {
+  params?: Promise<{ lang?: string }>;
+}) {
+  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  await requirePageRole(["admin"], locale);
 
   const [units, users] = await Promise.all([
     db.orgUnit.findMany({
@@ -34,18 +40,31 @@ export default async function AdminOrgPage() {
   return (
     <div className="bf-stack">
       <PageHeader
-        eyebrow="Organization sync"
-        title="Directory and routing cache"
-        description="Inspect the current org graph, verify manager and head resolution, and refresh development data from the adapter."
+        eyebrow={locale === "de" ? "Organisationsabgleich" : "Organization sync"}
+        title={locale === "de" ? "Verzeichnis und Routing-Cache" : "Directory and routing cache"}
+        description={
+          locale === "de"
+            ? "Prüfen Sie den aktuellen Organisationsgraphen, kontrollieren Sie Leitungsauflösungen und aktualisieren Sie Entwicklungsdaten über den Adapter."
+            : "Inspect the current org graph, verify manager and head resolution, and refresh development data from the adapter."
+        }
       >
-        <OrgSyncButton />
+        <OrgSyncButton locale={locale} />
       </PageHeader>
 
       <section className="bf-metrics md:grid-cols-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
         {[
-          ["Synced users", String(users.length)],
-          ["Deactivated users", String(users.filter((user) => user.deactivatedAt).length)],
-          ["Most recent sync", formatDateTime(users[0]?.updatedAt ?? null)],
+          [
+            locale === "de" ? "Synchronisierte Benutzer" : "Synced users",
+            String(users.length),
+          ],
+          [
+            locale === "de" ? "Deaktivierte Benutzer" : "Deactivated users",
+            String(users.filter((user) => user.deactivatedAt).length),
+          ],
+          [
+            locale === "de" ? "Letzte Synchronisation" : "Most recent sync",
+            formatDateTime(users[0]?.updatedAt ?? null, locale),
+          ],
         ].map(([label, value], index) => (
           <article key={label} className="bf-metric-card">
             <div className="flex items-start justify-between gap-4">
@@ -79,13 +98,13 @@ export default async function AdminOrgPage() {
             <div className="mt-4 bf-list">
               {unit.memberships.map((membership) => (
                 <div key={membership.id} className="bf-panel-muted px-4 py-3">
-                  <p className="text-sm font-semibold">{membership.user.name ?? membership.user.email}</p>
-                  <p className="mt-1 text-sm text-[var(--muted-strong)]">
-                    {membership.roleInUnit ?? "member"}
-                    {membership.isManager ? " | manager" : ""}
-                  </p>
-                </div>
-              ))}
+                <p className="text-sm font-semibold">{membership.user.name ?? membership.user.email}</p>
+                <p className="mt-1 text-sm text-[var(--muted-strong)]">
+                    {membership.roleInUnit ?? (locale === "de" ? "Mitglied" : "member")}
+                    {membership.isManager ? ` | ${locale === "de" ? "Leitung" : "manager"}` : ""}
+                </p>
+              </div>
+            ))}
             </div>
           </article>
         ))}
