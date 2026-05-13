@@ -31,7 +31,7 @@ Before production, prioritize:
 2. Remove lint warnings and make Prisma generation impossible to forget.
 3. Harden auth with rate limiting, account lockout/monitoring, and explicit session revocation strategy.
 4. Tighten Form.io schema and submission-data validation, especially nested sensitive fields.
-5. Replace the raw workflow JSON editor with constrained controls or stronger workflow validation/test coverage.
+5. Replace the raw workflow JSON editor with a polished workflow designer, dynamic routing controls, and workflow/form visibility validation.
 6. Add Playwright smoke e2e to CI.
 7. Fix LDAP documentation/config drift and decide whether current LDAP org mapping is sufficient.
 8. Add production operations pieces: backups, health checks, metrics, log routing, secret management, and non-dev Docker settings.
@@ -218,17 +218,26 @@ Evidence:
 - `src/app/admin/workflows/WorkflowsManagerClient.tsx:205` exposes workflow definition as a raw JSON `<textarea>`.
 - Runtime supports advanced stage types, but the UI only summarizes parsed JSON and does not guide safe construction (`src/app/admin/workflows/WorkflowsManagerClient.tsx:93-101`, `:213-231`).
 - The workflow schema accepts `approval`, `notification`, `trigger-form`, and `condition` stages (`src/lib/validation/workflows.ts:30`).
+- Workflow role targets are still statically limited to `admin`, `approver`, and `compliance` in `src/domain/workflow.ts:2` and `src/lib/validation/workflows.ts:6-8`, even though the database role model can store arbitrary business roles.
+- Published forms are listed and opened based mainly on publication status, not explicit audience rules (`src/app/submissions/page.tsx:54-61`, `src/app/forms/[slug]/page.tsx:29-33`, `src/app/api/submissions/route.ts:96-109`).
 
 Impact:
 
 - A malformed but schema-valid workflow can be hard for admins to understand or debug.
 - Operational users have to author routing logic in JSON, which conflicts with the low-code product goal.
+- The current authoring experience cannot comfortably model real institutional routing such as finance, management, department heads, submitter manager, or org-unit teams without hand-edited JSON.
+- Forms cannot yet be restricted to specific roles or org units, so publication is too broad for role-specific internal processes.
 
 Fix:
 
-- Build structured controls for stage type, assign-to, SLA, conditions, and branch targets.
-- Keep the JSON view as an advanced/debug panel.
-- Add a workflow "dry run" validator that resolves sample routing and reports unreachable/broken stages.
+- Build a polished workflow designer UI, not just a safer JSON editor. It should provide stage cards, drag/reorder controls, explicit stage types, required-field states, inline validation, and a readable route map/timeline preview.
+- Add structured controls for approval, notification, condition, trigger-form, SLA/reminder, branch targets, return-to-submitter, and close/go-to outcomes.
+- Add workflow stage routing controls that select from live users, DB roles, org units/groups, and built-in org resolvers such as submitter manager, skip-level manager, and department head.
+- Replace hard-coded workflow role values with dynamic role validation against the `Role` table while preserving app-level system roles for permissions.
+- Add support for approver-stage fields, for example finance-only data such as cost center or bank account, stored with the approval task rather than mutating the submitter's original answers.
+- Add form visibility/audience settings for roles and org units, then enforce those settings in published-form listings, form detail routes, and submission create/update APIs.
+- Keep the JSON view as an advanced/debug panel with round-trip validation against the structured editor.
+- Add a workflow "dry run" validator that resolves sample routing, detects empty assignee sets, warns on missing manager/head mappings, and reports unreachable/broken stages before publishing.
 
 ### 10. Workflow "runnable" checks are shallow
 
@@ -249,6 +258,7 @@ Fix:
 
 - Validate that published workflows contain at least one terminal/executable route and can resolve all static role/user/group targets.
 - For org targets, provide warnings when the current org graph has no matching manager/head.
+- Validate that form audience settings resolve to at least one active role/org-unit population before publishing, or show an explicit warning when an audience is intentionally empty.
 - Add tests for unresolvable workflow targets and publishing behavior.
 
 ### 11. LDAP documentation conflicts with actual base-DN parsing
@@ -406,6 +416,8 @@ Add coverage for:
 - Submission-data validation rejecting unknown keys and wrong types.
 - Workflow runtime behavior for `notification`, `condition`, `trigger-form`, `goTo`, and `return-to-submitter`.
 - Publishing forms with unresolvable role/org/group targets.
+- Workflow stage routing to dynamic DB roles, org units, managers, department heads, and direct users.
+- Form visibility/audience rules across form listing, form detail, submission create, and submission update routes.
 - LDAP base-DN parsing and LDAP org-sync normalization.
 - CSRF/mutation guard edge cases.
 - Auth rate limiting and failed-login audit behavior.
@@ -419,7 +431,7 @@ Add coverage for:
 - Hardened auth: rate limits, failed-login auditing, token/session revocation.
 - Server-side Form.io schema allowlist and schema-aware submission validation.
 - Recursive encryption/redaction for nested sensitive fields.
-- Structured workflow editor or strong workflow dry-run validation.
+- Polished workflow designer with dynamic routing, approver-stage fields, form audience controls, and dry-run validation.
 - LDAP config/docs aligned and tested.
 - Demo seed guarded from production.
 - Production deployment template with pinned images, separate secrets, healthchecks, backups, and monitoring.
