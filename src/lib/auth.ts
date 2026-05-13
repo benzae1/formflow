@@ -81,10 +81,6 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        if (process.env.NODE_ENV === "production") {
-          return null;
-        }
-
         if (!credentials?.uid || !credentials.password) return null;
 
         const user = await db.user.findFirst({
