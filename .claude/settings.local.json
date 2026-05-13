@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx.cmd prisma *)",
+      "Bash(docker compose *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5432)",
+      "Bash(docker exec *)",
+      "Bash(npm.cmd run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm --version)",
+      "Bash(git commit *)",
+      "Bash(npx prisma *)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

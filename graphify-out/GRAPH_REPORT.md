@@ -1,12 +1,12 @@
-# Graph Report - C:\Users\Carlotta\Documents\antonsSachen\formflow  (2026-05-11)
+# Graph Report - C:\Users\Carlotta\Documents\antonsSachen\formflow  (2026-05-13)
 
 ## Corpus Check
-- 111 files · ~39,693 words
+- 159 files · ~65,223 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 287 nodes · 319 edges · 76 communities detected
-- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 87 edges (avg confidence: 0.8)
+- 437 nodes · 580 edges · 93 communities detected
+- Extraction: 68% EXTRACTED · 32% INFERRED · 0% AMBIGUOUS · INFERRED: 186 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -86,30 +86,47 @@
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `POST()` - 19 edges
-2. `GET()` - 17 edges
-3. `PATCH()` - 9 edges
-4. `authenticateLdapUser()` - 8 edges
-5. `approvalWorkflow()` - 8 edges
-6. `getCurrentUser()` - 7 edges
-7. `entryToProfile()` - 7 edges
-8. `getRolesForEntry()` - 7 edges
-9. `writeAuditLog()` - 6 edges
-10. `filterSubmissionDataForUser()` - 6 edges
+1. `POST()` - 32 edges
+2. `GET()` - 23 edges
+3. `localizePath()` - 19 edges
+4. `PATCH()` - 15 edges
+5. `getCurrentUser()` - 13 edges
+6. `getLocaleContext()` - 13 edges
+7. `approvalWorkflow()` - 13 edges
+8. `sendNotification()` - 12 edges
+9. `requirePageRole()` - 11 edges
+10. `getDictionary()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `AdminLayout()` --calls--> `getCurrentUser()`  [INFERRED]
-  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\layout.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\auth.ts
-- `AuditLogPage()` --calls--> `requirePageRole()`  [INFERRED]
-  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\audit-log\page.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\page-auth.ts
-- `AdminFormsPage()` --calls--> `requirePageRole()`  [INFERRED]
-  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\forms\page.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\page-auth.ts
+- `proxy()` --calls--> `isLocale()`  [INFERRED]
+  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\proxy.ts → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\i18n\config.ts
+- `getFailedTemporalWorkflowCount()` --calls--> `getTemporalClient()`  [INFERRED]
+  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\page.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\temporal.ts
+- `createForm()` --calls--> `localizePath()`  [INFERRED]
+  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\forms\FormsManagerClient.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\i18n\routing.ts
+- `AdminUsersPage()` --calls--> `requirePageRole()`  [INFERRED]
+  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\users\page.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\page-auth.ts
 - `AdminWorkflowsPage()` --calls--> `requirePageRole()`  [INFERRED]
   C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\admin\workflows\page.tsx → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\page-auth.ts
-- `getRolesForEntry()` --calls--> `GET()`  [INFERRED]
-  C:\Users\Carlotta\Documents\antonsSachen\formflow\src\lib\ldap.ts → C:\Users\Carlotta\Documents\antonsSachen\formflow\src\app\api\workflows\[id]\route.ts
 
 ## Hyperedges (group relationships)
 - **Repository Onboarding Documents** — agents_md, claude_md, readme_md [INFERRED 0.88]
@@ -120,128 +137,128 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.08
-Nodes (16): normalizeAuditValue(), writeAuditLog(), ApiError, apiErrorResponse(), request(), syncOrg(), requireRole(), requireUser() (+8 more)
+Cohesion: 0.04
+Nodes (42): getCurrentUser(), getDefaultRouteForRoles(), getDefaultRoutePathForRoles(), getSession(), isLocale(), getDictionary(), createForm(), AdminLayout() (+34 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.1
-Nodes (13): getCurrentUser(), getDefaultRouteForRoles(), getSession(), AdminLayout(), InboxLayout(), SubmissionsLayout(), AdminFormsPage(), AdminWorkflowsPage() (+5 more)
+Cohesion: 0.07
+Nodes (24): requirePendingApprovalTask(), normalizeAuditValue(), writeAuditLog(), ApiError, apiErrorResponse(), request(), requireRole(), requireUser() (+16 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.17
-Nodes (15): createFormFixture(), createSensitiveFormFixture(), createWorkflowFixture(), resetDatabase(), seedBaseUsers(), uniqueName(), uniqueSlug(), waitForApprovalTask() (+7 more)
+Cohesion: 0.13
+Nodes (19): maybeDecryptValue(), decryptValue(), encryptValue(), getActiveKeyId(), getKey(), parseKeyMap(), collectFieldRules(), filterSubmissionDataForUser() (+11 more)
 
 ### Community 3 - "Community 3"
+Cohesion: 0.16
+Nodes (17): connectRoles(), createFormFixture(), createSensitiveFormFixture(), createWorkflowFixture(), ensureSystemRoles(), resetDatabase(), seedBaseUsers(), uniqueName() (+9 more)
+
+### Community 4 - "Community 4"
+Cohesion: 0.17
+Nodes (19): cancelRemainingTasks(), completeTask(), createApprovalTasks(), createChildSubmission(), decryptSubmissionData(), getSubmissionWorkflowContext(), markSubmissionInReview(), markTaskOverdueIfPending() (+11 more)
+
+### Community 5 - "Community 5"
 Cohesion: 0.24
 Nodes (19): authenticateLdapUser(), bindForSearch(), createClient(), entryToProfile(), findUserEntry(), getAttribute(), getBaseDns(), getDisplayName() (+11 more)
 
-### Community 4 - "Community 4"
-Cohesion: 0.16
-Nodes (15): cancelRemainingTasks(), completeTask(), createApprovalTasks(), createChildSubmission(), getWorkflowForSubmission(), markSubmissionInReview(), markTaskOverdueIfPending(), sendReminderIfTaskPending() (+7 more)
-
-### Community 5 - "Community 5"
+### Community 6 - "Community 6"
 Cohesion: 0.19
 Nodes (12): Deprecation Notices, Local Development Server, FormFlow, Getting Started, Local Environment Setup, Next Internal Docs Guide, Next.js Breaking Changes, Read Project-Specific Next.js Docs Before Coding (+4 more)
 
-### Community 6 - "Community 6"
-Cohesion: 0.24
-Nodes (9): decryptValue(), encryptValue(), getKey(), collectFieldRules(), filterSubmissionDataForUser(), maybeDecrypt(), createSubmissionFixture(), encryptSensitiveSubmissionData() (+1 more)
-
 ### Community 7 - "Community 7"
-Cohesion: 0.25
-Nodes (3): formatDateTime(), getFailedTemporalWorkflowCount(), getTemporalClient()
+Cohesion: 0.24
+Nodes (12): generateDraftFormTranslation(), isDraftTranslationAvailable(), translateTexts(), applySchemaTranslations(), collectSchemaTranslationEntries(), getLocaleTranslation(), getValueAtPath(), parseFormTranslations() (+4 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.29
-Nodes (0): 
+Cohesion: 0.36
+Nodes (11): bindForSearch(), fetchDirectory(), getAttribute(), getDisplayName(), getFirst(), getValues(), normalizeDirectory(), safeUnbind() (+3 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.5
-Nodes (2): emptyDefinition(), newWorkflow()
+Cohesion: 0.24
+Nodes (8): createLdapOrgAdapter(), resolveAssignees(), resolveOrgTarget(), resolveSingleTarget(), runScheduledOrgSync(), flagTasksForDeactivatedUsers(), syncOrg(), orgSyncWorkflow()
 
 ### Community 10 - "Community 10"
-Cohesion: 0.5
-Nodes (1): Loading()
+Cohesion: 0.25
+Nodes (2): getStatusLabel(), titleCaseStatus()
 
 ### Community 11 - "Community 11"
-Cohesion: 0.67
-Nodes (2): collectLabels(), SubmissionFormView()
+Cohesion: 0.6
+Nodes (5): decrypt(), encrypt(), main(), requireHexKey(), rotateField()
 
 ### Community 12 - "Community 12"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.4
+Nodes (3): getFailedTemporalWorkflowCount(), createTemporalClient(), getTemporalClient()
 
 ### Community 13 - "Community 13"
-Cohesion: 0.5
-Nodes (4): Document File Icon, Folded-Corner Page Shape, Generic Document or Attachment Affordance, Text Lines Indicator
+Cohesion: 0.33
+Nodes (0): 
 
 ### Community 14 - "Community 14"
 Cohesion: 0.5
-Nodes (3): Minimalist Vector Logo, Vercel Brand Mark, White Triangular Glyph
+Nodes (2): emptyDefinition(), newWorkflow()
 
 ### Community 15 - "Community 15"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 0.5
+Nodes (1): Loading()
 
 ### Community 16 - "Community 16"
-Cohesion: 0.67
+Cohesion: 0.5
 Nodes (0): 
 
 ### Community 17 - "Community 17"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (2): collectLabels(), SubmissionFormView()
 
 ### Community 18 - "Community 18"
-Cohesion: 1.0
-Nodes (3): Earth Globe, Geographic Grid, Globe Icon
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 19 - "Community 19"
-Cohesion: 0.67
-Nodes (3): window.svg asset, Browser Window Icon, Window Header Controls
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 20 - "Community 20"
-Cohesion: 1.0
-Nodes (0): 
+Cohesion: 0.5
+Nodes (4): Document File Icon, Folded-Corner Page Shape, Generic Document or Attachment Affordance, Text Lines Indicator
 
 ### Community 21 - "Community 21"
-Cohesion: 1.0
-Nodes (0): 
+Cohesion: 0.5
+Nodes (3): Minimalist Vector Logo, Vercel Brand Mark, White Triangular Glyph
 
 ### Community 22 - "Community 22"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): connectRoles(), main()
 
 ### Community 23 - "Community 23"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): saveDraft(), submit()
 
 ### Community 24 - "Community 24"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): FormBuilder(), serializeSchema()
 
 ### Community 25 - "Community 25"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): StatusBadge(), toneForStatus()
 
 ### Community 26 - "Community 26"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 27 - "Community 27"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): ensureOrgSyncSchedule(), run()
 
 ### Community 28 - "Community 28"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 29 - "Community 29"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (3): Earth Globe, Geographic Grid, Globe Icon
 
 ### Community 30 - "Community 30"
-Cohesion: 1.0
-Nodes (0): 
+Cohesion: 0.67
+Nodes (3): window.svg asset, Browser Window Icon, Window Header Controls
 
 ### Community 31 - "Community 31"
 Cohesion: 1.0
@@ -293,11 +310,11 @@ Nodes (0):
 
 ### Community 43 - "Community 43"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (2): Next.js Brand Identity, Next.js Wordmark Logo
 
 ### Community 44 - "Community 44"
 Cohesion: 1.0
-Nodes (2): Next.js Brand Identity, Next.js Wordmark Logo
+Nodes (0): 
 
 ### Community 45 - "Community 45"
 Cohesion: 1.0
@@ -423,74 +440,120 @@ Nodes (0):
 Cohesion: 1.0
 Nodes (0): 
 
+### Community 76 - "Community 76"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 77 - "Community 77"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 78 - "Community 78"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 79 - "Community 79"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 80 - "Community 80"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 81 - "Community 81"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 82 - "Community 82"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 83 - "Community 83"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 84 - "Community 84"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 85 - "Community 85"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 86 - "Community 86"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 87 - "Community 87"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 88 - "Community 88"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 89 - "Community 89"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 90 - "Community 90"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 91 - "Community 91"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 92 - "Community 92"
+Cohesion: 1.0
+Nodes (0): 
+
 ## Knowledge Gaps
 - **12 isolated node(s):** `prisma.config.ts`, `Local Environment Setup`, `prisma/schema.prisma`, `Local Development Server`, `Folded-Corner Page Shape` (+7 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 20`** (2 nodes): `seed.ts`, `main()`
+- **Thin community `Community 31`** (2 nodes): `OrgSyncButton.tsx`, `OrgSyncButton()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 21`** (2 nodes): `layout.tsx`, `RootLayout()`
+- **Thin community `Community 32`** (2 nodes): `InboxClient.tsx`, `InboxClient()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 22`** (2 nodes): `save()`, `BuilderClient.tsx`
+- **Thin community `Community 33`** (2 nodes): `layout.tsx`, `SignInLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 23`** (2 nodes): `OrgSyncButton.tsx`, `OrgSyncButton()`
+- **Thin community `Community 34`** (2 nodes): `index.tsx`, `Inbox()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 24`** (2 nodes): `page.tsx`, `existingSubmission()`
+- **Thin community `Community 35`** (2 nodes): `useNotifications.ts`, `useNotifications()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 25`** (2 nodes): `SubmitFormClient.tsx`, `submit()`
+- **Thin community `Community 36`** (2 nodes): `index.tsx`, `Submissions()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 26`** (2 nodes): `sign-in-client.tsx`, `handleSubmit()`
+- **Thin community `Community 37`** (2 nodes): `EmptyState.tsx`, `EmptyState()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 27`** (2 nodes): `FormBuilder.tsx`, `FormBuilder()`
+- **Thin community `Community 38`** (2 nodes): `index.tsx`, `UI()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 28`** (2 nodes): `FormRenderer.tsx`, `FormRenderer()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 29`** (2 nodes): `index.tsx`, `Inbox()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 30`** (2 nodes): `useNotifications.ts`, `useNotifications()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 31`** (2 nodes): `index.tsx`, `Submissions()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 32`** (2 nodes): `SubmissionActionPanel.tsx`, `submitDecision()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 33`** (2 nodes): `EmptyState.tsx`, `EmptyState()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 34`** (2 nodes): `index.tsx`, `UI()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (2 nodes): `NotificationPanel.tsx`, `openNotification()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (2 nodes): `PageHeader.tsx`, `PageHeader()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 37`** (2 nodes): `SignOutButton.tsx`, `SignOutButton()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 38`** (2 nodes): `db.ts`, `createPrismaClient()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 39`** (2 nodes): `navigation.ts`, `getWorkspaceNavigation()`
+- **Thin community `Community 39`** (2 nodes): `db.ts`, `createPrismaClient()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 40`** (2 nodes): `notifications.ts`, `createInAppNotification()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (2 nodes): `workflow-conditions.ts`, `evaluateCondition()`
+- **Thin community `Community 41`** (2 nodes): `submissions.route.test.ts`, `isDirectUserTarget()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 42`** (2 nodes): `worker.ts`, `run()`
+- **Thin community `Community 42`** (2 nodes): `response.ts`, `parseJson()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (2 nodes): `response.ts`, `parseJson()`
+- **Thin community `Community 43`** (2 nodes): `Next.js Brand Identity`, `Next.js Wordmark Logo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (2 nodes): `Next.js Brand Identity`, `Next.js Wordmark Logo`
+- **Thin community `Community 44`** (1 nodes): `eslint.config.mjs`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (1 nodes): `eslint.config.mjs`
+- **Thin community `Community 45`** (1 nodes): `next-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (1 nodes): `next-env.d.ts`
+- **Thin community `Community 46`** (1 nodes): `next.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (1 nodes): `next.config.ts`
+- **Thin community `Community 47`** (1 nodes): `playwright.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (1 nodes): `playwright.config.ts`
+- **Thin community `Community 48`** (1 nodes): `postcss.config.mjs`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 49`** (1 nodes): `postcss.config.mjs`
+- **Thin community `Community 49`** (1 nodes): `prisma.config.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (1 nodes): `prisma.config.js`
+- **Thin community `Community 50`** (1 nodes): `vitest.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (1 nodes): `vitest.config.ts`
+- **Thin community `Community 51`** (1 nodes): `prisma-postinstall.mjs`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 52`** (1 nodes): `page.tsx`
+- **Thin community `Community 52`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 53`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -500,59 +563,93 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 56`** (1 nodes): `route.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 57`** (1 nodes): `InboxClient.tsx`
+- **Thin community `Community 57`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 58`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 59`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 60`** (1 nodes): `index.tsx`
+- **Thin community `Community 60`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 61`** (1 nodes): `index.tsx`
+- **Thin community `Community 61`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 62`** (1 nodes): `WorkspaceShell.tsx`
+- **Thin community `Community 62`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 63`** (1 nodes): `org.ts`
+- **Thin community `Community 63`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 64`** (1 nodes): `roles.ts`
+- **Thin community `Community 64`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 65`** (1 nodes): `submissions.ts`
+- **Thin community `Community 65`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 66`** (1 nodes): `workflow.ts`
+- **Thin community `Community 66`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 67`** (1 nodes): `devOrgAdapter.ts`
+- **Thin community `Community 67`** (1 nodes): `index.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 68`** (1 nodes): `submission-encryption.ts`
+- **Thin community `Community 68`** (1 nodes): `FormRenderer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 69`** (1 nodes): `forms.ts`
+- **Thin community `Community 69`** (1 nodes): `index.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 70`** (1 nodes): `submissions.ts`
+- **Thin community `Community 70`** (1 nodes): `LanguageSwitcher.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 71`** (1 nodes): `workflows.ts`
+- **Thin community `Community 71`** (1 nodes): `Bauhaus.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 72`** (1 nodes): `client.ts`
+- **Thin community `Community 72`** (1 nodes): `PageHeader.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 73`** (1 nodes): `approval-routes.test.ts`
+- **Thin community `Community 73`** (1 nodes): `SidebarNav.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 74`** (1 nodes): `notification-activities.test.ts`
+- **Thin community `Community 74`** (1 nodes): `SignOutButton.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 75`** (1 nodes): `submissions.route.test.ts`
+- **Thin community `Community 75`** (1 nodes): `WorkspaceShell.tsx`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 76`** (1 nodes): `org.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 77`** (1 nodes): `roles.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 78`** (1 nodes): `submissions.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 79`** (1 nodes): `workflow.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 80`** (1 nodes): `devOrgAdapter.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 81`** (1 nodes): `logger.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 82`** (1 nodes): `mutation-headers.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 83`** (1 nodes): `submission-encryption.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 84`** (1 nodes): `forms.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 85`** (1 nodes): `submissions.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 86`** (1 nodes): `users.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 87`** (1 nodes): `workflows.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 88`** (1 nodes): `client.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 89`** (1 nodes): `approval-routes.test.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 90`** (1 nodes): `form-translations.test.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 91`** (1 nodes): `notification-activities.test.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 92`** (1 nodes): `user-management.route.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GET()` connect `Community 0` to `Community 2`, `Community 3`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
-- **Why does `POST()` connect `Community 0` to `Community 2`, `Community 6`, `Community 7`?**
-  _High betweenness centrality (0.067) - this node is a cross-community bridge._
-- **Why does `requireUser()` connect `Community 0` to `Community 1`?**
-  _High betweenness centrality (0.063) - this node is a cross-community bridge._
-- **Are the 11 inferred relationships involving `POST()` (e.g. with `requireRole()` and `writeAuditLog()`) actually correct?**
-  _`POST()` has 11 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 9 inferred relationships involving `GET()` (e.g. with `requireRole()` and `apiErrorResponse()`) actually correct?**
-  _`GET()` has 9 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 8 inferred relationships involving `PATCH()` (e.g. with `requireUser()` and `encryptSensitiveSubmissionData()`) actually correct?**
-  _`PATCH()` has 8 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 7 inferred relationships involving `approvalWorkflow()` (e.g. with `getWorkflowForSubmission()` and `markSubmissionInReview()`) actually correct?**
-  _`approvalWorkflow()` has 7 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `POST()` connect `Community 1` to `Community 2`, `Community 3`, `Community 5`, `Community 7`, `Community 9`, `Community 12`?**
+  _High betweenness centrality (0.170) - this node is a cross-community bridge._
+- **Why does `GET()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 5`?**
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
+- **Are the 20 inferred relationships involving `POST()` (e.g. with `assertMutationRequest()` and `requireRole()`) actually correct?**
+  _`POST()` has 20 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 14 inferred relationships involving `GET()` (e.g. with `requireRole()` and `apiErrorResponse()`) actually correct?**
+  _`GET()` has 14 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 15 inferred relationships involving `localizePath()` (e.g. with `Home()` and `AdminLayout()`) actually correct?**
+  _`localizePath()` has 15 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 13 inferred relationships involving `PATCH()` (e.g. with `assertMutationRequest()` and `getRequestLocale()`) actually correct?**
+  _`PATCH()` has 13 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 11 inferred relationships involving `getCurrentUser()` (e.g. with `Home()` and `AdminLayout()`) actually correct?**
+  _`getCurrentUser()` has 11 INFERRED edges - model-reasoned connections that need verification._
