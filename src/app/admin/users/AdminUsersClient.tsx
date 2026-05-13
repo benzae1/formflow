@@ -232,7 +232,7 @@ function UserCard({
         <div className="mt-5 grid gap-4 border-t border-[var(--line)] pt-5 xl:grid-cols-3">
           <div className="bf-panel-muted px-4 py-4">
             <p className="bf-eyebrow">Roles</p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-4">
               {availableRoles.map((role) => (
                 <label key={role.name} className="flex items-center gap-3 text-sm text-[var(--ink)]">
                   <input
