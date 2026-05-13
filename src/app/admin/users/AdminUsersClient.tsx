@@ -234,7 +234,7 @@ function UserCard({
             <p className="bf-eyebrow">Roles</p>
             <div className="mt-3 space-y-4">
               {availableRoles.map((role) => (
-                <label key={role.name} className="flex items-center gap-3 text-sm text-[var(--ink)]">
+                <label key={role.name} className="flex items-center gap-4 text-sm text-[var(--ink)]">
                   <input
                     type="checkbox"
                     checked={roles.includes(role.name)}
