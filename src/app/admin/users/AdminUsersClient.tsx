@@ -232,9 +232,9 @@ function UserCard({
         <div className="mt-5 grid gap-4 border-t border-[var(--line)] pt-5 xl:grid-cols-3">
           <div className="bf-panel-muted px-4 py-4">
             <p className="bf-eyebrow">Roles</p>
-            <div className="mt-3 space-y-4">
+            <div className="mt-3 flex flex-col gap-3">
               {availableRoles.map((role) => (
-                <label key={role.name} className="flex items-center gap-4 text-sm text-[var(--ink)]">
+                <label key={role.name} className="flex items-center gap-2 text-sm text-[var(--ink)]">
                   <input
                     type="checkbox"
                     checked={roles.includes(role.name)}

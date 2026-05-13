@@ -1229,6 +1229,15 @@ body.formio-dialog-open {
 .radio-inline label {
   font-weight: 400;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .editgrid-listgroup {
