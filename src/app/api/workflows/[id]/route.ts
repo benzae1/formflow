@@ -5,7 +5,7 @@ import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { createWorkflowSchema } from "@/lib/validation/workflows";
-import { assertChildFormsExist, assertRoleTargetsExist } from "@/lib/validation/workflow-server";
+import { assertChildFormsExist, assertGroupTargetsResolvable, assertRoleTargetsExist } from "@/lib/validation/workflow-server";
 
 export async function GET(
   _req: Request,
@@ -44,6 +44,7 @@ export async function PUT(
     const input = createWorkflowSchema.parse(body);
     await assertRoleTargetsExist(input.definition);
     await assertChildFormsExist(input.definition);
+    await assertGroupTargetsResolvable(input.definition);
 
     const existing = await db.workflow.findUnique({
       where: { id },

@@ -24,8 +24,8 @@ export async function assertChildFormsExist(definition: Array<{ childFormId?: st
 
 type StageWithAssignTo = { assignTo?: unknown };
 
-export async function assertRoleTargetsExist(definition: StageWithAssignTo[]) {
-  const roleNames = new Set<string>();
+function collectTargetsByType(definition: StageWithAssignTo[], type: string): string[] {
+  const values = new Set<string>();
 
   for (const stage of definition) {
     const targets = Array.isArray(stage.assignTo)
@@ -39,28 +39,69 @@ export async function assertRoleTargetsExist(definition: StageWithAssignTo[]) {
         target !== null &&
         typeof target === "object" &&
         "type" in target &&
-        (target as Record<string, unknown>).type === "role" &&
+        (target as Record<string, unknown>).type === type &&
         "value" in target
       ) {
-        roleNames.add(String((target as Record<string, unknown>).value));
+        values.add(String((target as Record<string, unknown>).value));
       }
     }
   }
 
-  if (roleNames.size === 0) return;
+  return [...values];
+}
+
+export async function assertRoleTargetsExist(definition: StageWithAssignTo[]) {
+  const roleNames = collectTargetsByType(definition, "role");
+
+  if (roleNames.length === 0) return;
 
   const roles = await db.role.findMany({
-    where: { name: { in: [...roleNames] } },
+    where: { name: { in: roleNames } },
     select: { name: true },
   });
 
   const foundNames = new Set(roles.map((r) => r.name));
-  const missingName = [...roleNames].find((name) => !foundNames.has(name));
+  const missingName = roleNames.find((name) => !foundNames.has(name));
 
   if (missingName) {
     throw new ApiError(
       "ROLE_NOT_FOUND",
       `Role "${missingName}" does not exist. Check the available roles or create it first.`,
+      422,
+    );
+  }
+}
+
+export async function assertGroupTargetsResolvable(definition: StageWithAssignTo[]) {
+  const groupIds = collectTargetsByType(definition, "group");
+
+  if (groupIds.length === 0) return;
+
+  const units = await db.orgUnit.findMany({
+    where: { id: { in: groupIds } },
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { memberships: true } },
+    },
+  });
+
+  const foundIds = new Set(units.map((u) => u.id));
+  const missingId = groupIds.find((id) => !foundIds.has(id));
+
+  if (missingId) {
+    throw new ApiError(
+      "GROUP_NOT_FOUND",
+      `Org group ${missingId} does not exist.`,
+      422,
+    );
+  }
+
+  const emptyUnit = units.find((u) => u._count.memberships === 0);
+  if (emptyUnit) {
+    throw new ApiError(
+      "GROUP_EMPTY",
+      `Group "${emptyUnit.name}" has no members and would leave the stage unassigned. Add members or choose a different routing target.`,
       422,
     );
   }
@@ -97,4 +138,6 @@ export async function assertWorkflowRunnable(workflowId: string) {
       409,
     );
   }
+
+  await assertGroupTargetsResolvable(result.data);
 }
