@@ -10,6 +10,7 @@
     "prepare": "prisma generate",
     "dev": "next dev",
     "worker": "tsx src/temporal/worker.ts",
+    "prisma:init": "node scripts/prisma-init.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

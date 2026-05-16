@@ -52,17 +52,13 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://formflow:formflow@postgres:5432/formflow
+      PRISMA_AUTO_REPAIR_SCHEMA: "true"
       TEMPORAL_ADDRESS: temporal:7233
       NEXTAUTH_URL: http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy
-    command:
-      [
-        "sh",
-        "-c",
-        "npx prisma migrate deploy && npx prisma db seed"
-      ]
+    command: ["npm", "run", "prisma:init"]
     restart: "no"
 
   web:

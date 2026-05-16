@@ -48,6 +48,7 @@ Open `http://localhost:3000` in your browser.
 ## Docker Notes
 
 - The `web` and `worker` containers read from `.env`, but their internal service URLs are overridden to use Docker service names like `postgres` and `temporal`.
+- The `init` container runs `npm run prisma:init`, which deploys migrations and, for local Docker only, repairs a drifted schema with `prisma db push` if required tables are missing before seeding.
 - If you change dependencies or Docker config, rerun `docker compose up --build`.
 - To stop everything, run `docker compose down`.
 
