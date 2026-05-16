@@ -100,7 +100,6 @@ export default async function SubmissionDetailPage({
             <h2 className="mt-3 text-[32px] font-extrabold leading-none">Response snapshot</h2>
             <div className="mt-4">
               <SubmissionFormView
-                locale={defaultLocale}
                 dictionary={dictionary}
                 schema={getSubmissionSchema({
                   ...submission,

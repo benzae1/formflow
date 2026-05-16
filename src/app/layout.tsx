@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Barlow_Semi_Condensed } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
-
-const barlow = Barlow_Semi_Condensed({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-barlow",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Bauhaus Forms",
@@ -21,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={barlow.variable}>
+    <html lang="de">
       <body className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
         {children}
       </body>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/routing";
@@ -73,7 +73,7 @@ export default function FormsManagerClient({
 
         return matchesStatus && matchesQuery;
       }),
-    [forms, query, status],
+    [forms, locale, query, status],
   );
 
   async function createForm() {
@@ -91,6 +91,7 @@ export default function FormsManagerClient({
 
     setPending(true);
     setError(null);
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch("/api/forms", {
       method: "POST",
@@ -149,6 +150,7 @@ export default function FormsManagerClient({
 
   async function updateStatus(id: string, nextStatus: "published" | "archived" | "draft") {
     setPending(true);
+    const mutationHeaders = await getMutationHeaders();
     await fetch(`/api/forms/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "x-formflow-locale": locale, ...mutationHeaders },

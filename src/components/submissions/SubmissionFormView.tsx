@@ -1,4 +1,3 @@
-import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type SchemaComponent = {
@@ -53,12 +52,10 @@ function renderValue(value: unknown, dictionary: Dictionary) {
 export function SubmissionFormView({
   schema,
   data,
-  locale: _locale,
   dictionary,
 }: {
   schema: Record<string, unknown>;
   data: Record<string, unknown>;
-  locale: Locale;
   dictionary: Dictionary;
 }) {
   const labels = collectLabels(

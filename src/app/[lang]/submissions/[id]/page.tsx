@@ -101,7 +101,6 @@ export default async function LocalizedSubmissionDetailPage({
             <h2 className="mt-3 text-[32px] font-extrabold leading-none">{dictionary.submissions.responseSnapshot}</h2>
             <div className="mt-4">
               <SubmissionFormView
-                locale={locale}
                 dictionary={dictionary}
                 schema={getSubmissionSchema({
                   ...submission,
