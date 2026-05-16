@@ -12,11 +12,19 @@ export async function signInAs(
   page: Page,
   email: "admin@example.com" | "approver@example.com" | "submitter@example.com",
 ) {
-  const destinations: Record<typeof email, string> = {
-    "admin@example.com": "/admin",
-    "approver@example.com": "/inbox",
-    "submitter@example.com": "/submissions",
+  const accounts: Record<
+    typeof email,
+    { callbackUrl: string; uid: string; password: string }
+  > = {
+    "admin@example.com": { callbackUrl: "/admin", uid: "admin", password: "admin" },
+    "approver@example.com": { callbackUrl: "/inbox", uid: "approver", password: "approver" },
+    "submitter@example.com": {
+      callbackUrl: "/submissions",
+      uid: "submitter",
+      password: "submitter",
+    },
   };
+  const account = accounts[email];
 
   const csrfResponse = await page.context().request.get("/api/auth/csrf");
   const { csrfToken } = (await csrfResponse.json()) as { csrfToken: string };
@@ -26,8 +34,10 @@ export async function signInAs(
     {
       form: {
         csrfToken,
+        uid: account.uid,
         email,
-        callbackUrl: destinations[email],
+        password: account.password,
+        callbackUrl: account.callbackUrl,
         json: "true",
       },
     },
@@ -37,8 +47,8 @@ export async function signInAs(
     throw new Error(`Sign-in failed for ${email} with status ${signInResponse.status()}.`);
   }
 
-  await page.goto(destinations[email]);
-  await page.waitForURL(`**${destinations[email]}`);
+  await page.goto(account.callbackUrl);
+  await page.waitForURL(`**${account.callbackUrl}`);
 }
 
 export async function signOut(page: Page) {

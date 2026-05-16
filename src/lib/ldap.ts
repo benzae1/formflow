@@ -1,4 +1,5 @@
 import { Client, EqualityFilter, InvalidCredentialsError } from "ldapts";
+import { getLdapBaseDnsFromEnv, getLdapUrlsFromEnv, splitCommaSeparatedEnvList } from "./ldap-config";
 
 type LdapProfile = {
   uid: string;
@@ -179,16 +180,11 @@ function getSearchAttributes() {
 }
 
 function getLdapUrls() {
-  return splitEnvList(process.env.LDAP_URLS ?? process.env.LDAP_URL);
+  return getLdapUrlsFromEnv();
 }
 
 function getBaseDns() {
-  const raw = process.env.LDAP_BASE_DNS ?? process.env.LDAP_BASE_DN ?? "";
-  // DNs contain commas as part of their syntax; use | to separate multiple base DNs
-  return raw
-    .split("|")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return getLdapBaseDnsFromEnv();
 }
 
 function getFallbackEmailDomain() {
@@ -222,10 +218,7 @@ function getValues(value: LdapEntryValue) {
 }
 
 function splitEnvList(value?: string) {
-  return (value ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return splitCommaSeparatedEnvList(value);
 }
 
 async function safeUnbind(client: Client) {

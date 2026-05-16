@@ -18,11 +18,11 @@ This starts:
 - Temporal worker in its own container
 - Prisma migration and seed steps in the `init` container
 
-When LDAP is not configured, the development seed creates these email-only sign-ins:
+When LDAP is not configured, the development seed creates these local credentials:
 
-- `admin@example.com`
-- `approver@example.com`
-- `submitter@example.com`
+- Username `admin`, password `admin`, email `admin@bauhaus.de`
+- Username `approver`, password `approver`, email `approver@bauhaus.de`
+- Username `submitter`, password `submitter`, email `submitter@bauhaus.de`
 
 For LDAP sign-in, configure the directory in `.env`:
 
@@ -40,6 +40,8 @@ The app searches for a unique `uid`, binds as that DN with the submitted passwor
 then upserts the LDAP user into FormFlow. Every LDAP user receives `submitter`;
 additional roles come from the UID allowlists above or from
 `LDAP_ROLE_ATTRIBUTE_MAP` entries like `formflow-admin=admin`.
+
+If you need multiple search bases, `LDAP_BASE_DNS` uses `|` to separate them because commas are part of DN syntax.
 
 Open `http://localhost:3000` in your browser.
 

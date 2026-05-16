@@ -17,6 +17,12 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is missing.");
 }
 
+if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_USERS !== "true") {
+  throw new Error(
+    "Refusing to seed demo users in production. Set ALLOW_DEMO_USERS=true only for intentional production seeding.",
+  );
+}
+
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });

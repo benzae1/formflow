@@ -5,6 +5,7 @@ import {
   ExternalUser,
   OrgAdapter,
 } from "@/domain/org";
+import { getLdapBaseDnsFromEnv, getLdapUrlsFromEnv } from "@/lib/ldap-config";
 
 type LdapEntryValue = Buffer | Buffer[] | string[] | string | undefined;
 type LdapEntry = { dn: string; [index: string]: LdapEntryValue };
@@ -39,8 +40,8 @@ export function createLdapOrgAdapter(): OrgAdapter {
 }
 
 async function fetchDirectory() {
-  const urls = splitEnvList(process.env.LDAP_URLS ?? process.env.LDAP_URL);
-  const baseDns = splitEnvList(process.env.LDAP_BASE_DNS ?? process.env.LDAP_BASE_DN);
+  const urls = getLdapUrlsFromEnv();
+  const baseDns = getLdapBaseDnsFromEnv();
 
   for (const url of urls) {
     const timeout = Number(process.env.LDAP_TIMEOUT_MS ?? "5000");
@@ -194,13 +195,6 @@ function getValues(value: LdapEntryValue) {
   const values = Array.isArray(value) ? value : [value];
   return values
     .map((item) => (Buffer.isBuffer(item) ? item.toString("utf8") : item))
-    .filter(Boolean);
-}
-
-function splitEnvList(value?: string) {
-  return (value ?? "")
-    .split(",")
-    .map((item) => item.trim())
     .filter(Boolean);
 }
 
