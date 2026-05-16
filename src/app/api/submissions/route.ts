@@ -15,6 +15,7 @@ import { getTemporalClient } from "@/lib/temporal";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { resolveFormSchema } from "@/lib/form-translations";
+import { normalizeSubmissionData } from "@/lib/formio-data";
 import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
 
 async function getVisibilityContext(userId: string, roles: string[]) {
@@ -99,7 +100,23 @@ export async function POST(req: Request) {
     }
 
     const localizedSchema = resolveFormSchema(form, locale);
-    const data = encryptSensitiveSubmissionData(localizedSchema as FormioSchema, input.data);
+    let normalizedData: Record<string, unknown>;
+    try {
+      normalizedData = normalizeSubmissionData(
+        localizedSchema as FormioSchema,
+        input.data,
+      );
+    } catch (error) {
+      throw new ApiError(
+        "INVALID_SUBMISSION_DATA",
+        error instanceof Error ? error.message : "Submission data is invalid.",
+        400,
+      );
+    }
+    const data = encryptSensitiveSubmissionData(
+      localizedSchema as FormioSchema,
+      normalizedData,
+    );
     const workflow = form.workflow;
 
     if (!input.saveAsDraft && !form.workflowId) {

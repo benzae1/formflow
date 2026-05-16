@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { summarizeWorkflow } from "@/lib/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Locale } from "@/lib/i18n/config";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 
 type WorkflowRecord = {
   id: string;
@@ -120,6 +120,7 @@ export default function WorkflowsManagerClient({
       setError(copy.invalidJson);
       return;
     }
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch(selectedId ? `/api/workflows/${selectedId}` : "/api/workflows", {
       method: selectedId ? "PUT" : "POST",

@@ -20,6 +20,7 @@ import {
   resubmittedSignal,
 } from "@/temporal/workflows/approvalWorkflow";
 import { resolveFormSchema } from "@/lib/form-translations";
+import { normalizeSubmissionData } from "@/lib/formio-data";
 
 export async function GET(
   _req: Request,
@@ -111,7 +112,23 @@ export async function PATCH(
       },
       locale,
     );
-    const encryptedData = encryptSensitiveSubmissionData(localizedSchema as FormioSchema, input.data);
+    let normalizedData: Record<string, unknown>;
+    try {
+      normalizedData = normalizeSubmissionData(
+        localizedSchema as FormioSchema,
+        input.data,
+      );
+    } catch (error) {
+      throw new ApiError(
+        "INVALID_SUBMISSION_DATA",
+        error instanceof Error ? error.message : "Submission data is invalid.",
+        400,
+      );
+    }
+    const encryptedData = encryptSensitiveSubmissionData(
+      localizedSchema as FormioSchema,
+      normalizedData,
+    );
 
     if (submission.status === "draft" && input.submit && !submission.form.workflowId) {
       throw new ApiError(

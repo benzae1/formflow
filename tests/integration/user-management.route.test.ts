@@ -4,6 +4,7 @@ import { PATCH as updateRolesRoute } from "../../src/app/api/users/[id]/roles/ro
 import { POST as createDelegationRoute } from "../../src/app/api/delegations/route";
 import { DELETE as deleteDelegationRoute } from "../../src/app/api/delegations/[id]/route";
 import { resetDatabase, seedBaseUsers } from "../support/fixtures";
+import { createMutationRequestHeaders } from "../support/mutation";
 import { parseJson } from "../support/response";
 import { setMockSession } from "../support/vitest.setup";
 
@@ -19,7 +20,7 @@ describe("user and delegation management routes", () => {
     const response = await updateRolesRoute(
       new Request(`http://localhost/api/users/${submitter.id}/roles`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           roles: ["submitter", "approver"],
         }),
@@ -53,7 +54,7 @@ describe("user and delegation management routes", () => {
     const createResponse = await createDelegationRoute(
       new Request("http://localhost/api/delegations", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           approverId: approver.id,
           delegateId: backupApprover.id,
@@ -70,7 +71,7 @@ describe("user and delegation management routes", () => {
     const deleteResponse = await deleteDelegationRoute(
       new Request(`http://localhost/api/delegations/${payload.delegation.id}`, {
         method: "DELETE",
-        headers: { "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders(),
       }),
       { params: Promise.resolve({ id: payload.delegation.id }) },
     );
@@ -107,7 +108,7 @@ describe("user and delegation management routes", () => {
     const response = await createDelegationRoute(
       new Request("http://localhost/api/delegations", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           approverId: anotherApprover.id,
           delegateId: delegate.id,

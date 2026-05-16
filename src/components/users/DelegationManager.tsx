@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 import type { Locale } from "@/lib/i18n/config";
 import { formatDateTime } from "@/lib/ui";
 
@@ -84,6 +84,7 @@ export default function DelegationManager({
 
     setPending(true);
     setError(null);
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch("/api/delegations", {
       method: "POST",
@@ -108,6 +109,7 @@ export default function DelegationManager({
   async function removeDelegation(id: string) {
     setPending(true);
     setError(null);
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch(`/api/delegations/${id}`, {
       method: "DELETE",

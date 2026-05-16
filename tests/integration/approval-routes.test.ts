@@ -8,6 +8,7 @@ import {
   resetDatabase,
   seedBaseUsers,
 } from "../support/fixtures";
+import { createMutationRequestHeaders } from "../support/mutation";
 import { parseJson } from "../support/response";
 import { setMockSession } from "../support/vitest.setup";
 import {
@@ -43,7 +44,7 @@ describe("approval signal routes", () => {
     const response = await approveRoute(
       new Request("http://localhost/api/submissions/submission-1/approve", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           taskId: crypto.randomUUID(),
         }),
@@ -89,7 +90,7 @@ describe("approval signal routes", () => {
       const response = await route(
         new Request(`http://localhost/api/submissions/${submission.id}/${decision}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+          headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             taskId: task.id,
             note: "Reviewed in test",
@@ -147,7 +148,7 @@ describe("approval signal routes", () => {
     const response = await approveRoute(
       new Request(`http://localhost/api/submissions/${submission.id}/approve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           taskId: task.id,
         }),
@@ -206,7 +207,7 @@ describe("approval signal routes", () => {
     const response = await approveRoute(
       new Request(`http://localhost/api/submissions/${submission.id}/approve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           taskId: task.id,
         }),

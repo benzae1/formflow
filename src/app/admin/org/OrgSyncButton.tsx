@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Locale } from "@/lib/i18n/config";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 
 export default function OrgSyncButton({ locale = "en" }: { locale?: Locale }) {
   const [pending, setPending] = useState(false);
@@ -11,6 +11,7 @@ export default function OrgSyncButton({ locale = "en" }: { locale?: Locale }) {
 
   async function sync() {
     setPending(true);
+    const mutationHeaders = await getMutationHeaders();
     await fetch("/api/org/sync", {
       method: "POST",
       headers: mutationHeaders,

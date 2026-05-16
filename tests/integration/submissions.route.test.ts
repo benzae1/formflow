@@ -12,6 +12,7 @@ import {
   waitForApprovalTask,
   waitForSubmissionStatus,
 } from "../support/fixtures";
+import { createMutationRequestHeaders } from "../support/mutation";
 import { parseJson } from "../support/response";
 import { setMockSession } from "../support/vitest.setup";
 
@@ -92,7 +93,7 @@ describe("submissions route", () => {
     const response = await POST(
       new Request("http://localhost/api/submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           formId: form.id,
           data: {
@@ -131,7 +132,7 @@ describe("submissions route", () => {
     const response = await POST(
       new Request("http://localhost/api/submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           formId: form.id,
           data: {
@@ -166,7 +167,7 @@ describe("submissions route", () => {
     const response = await POST(
       new Request("http://localhost/api/submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-formflow-intent": "mutation" },
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           formId: form.id,
           data: {

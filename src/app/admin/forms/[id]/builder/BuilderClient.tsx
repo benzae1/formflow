@@ -24,7 +24,7 @@ const FormBuilder = dynamic(
   },
 );
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 import {
   collectFormFieldSettings,
   type FormioSchema,
@@ -83,6 +83,7 @@ export default function BuilderClient({
   async function save(status?: "draft" | "published" | "archived") {
     setSaving(true);
     setMessage(null);
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch(`/api/forms/${form.id}`, {
       method: "PUT",
@@ -120,6 +121,7 @@ export default function BuilderClient({
   async function generateDraftTranslation() {
     setSaving(true);
     setMessage(null);
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch(`/api/forms/${form.id}/translate-draft`, {
       method: "POST",

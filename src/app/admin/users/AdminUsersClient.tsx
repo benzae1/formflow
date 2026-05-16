@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import DelegationManager from "@/components/users/DelegationManager";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Locale } from "@/lib/i18n/config";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 import { formatDateTime, getRoleLabel } from "@/lib/ui";
 
 type RoleRecord = {
@@ -87,6 +87,7 @@ export default function AdminUsersClient({
   async function updateRoles(userId: string, roles: string[]) {
     setPendingUserId(userId);
     setError(null);
+    const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch(`/api/users/${userId}/roles`, {
       method: "PATCH",

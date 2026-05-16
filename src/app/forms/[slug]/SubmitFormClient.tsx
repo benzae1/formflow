@@ -9,6 +9,7 @@ import type { RenderableFormSchema } from "@/components/form-renderer/FormRender
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/routing";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 
 const FormRenderer = dynamic(
   () => import("@/components/form-renderer/FormRenderer").then((m) => ({ default: m.FormRenderer })),
@@ -17,7 +18,6 @@ const FormRenderer = dynamic(
     loading: () => <div className="bf-panel p-8 text-sm text-[var(--muted-strong)]">Loading form...</div>,
   },
 );
-import { mutationHeaders } from "@/lib/mutation-headers";
 
 type PublicForm = {
   id: string;
@@ -52,6 +52,7 @@ export default function SubmitFormClient({
     let response: Response;
 
     try {
+      const mutationHeaders = await getMutationHeaders();
       response = submissionId
         ? await fetch(`/api/submissions/${submissionId}`, {
             method: "PATCH",

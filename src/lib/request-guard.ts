@@ -1,7 +1,10 @@
 import { ApiError } from "./errors";
-
-const MUTATION_HEADER = "x-formflow-intent";
-const MUTATION_HEADER_VALUE = "mutation";
+import {
+  CSRF_HEADER,
+  MUTATION_HEADER,
+  MUTATION_HEADER_VALUE,
+  getCsrfCookieValue,
+} from "./csrf";
 
 export function assertMutationRequest(request: Request) {
   if (request.headers.get(MUTATION_HEADER) !== MUTATION_HEADER_VALUE) {
@@ -12,12 +15,31 @@ export function assertMutationRequest(request: Request) {
     );
   }
 
+  const csrfHeader = request.headers.get(CSRF_HEADER);
+  const csrfCookie = getCsrfCookieValue(request);
+
+  if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
+    throw new ApiError(
+      "INVALID_CSRF_TOKEN",
+      "Mutating requests must include a valid CSRF token.",
+      403,
+    );
+  }
+
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
   const requestUrl = new URL(request.url);
   const allowedOrigins = getAllowedOrigins(requestUrl);
 
-  if (origin && !allowedOrigins.has(origin)) {
+  if (!origin) {
+    throw new ApiError(
+      "MISSING_ORIGIN",
+      "This request is missing an Origin header.",
+      403,
+    );
+  }
+
+  if (!allowedOrigins.has(origin)) {
     throw new ApiError(
       "UNTRUSTED_ORIGIN",
       "This request origin is not allowed.",
@@ -25,15 +47,21 @@ export function assertMutationRequest(request: Request) {
     );
   }
 
-  if (referer) {
-    const refererOrigin = new URL(referer).origin;
-    if (!allowedOrigins.has(refererOrigin)) {
-      throw new ApiError(
-        "UNTRUSTED_REFERER",
-        "This request referer is not allowed.",
-        403,
-      );
-    }
+  if (!referer) {
+    throw new ApiError(
+      "MISSING_REFERER",
+      "This request is missing a Referer header.",
+      403,
+    );
+  }
+
+  const refererOrigin = new URL(referer).origin;
+  if (!allowedOrigins.has(refererOrigin)) {
+    throw new ApiError(
+      "UNTRUSTED_REFERER",
+      "This request referer is not allowed.",
+      403,
+    );
   }
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/routing";
@@ -58,6 +58,7 @@ export function SubmissionActionPanel({
     setError(null);
 
     try {
+      const mutationHeaders = await getMutationHeaders();
       const response = await fetch(`/api/submissions/${submissionId}/${decision}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-formflow-locale": locale, ...mutationHeaders },

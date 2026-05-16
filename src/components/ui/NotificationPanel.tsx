@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/components/inbox/useNotifications";
-import { mutationHeaders } from "@/lib/mutation-headers";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 import type { Locale } from "@/lib/i18n/config";
 import { maybeLocalizeHref } from "@/lib/i18n/routing";
 
@@ -23,6 +23,7 @@ export function NotificationPanel({
   const { count, items } = useNotifications();
 
   async function openNotification(id: string, href?: string | null) {
+    const mutationHeaders = await getMutationHeaders();
     await fetch(`/api/notifications/${id}/read`, {
       method: "POST",
       headers: mutationHeaders,
