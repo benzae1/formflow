@@ -1,5 +1,5 @@
 export type RoutingTarget =
-  | { type: "role"; value: "admin" | "approver" | "compliance" }
+  | { type: "role"; value: string }
   | { type: "org"; value: "submitter.manager" | "submitter.skip-level" | "department.head" }
   | { type: "user"; value: string }
   | { type: "group"; value: string };

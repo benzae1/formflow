@@ -4,7 +4,7 @@ import { validateConditionExpression } from "@/lib/workflow-conditions";
 const routingTargetSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("role"),
-    value: z.enum(["admin", "approver", "compliance"]),
+    value: z.string().min(1),
   }),
   z.object({
     type: z.literal("org"),
