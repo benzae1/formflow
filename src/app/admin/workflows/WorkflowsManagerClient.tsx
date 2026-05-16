@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ZodIssue } from "zod";
 import { summarizeWorkflow } from "@/lib/ui";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Locale } from "@/lib/i18n/config";
 import { getMutationHeaders } from "@/lib/mutation-headers";
+import { createWorkflowSchema } from "@/lib/validation/workflows";
 
 type WorkflowRecord = {
   id: string;
@@ -32,6 +34,26 @@ function emptyDefinition() {
   );
 }
 
+function formatIssues(issues: ZodIssue[]): string[] {
+  return issues.map((issue) => {
+    const rawPath = issue.path;
+    if (rawPath.length === 0) return issue.message;
+
+    const [first, ...rest] = rawPath;
+
+    let prefix: string;
+    if (first === "definition" && typeof rawPath[1] === "number") {
+      prefix = `Stage ${rawPath[1] + 1}`;
+      const fieldPath = rest.slice(1);
+      const field = fieldPath.length > 0 ? ` – ${fieldPath.join(".")}` : "";
+      return `${prefix}${field}: ${issue.message}`;
+    }
+
+    prefix = rawPath.join(".");
+    return `${prefix}: ${issue.message}`;
+  });
+}
+
 export default function WorkflowsManagerClient({
   workflows,
   locale,
@@ -46,6 +68,7 @@ export default function WorkflowsManagerClient({
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const router = useRouter();
   const copy =
     locale === "de"
@@ -67,6 +90,7 @@ export default function WorkflowsManagerClient({
           stageSummary: "Stufenzusammenfassung",
           attachedFormsTitle: "Verknüpfte Formulare",
           noAttachedForms: "Derzeit verweist kein Formular auf diesen Workflow.",
+          validationErrorsTitle: "Die Definition enthält Fehler:",
         }
       : {
           invalidJson: "Definition must be valid JSON.",
@@ -86,6 +110,7 @@ export default function WorkflowsManagerClient({
           stageSummary: "Stage summary",
           attachedFormsTitle: "Attached forms",
           noAttachedForms: "No forms currently reference this workflow.",
+          validationErrorsTitle: "Definition has errors:",
         };
 
   const selectedWorkflow = workflows.find((workflow) => workflow.id === selectedId) ?? null;
@@ -106,11 +131,13 @@ export default function WorkflowsManagerClient({
     setName(workflow.name);
     setDefinitionText(JSON.stringify(workflow.definition, null, 2));
     setError(null);
+    setValidationErrors([]);
   }
 
   async function save() {
     setPending(true);
     setError(null);
+    setValidationErrors([]);
 
     let definition;
     try {
@@ -120,6 +147,14 @@ export default function WorkflowsManagerClient({
       setError(copy.invalidJson);
       return;
     }
+
+    const parsed = createWorkflowSchema.safeParse({ name, definition });
+    if (!parsed.success) {
+      setPending(false);
+      setValidationErrors(formatIssues(parsed.error.issues));
+      return;
+    }
+
     const mutationHeaders = await getMutationHeaders();
 
     const response = await fetch(selectedId ? `/api/workflows/${selectedId}` : "/api/workflows", {
@@ -131,7 +166,12 @@ export default function WorkflowsManagerClient({
     setPending(false);
 
     if (!response.ok) {
-      setError(copy.saveError);
+      try {
+        const body = await response.json() as { error?: { message?: string } };
+        setError(body?.error?.message ?? copy.saveError);
+      } catch {
+        setError(copy.saveError);
+      }
       return;
     }
 
@@ -143,6 +183,7 @@ export default function WorkflowsManagerClient({
     setName(copy.newWorkflowName);
     setDefinitionText(emptyDefinition());
     setError(null);
+    setValidationErrors([]);
   }
 
   return (
@@ -201,6 +242,17 @@ export default function WorkflowsManagerClient({
           <input value={name} onChange={(event) => setName(event.target.value)} className="bf-input" placeholder={copy.workflowName} />
 
           {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
+
+          {validationErrors.length > 0 ? (
+            <div className="bf-alert bf-alert-error">
+              <p className="font-semibold">{copy.validationErrorsTitle}</p>
+              <ul className="mt-2 list-disc pl-4 text-sm">
+                {validationErrors.map((msg, index) => (
+                  <li key={index}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
             <textarea
