@@ -11,18 +11,22 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmissionActionPanel } from "@/components/submissions/SubmissionActionPanel";
 import { SubmissionFormView } from "@/components/submissions/SubmissionFormView";
+import { BreakGlassGate } from "@/components/submissions/BreakGlassGate";
 import { formatDateTime, summarizeWorkflow } from "@/lib/ui";
 import { defaultLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function SubmissionDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ reason?: string }>;
 }) {
   const dictionary = await getDictionary(defaultLocale);
   const user = await requirePageUser(defaultLocale);
   const { id } = await params;
+  const { reason } = await searchParams;
 
   const submission = await getVisibleSubmissionById({
     submissionId: id,
@@ -33,11 +37,25 @@ export default async function SubmissionDetailPage({
     notFound();
   }
 
+  const needsBreakGlass =
+    submission.form.sensitivity === "sensitive" &&
+    (!reason || reason.trim().length < 10);
+
+  if (needsBreakGlass) {
+    return (
+      <BreakGlassGate
+        action={`/submissions/${id}`}
+        backHref="/submissions"
+        dictionary={dictionary}
+      />
+    );
+  }
+
   await auditSubmissionAccess({
     actorId: user.id,
     submissionId: submission.id,
     sensitivity: submission.form.sensitivity,
-    reason: "submission.viewed",
+    reason: reason?.trim() ?? "submission.viewed",
   });
 
   const visibleSubmission = presentSubmissionForUser(

@@ -119,6 +119,13 @@ export type Dictionary = {
     due: string;
     workflowContext: string;
     noWorkflowSummary: string;
+    breakGlassEyebrow: string;
+    breakGlassTitle: string;
+    breakGlassDescription: string;
+    breakGlassLabel: string;
+    breakGlassPlaceholder: string;
+    breakGlassSubmit: string;
+    breakGlassCancel: string;
   };
   inbox: {
     coverageTitle: string;
@@ -295,6 +302,13 @@ const dictionaries: Record<Locale, Dictionary> = {
       due: "Fällig",
       workflowContext: "Workflow-Kontext",
       noWorkflowSummary: "Keine Workflow-Zusammenfassung verfügbar.",
+      breakGlassEyebrow: "Zugriffsbegründung erforderlich",
+      breakGlassTitle: "Sensibler Inhalt",
+      breakGlassDescription: "Diese Einreichung enthält sensible Daten. Bitte begründen Sie Ihren Zugriff – die Angabe wird für die Compliance-Prüfung protokolliert.",
+      breakGlassLabel: "Begründung für den Zugriff",
+      breakGlassPlaceholder: "Warum greifen Sie auf diese Einreichung zu? (mindestens 10 Zeichen)",
+      breakGlassSubmit: "Zugriff bestätigen",
+      breakGlassCancel: "Zurück",
     },
     inbox: {
       coverageTitle: "Vertretung",
@@ -469,6 +483,13 @@ const dictionaries: Record<Locale, Dictionary> = {
       due: "Due",
       workflowContext: "Workflow context",
       noWorkflowSummary: "No workflow summary is available for this form.",
+      breakGlassEyebrow: "Access justification required",
+      breakGlassTitle: "Sensitive content",
+      breakGlassDescription: "This submission contains sensitive data. State your reason for access — it will be logged for compliance review.",
+      breakGlassLabel: "Reason for access",
+      breakGlassPlaceholder: "Why are you accessing this submission? (minimum 10 characters)",
+      breakGlassSubmit: "Confirm access",
+      breakGlassCancel: "Go back",
     },
     inbox: {
       coverageTitle: "Coverage",

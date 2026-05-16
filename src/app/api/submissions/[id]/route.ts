@@ -23,7 +23,7 @@ import { resolveFormSchema } from "@/lib/form-translations";
 import { normalizeSubmissionData } from "@/lib/formio-data";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -39,11 +39,25 @@ export async function GET(
       throw new ApiError("SUBMISSION_NOT_FOUND", "Submission not found.", 404);
     }
 
+    let reason = "submission.viewed";
+
+    if (submission.form.sensitivity === "sensitive") {
+      const header = req.headers.get("x-break-glass-reason");
+      if (!header || header.trim().length < 10) {
+        throw new ApiError(
+          "BREAK_GLASS_REQUIRED",
+          "A reason for accessing this sensitive submission is required. Supply a non-empty X-Break-Glass-Reason header (minimum 10 characters).",
+          428,
+        );
+      }
+      reason = header.trim();
+    }
+
     await auditSubmissionAccess({
       actorId: user.id,
       submissionId: submission.id,
       sensitivity: submission.form.sensitivity,
-      reason: "submission.viewed",
+      reason,
     });
 
     return Response.json({

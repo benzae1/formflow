@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SubmissionActionPanel } from "@/components/submissions/SubmissionActionPanel";
 import { SubmissionFormView } from "@/components/submissions/SubmissionFormView";
+import { BreakGlassGate } from "@/components/submissions/BreakGlassGate";
 import { formatDateTime, getStatusLabel, summarizeWorkflow } from "@/lib/ui";
 import { getLocaleContext } from "@/lib/i18n/server";
 import { localizePath } from "@/lib/i18n/routing";
@@ -18,12 +19,15 @@ import { resolveFormTitle } from "@/lib/form-translations";
 
 export default async function LocalizedSubmissionDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lang: string; id: string }>;
+  searchParams: Promise<{ reason?: string }>;
 }) {
   const { lang, id } = await params;
   const { locale, dictionary } = await getLocaleContext(lang);
   const user = await requirePageUser(locale);
+  const { reason } = await searchParams;
 
   const submission = await getVisibleSubmissionById({
     submissionId: id,
@@ -34,11 +38,25 @@ export default async function LocalizedSubmissionDetailPage({
     notFound();
   }
 
+  const needsBreakGlass =
+    submission.form.sensitivity === "sensitive" &&
+    (!reason || reason.trim().length < 10);
+
+  if (needsBreakGlass) {
+    return (
+      <BreakGlassGate
+        action={localizePath(locale, `/submissions/${id}`)}
+        backHref={localizePath(locale, "/submissions")}
+        dictionary={dictionary}
+      />
+    );
+  }
+
   await auditSubmissionAccess({
     actorId: user.id,
     submissionId: submission.id,
     sensitivity: submission.form.sensitivity,
-    reason: "submission.viewed",
+    reason: reason?.trim() ?? "submission.viewed",
   });
 
   const visibleSubmission = presentSubmissionForUser(
