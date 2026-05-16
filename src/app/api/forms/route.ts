@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createFormSchema } from "@/lib/validation/forms";
+import { assertWorkflowRunnable } from "@/lib/validation/workflow-server";
 
 export async function GET() {
   try {
@@ -36,20 +37,7 @@ export async function POST(req: Request) {
     const input = createFormSchema.parse(body);
 
     if (input.workflowId) {
-      const workflow = await db.workflow.findUnique({
-        where: { id: input.workflowId },
-        select: { id: true },
-      });
-
-      if (!workflow) {
-        throw new ApiError(
-          "WORKFLOW_NOT_FOUND",
-          isGerman
-            ? "Bitte einen gültigen Workflow wählen oder das Feld leer lassen."
-            : "Select a valid workflow or leave the workflow blank for now.",
-          404,
-        );
-      }
+      await assertWorkflowRunnable(input.workflowId);
     }
 
     if (input.parentFormId) {
@@ -67,10 +55,6 @@ export async function POST(req: Request) {
           404,
         );
       }
-    }
-
-    if (input.workflowId) {
-      await assertWorkflowRunnable(input.workflowId);
     }
 
     const form = await db.form.create({
@@ -143,28 +127,5 @@ export async function POST(req: Request) {
     }
 
     return apiErrorResponse(error);
-  }
-}
-
-async function assertWorkflowRunnable(workflowId: string) {
-  const workflow = await db.workflow.findUnique({
-    where: { id: workflowId },
-    select: { id: true, definition: true },
-  });
-
-  if (!workflow) {
-    throw new ApiError(
-      "WORKFLOW_NOT_FOUND",
-      "Select a valid workflow or leave the workflow blank for now.",
-      404,
-    );
-  }
-
-  if (!Array.isArray(workflow.definition) || workflow.definition.length === 0) {
-    throw new ApiError(
-      "WORKFLOW_INVALID",
-      "Attach a workflow with at least one executable stage.",
-      409,
-    );
   }
 }

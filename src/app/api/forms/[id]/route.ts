@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import { updateFormSchema } from "@/lib/validation/forms";
+import { assertWorkflowRunnable } from "@/lib/validation/workflow-server";
 
 export async function GET(
   _req: Request,
@@ -56,24 +57,7 @@ export async function PUT(
     }
 
     if (input.workflowId) {
-      const workflow = await db.workflow.findUnique({
-        where: { id: input.workflowId },
-        select: { id: true, definition: true },
-      });
-
-      if (!workflow) {
-        throw new ApiError("WORKFLOW_NOT_FOUND", isGerman ? "Workflow nicht gefunden." : "Workflow not found.", 404);
-      }
-
-      if (!Array.isArray(workflow.definition) || workflow.definition.length === 0) {
-        throw new ApiError(
-          "WORKFLOW_INVALID",
-          isGerman
-            ? "Vor dem Veröffentlichen muss ein Workflow mit mindestens einer ausführbaren Stufe verknüpft sein."
-            : "Attach a workflow with at least one executable stage before publishing.",
-          409,
-        );
-      }
+      await assertWorkflowRunnable(input.workflowId);
     }
 
     if (input.parentFormId) {
