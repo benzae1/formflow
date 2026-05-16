@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { resolveDelegateOrSelf } from "@/lib/delegation";
-import { decryptValue } from "@/lib/encryption";
+import { decryptSubmissionData } from "@/lib/formio-data";
 import { logger } from "@/lib/logger";
 import { sendNotification } from "./notificationActivities";
 
@@ -266,9 +266,7 @@ export async function getSubmissionWorkflowContext(submissionId: string) {
   }
 
   return {
-    data: decryptSubmissionData(
-      submission.data as Record<string, unknown>,
-    ),
+    data: decryptSubmissionData(submission.data as Record<string, unknown>),
     form: {
       id: submission.form.id,
       sensitivity: submission.form.sensitivity,
@@ -333,23 +331,4 @@ export async function createChildSubmission(input: {
   });
 
   return childSubmission.id;
-}
-
-function decryptSubmissionData(data: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [key, maybeDecryptValue(value)]),
-  );
-}
-
-function maybeDecryptValue(value: unknown) {
-  if (
-    value &&
-    typeof value === "object" &&
-    "__encrypted" in value &&
-    (value as { __encrypted?: boolean }).__encrypted
-  ) {
-    return decryptValue(value as Parameters<typeof decryptValue>[0]);
-  }
-
-  return value;
 }

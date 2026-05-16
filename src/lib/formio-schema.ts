@@ -11,6 +11,10 @@ export type FormioComponent = {
   label?: string;
   action?: string;
   input?: boolean;
+  html?: string;
+  dataSrc?: string;
+  multiple?: boolean;
+  values?: Array<{ label?: string; value?: string | number | boolean }>;
   properties?: FormioProperties;
   components?: FormioComponent[];
   columns?: Array<{ components?: FormioComponent[] }>;
@@ -34,9 +38,50 @@ export type FormFieldSettings = {
   ownerCanRead: boolean;
 };
 
+const SUPPORTED_COMPONENT_TYPES = new Set([
+  "button",
+  "checkbox",
+  "columns",
+  "container",
+  "content",
+  "datagrid",
+  "day",
+  "editgrid",
+  "email",
+  "fieldset",
+  "number",
+  "panel",
+  "phoneNumber",
+  "radio",
+  "select",
+  "selectboxes",
+  "table",
+  "textarea",
+  "textfield",
+  "well",
+]);
+
+const DANGEROUS_COMPONENT_KEYS = [
+  "calculateValue",
+  "customConditional",
+  "customDefaultValue",
+  "customValidation",
+  "logic",
+];
+
+const UNSAFE_HTML_PATTERNS = [
+  /<script\b/i,
+  /\son[a-z]+\s*=/i,
+  /javascript:/i,
+];
+
 export function validateFormioSchema(schema: Record<string, unknown>) {
   if (!Array.isArray(schema.components)) {
     throw new Error("Form schema must include a components array.");
+  }
+
+  if (schema.display !== undefined && schema.display !== "form") {
+    throw new Error('Form schema display must be "form".');
   }
 
   const seenKeys = new Set<string>();
@@ -45,6 +90,12 @@ export function validateFormioSchema(schema: Record<string, unknown>) {
   visitFormioComponents(schema as FormioSchema, (component) => {
     if (typeof component !== "object" || !component) {
       throw new Error("Each form component must be an object.");
+    }
+
+    const type = component.type;
+
+    if (!type || !SUPPORTED_COMPONENT_TYPES.has(type)) {
+      throw new Error(`Component type "${type ?? "unknown"}" is not supported.`);
     }
 
     if (component.key) {
@@ -61,12 +112,42 @@ export function validateFormioSchema(schema: Record<string, unknown>) {
       seenKeys.add(component.key);
     }
 
-    if (component.type === "button" && component.action === "submit") {
-      submitButtons += 1;
+    for (const key of DANGEROUS_COMPONENT_KEYS) {
+      if (hasMeaningfulDangerousValue(component[key])) {
+        throw new Error(
+          `Field "${component.key ?? component.label ?? "unknown"}" uses unsupported executable setting "${key}".`,
+        );
+      }
+    }
+
+    if (type === "content") {
+      validateSafeHtml(
+        component.html,
+        component.key ?? component.label ?? "content",
+      );
+    }
+
+    if (
+      component.dataSrc !== undefined &&
+      !["values", "json"].includes(component.dataSrc)
+    ) {
+      throw new Error(
+        `Field "${component.key ?? component.label ?? "unknown"}" must use a local select data source.`,
+      );
     }
 
     const properties = component.properties;
     if (properties) {
+      const unsupportedProperty = Object.keys(properties).find(
+        (key) => !["sensitive", "readRoles", "ownerCanRead"].includes(key),
+      );
+
+      if (unsupportedProperty) {
+        throw new Error(
+          `Field "${component.key ?? component.label ?? "unknown"}" uses unsupported custom property "${unsupportedProperty}".`,
+        );
+      }
+
       if (
         properties.sensitive !== undefined &&
         properties.sensitive !== "true" &&
@@ -86,6 +167,19 @@ export function validateFormioSchema(schema: Record<string, unknown>) {
           `Field "${component.key ?? component.label ?? "unknown"}" has an invalid ownerCanRead flag.`,
         );
       }
+
+      if (
+        properties.readRoles !== undefined &&
+        typeof properties.readRoles !== "string"
+      ) {
+        throw new Error(
+          `Field "${component.key ?? component.label ?? "unknown"}" has an invalid readRoles value.`,
+        );
+      }
+    }
+
+    if (type === "button" && component.action === "submit") {
+      submitButtons += 1;
     }
   });
 
@@ -105,7 +199,7 @@ export function collectFormFieldSettings(schema: FormioSchema) {
   const fields: FormFieldSettings[] = [];
 
   visitFormioComponents(schema, (component) => {
-    if (!component.key || component.type === "button") {
+    if (!component.key || component.type === "button" || component.type === "content") {
       return;
     }
 
@@ -155,6 +249,42 @@ export function updateFormFieldSettings(
   });
 
   return nextSchema;
+}
+
+function validateSafeHtml(value: unknown, fieldName: string) {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  if (typeof value !== "string") {
+    throw new Error(`Content field "${fieldName}" must use a string HTML payload.`);
+  }
+
+  for (const pattern of UNSAFE_HTML_PATTERNS) {
+    if (pattern.test(value)) {
+      throw new Error(`Content field "${fieldName}" contains unsupported HTML.`);
+    }
+  }
+}
+
+function hasMeaningfulDangerousValue(value: unknown) {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === "object") {
+    return Object.keys(value).length > 0;
+  }
+
+  return true;
 }
 
 function walkComponents(
@@ -213,6 +343,6 @@ function walkRows(
 function splitRoles(value?: string) {
   return (value ?? "")
     .split(",")
-    .map((role) => role.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
 }
