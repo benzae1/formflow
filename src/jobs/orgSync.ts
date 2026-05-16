@@ -18,12 +18,21 @@ export async function syncOrg(adapter: OrgAdapter) {
   );
 
   for (const user of externalUsers) {
+    const deactivatedAt = user.active ? null : new Date();
+
     await db.user.upsert({
       where: { email: user.email },
       update: {
         name: user.name,
         externalId: user.externalId,
-        deactivatedAt: user.active ? null : new Date(),
+        deactivatedAt,
+        ...(deactivatedAt
+          ? {
+              sessionVersion: {
+                increment: 1,
+              },
+            }
+          : {}),
       },
       create: {
         email: user.email,
@@ -55,6 +64,9 @@ export async function syncOrg(adapter: OrgAdapter) {
       },
       data: {
         deactivatedAt: new Date(),
+        sessionVersion: {
+          increment: 1,
+        },
       },
     });
   }

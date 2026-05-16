@@ -56,6 +56,9 @@ export async function PATCH(
         roles: {
           set: resolvedRoles.map((role) => ({ id: role.id })),
         },
+        sessionVersion: {
+          increment: 1,
+        },
         ...(input.teamScope !== undefined ? { teamScope: input.teamScope } : {}),
       },
     });
@@ -67,7 +70,7 @@ export async function PATCH(
       resourceId: user.id,
       beforeState: { roles: existing.roles.map((role) => role.name), teamScope: existing.teamScope },
       afterState: { roles: user.roles.map((role) => role.name), teamScope: user.teamScope },
-      metadata: { email: user.email },
+      metadata: { email: user.email, sessionsRevoked: true },
     });
 
     return Response.json({ user });

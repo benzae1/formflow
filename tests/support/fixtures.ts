@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
+import { hash } from "bcryptjs";
 import { db } from "../../src/lib/db";
 import { encryptSensitiveSubmissionData } from "../../src/lib/submission-encryption";
 import type { FormioSchema } from "../../src/lib/formio-sensitive-fields";
@@ -11,6 +12,8 @@ const SYSTEM_ROLES = [
   { name: "compliance", label: "Compliance" },
   { name: "submitter", label: "Submitter" },
 ] as const;
+
+const TEST_PASSWORD_COST = 4;
 
 function connectRoles(names: string[]) {
   return {
@@ -26,6 +29,10 @@ async function ensureSystemRoles() {
       create: role,
     });
   }
+}
+
+async function hashTestPassword(password: string) {
+  return hash(password, TEST_PASSWORD_COST);
 }
 
 const baseSchema: FormioSchema = {
@@ -96,6 +103,8 @@ export async function seedBaseUsers() {
     data: {
       email: "admin@example.com",
       name: "Admin User",
+      externalId: "admin",
+      passwordHash: await hashTestPassword("admin"),
       roles: connectRoles(["admin", "submitter"]),
     },
     include: { roles: true },
@@ -105,6 +114,8 @@ export async function seedBaseUsers() {
     data: {
       email: "approver@example.com",
       name: "Approver User",
+      externalId: "approver",
+      passwordHash: await hashTestPassword("approver"),
       roles: connectRoles(["approver", "submitter"]),
     },
     include: { roles: true },
@@ -114,6 +125,8 @@ export async function seedBaseUsers() {
     data: {
       email: "submitter@example.com",
       name: "Submitter User",
+      externalId: "submitter",
+      passwordHash: await hashTestPassword("submitter"),
       roles: connectRoles(["submitter"]),
     },
     include: { roles: true },
@@ -123,6 +136,8 @@ export async function seedBaseUsers() {
     data: {
       email: "compliance@example.com",
       name: "Compliance User",
+      externalId: "compliance",
+      passwordHash: await hashTestPassword("compliance"),
       roles: connectRoles(["compliance"]),
     },
     include: { roles: true },

@@ -48,6 +48,10 @@ model User {
   roles         Role[]    @relation("UserRoles")
   externalId    String?
   passwordHash  String?
+  failedLoginCount Int    @default(0)
+  lastFailedLoginAt DateTime?
+  lockedUntil   DateTime?
+  sessionVersion Int      @default(0)
   deactivatedAt DateTime?
   teamScope     Boolean   @default(false)
 
@@ -235,5 +239,10 @@ model AuditLog {
   metadata      Json?
 
   createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([resourceType, resourceId, createdAt])
+  @@index([action, createdAt])
 }
 

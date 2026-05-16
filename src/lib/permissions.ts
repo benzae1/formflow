@@ -4,7 +4,7 @@ import { getSession } from "./auth";
 export async function requireUser() {
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user || (session as { error?: string }).error) {
     throw new Response(
       JSON.stringify({
         error: {
