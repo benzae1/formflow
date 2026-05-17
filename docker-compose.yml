@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
 
   temporal-ui:
-    image: temporalio/ui:2.31
+    image: temporalio/ui:latest
     container_name: formflow-temporal-ui
     environment:
       - TEMPORAL_ADDRESS=temporal:7233

@@ -12,7 +12,9 @@
       "Bash(npm --version)",
       "Bash(git commit *)",
       "Bash(npx prisma *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)"
     ]
   }
 }

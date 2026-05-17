@@ -1,15 +1,7 @@
-import { loadEnvFile } from "node:process";
+// Use environment variables provided by the container at runtime.
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
-
-try {
-  loadEnvFile();
-} catch (error) {
-  if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
-    throw error;
-  }
-}
 
 const connectionString = process.env.DATABASE_URL;
 
