@@ -155,13 +155,9 @@ export async function PATCH(
       );
     }
 
-    let updated = await db.submission.update({
-      where: { id },
-      data: {
-        data: encryptedData as Prisma.InputJsonValue,
-        submittedLocale: locale,
-      },
-    });
+    let workflow:
+      | Awaited<ReturnType<typeof db.workflow.findUnique>>
+      | null = null;
 
     if (submission.status === "draft" && input.submit) {
       const workflowId = submission.form.workflowId;
@@ -173,7 +169,7 @@ export async function PATCH(
         );
       }
 
-      const workflow = await db.workflow.findUnique({
+      workflow = await db.workflow.findUnique({
         where: { id: workflowId },
       });
 
@@ -184,19 +180,33 @@ export async function PATCH(
           404,
         );
       }
+    }
 
-      updated = await db.submission.update({
-        where: { id },
-        data: {
-          data: encryptedData as Prisma.InputJsonValue,
-          formVersion: submission.form.version,
-          formSchemaSnapshot: localizedSchema as Prisma.InputJsonValue,
-          submittedLocale: locale,
-          workflowId: workflow.id,
-          workflowVersion: workflow.version,
-          workflowDefinition: workflow.definition as Prisma.InputJsonValue,
-        },
-      });
+    let updated = await db.submission.update({
+      where: { id },
+      data: {
+        data: encryptedData as Prisma.InputJsonValue,
+        submittedLocale: locale,
+        ...(workflow
+          ? {
+              formVersion: submission.form.version,
+              formSchemaSnapshot: localizedSchema as Prisma.InputJsonValue,
+              workflowId: workflow.id,
+              workflowVersion: workflow.version,
+              workflowDefinition: workflow.definition as Prisma.InputJsonValue,
+            }
+          : {}),
+      },
+    });
+
+    if (submission.status === "draft" && input.submit) {
+      if (!workflow) {
+        throw new ApiError(
+          "WORKFLOW_NOT_FOUND",
+          "This form's workflow could not be found.",
+          404,
+        );
+      }
 
       await startSubmissionApprovalWorkflow({
         submissionId: submission.id,
