@@ -1,438 +1,231 @@
 # FormFlow Codebase Audit
 
-Date: 2026-05-13
+Date: 2026-05-17
 
-Scope: current repository state in `c:\Users\Carlotta\Documents\antonsSachen\formflow`. I used `graphify-out/GRAPH_REPORT.md` as a map first, then inspected the application routes, Prisma model, Temporal workflows, auth, form builder/renderer, org sync, Docker/CI setup, and tests.
+Scope: current repository state in `c:\Users\anton\Documents\Projects\formflow`. I used `graphify-out/GRAPH_REPORT.md` as a map, then inspected the application routes, Prisma model, Temporal workflows and worker, auth, form schema/submission validation, encryption, org sync, Docker/CI, and `formflow-design-spec.md` as the intended product reference. This audit supersedes the 2026-05-13 audit; resolved items from that pass are summarized below.
+
+Context note: this is an internal tool for a single German university (~5000 students and staff). Findings are weighted for that scale — large-scale concerns (multi-tenancy, per-form keys, heavy archival) are deliberately downgraded.
 
 ## Executive Summary
 
-FormFlow is now beyond a thin prototype. The codebase has Next.js App Router pages, Prisma migrations, NextAuth credential/LDAP auth, Form.io builder and renderer integration, Temporal workflows, audit logging, role/delegation management, field-level access settings, workflow snapshots, form schema snapshots, notifications, CI, and integration tests.
+FormFlow is a substantially complete internal beta. Since the previous audit the team has closed most of the high-severity items: self-hosted fonts, `prebuild`/`prelint`/`pretest` Prisma generation, zero-warning lint gate, recursive nested-field encryption/redaction, schema-aware submission validation, a Form.io component allowlist, auth rate limiting + lockout + session revocation, a visual workflow stage designer, break-glass justification for sensitive submissions, a Playwright smoke job in CI, Docker healthchecks, and audit-log indexes.
 
-It is not production ready yet. The biggest remaining risks are operational hardening, schema/data validation depth, workflow authoring quality, auth abuse controls, and deploy repeatability. The good news: the previous critical build/typecheck and approval authorization holes appear to be fixed in the current tree.
+It is still not production ready. The remaining issues are a mix of one genuine functional bug (org sync is silently non-functional), several correctness/robustness gaps in the submission and workflow paths, and maintainability debt — chiefly a duplicated route tree and inline translation tables.
 
 ## Verification Snapshot
 
-Commands run locally:
-
-- `npm.cmd run lint`: passed with 2 warnings.
-- `npx.cmd tsc --noEmit`: initially failed because the local generated Prisma client was stale; after `npx.cmd prisma generate`, it passed.
-- `npm.cmd run build`: failed in the restricted sandbox because `next/font/google` could not fetch Google Fonts; passed when allowed network access.
-- `npm.cmd run test:integration`: passed, 6 files and 22 tests.
-
-I did not run the Playwright e2e suite because it needs the full running stack/browser setup.
-
-## Production Readiness Assessment
-
-Current state: close to a functional internal beta, not ready for production handling sensitive institutional workflows.
-
-Before production, prioritize:
-
-1. Make builds reproducible without live external font/network fetches.
-2. Remove lint warnings and make Prisma generation impossible to forget.
-3. Harden auth with rate limiting, account lockout/monitoring, and explicit session revocation strategy.
-4. Tighten Form.io schema and submission-data validation, especially nested sensitive fields.
-5. Replace the raw workflow JSON editor with a polished workflow designer, dynamic routing controls, and workflow/form visibility validation.
-6. Add Playwright smoke e2e to CI.
-7. Fix LDAP documentation/config drift and decide whether current LDAP org mapping is sufficient.
-8. Add production operations pieces: backups, health checks, metrics, log routing, secret management, and non-dev Docker settings.
+Static review only this pass; I did not re-run the build/test suite. CI (`.github/workflows/ci.yml`) now runs lint, typecheck, build, integration, and a Playwright `@smoke` e2e job against the Docker stack.
 
 ## Findings
 
-### 1. Production builds depend on a live Google Fonts fetch
+### 1. Org-sync workflow is never registered with the worker
 
 Severity: High
 
 Evidence:
 
-- `src/app/layout.tsx:2` and `src/app/signin/layout.tsx:2` import `Barlow_Semi_Condensed` from `next/font/google`.
-- `npm.cmd run build` failed in the network-restricted sandbox with `Failed to fetch Barlow Semi Condensed from Google Fonts`.
-- The same build passed only after network access was allowed.
+- `src/temporal/worker.ts:34` schedules `workflowType: "orgSyncWorkflow"` on task queue `formflow-approval`.
+- `src/temporal/worker.ts:65` sets `workflowsPath: require.resolve("./workflows/approvalWorkflow")` — Temporal bundles only that single file and its imports.
+- `src/temporal/workflows/orgSyncWorkflow.ts` is a separate module and is not imported by `approvalWorkflow.ts`, so it is never included in the worker bundle.
 
 Impact:
 
-- Production builds are not deterministic in offline, firewalled, or tightly controlled CI/CD environments.
-- A transient Google Fonts outage or blocked outbound request can stop deploys.
+- Every scheduled org sync (hourly by default) fails: Temporal cannot find workflow type `orgSyncWorkflow` on the queue.
+- The directory cache (`OrgUnit`, `OrgMembership`, manager flags) never refreshes automatically. Org-based routing (`submitter.manager`, `department.head`) silently degrades over time.
+- The admin dashboard "directory current" indicator is derived from `User.updatedAt`, so it can look healthy while sync is dead.
 
 Fix:
 
-- Self-host the font files under `public/fonts` and switch to `next/font/local`, or use system fonts only.
-- Keep the Google font fetch out of the production build path.
+- Create a workflows barrel (e.g. `src/temporal/workflows/index.ts`) that re-exports both `approvalWorkflow` and `orgSyncWorkflow`, and point `workflowsPath` at it.
+- Add an integration/e2e check that the scheduled org sync actually advances `OrgUnit`/`OrgMembership`.
 
-### 2. Prisma client generation is an easy local footgun
-
-Severity: High
-
-Evidence:
-
-- `npx.cmd tsc --noEmit` initially produced many incorrect Prisma type errors, including stale enum-style `roles` types, until `npx.cmd prisma generate` was run.
-- CI explicitly runs `npx prisma generate` in `.github/workflows/ci.yml:32`, `:53`, and `:88`.
-- `package.json:12` has a `prisma:generate` script, but `build`, `lint`, and `test:integration` do not force it.
-- `scripts/prisma-postinstall.mjs:12` skips generation when neither `DATABASE_URL` nor a local env file exists.
-
-Impact:
-
-- Developers can see false type failures or, worse, build against stale generated types after schema changes.
-- This increases onboarding friction and can mask real type errors.
-
-Fix:
-
-- Add `prisma generate` to a `prebuild`, `pretest:integration`, or `prepare` path that does not require a live database URL.
-- Document the exact local flow in `README.md`.
-- Consider checking `npx prisma validate` in CI too.
-
-### 3. Lint still passes with warnings
+### 2. Any edit to a `needs_revision` submission silently resubmits it
 
 Severity: Medium
 
 Evidence:
 
-- `npm.cmd run lint` passed, but reported:
-  - `src/app/admin/forms/FormsManagerClient.tsx:76`: `useMemo` missing `locale` dependency.
-  - `src/components/submissions/SubmissionFormView.tsx:56`: `_locale` is unused.
+- `src/app/api/submissions/[id]/route.ts:225-238`: the `needs_revision` branch signals `resubmittedSignal` on every `PATCH`, unconditionally.
+- `updateSubmissionSchema` has an optional `submit` boolean, but it is only consulted for the `draft` branch (`:147`, `:163`).
 
 Impact:
 
-- The missing dependency can cause stale filtering/title behavior when locale changes.
-- Warnings staying green makes it easier for small issues to accumulate.
+- A submitter who saves intermediate progress on a returned submission cannot do so without advancing the Temporal workflow back into review.
+- There is no "save draft of a revision" path; the first save is final.
 
 Fix:
 
-- Add `locale` to the `useMemo` dependency array.
-- Remove the unused `locale` prop from `SubmissionFormView` or use it.
-- Configure CI lint to fail on warnings once the current two warnings are fixed.
+- Gate the `resubmittedSignal` on `input.submit === true`, mirroring the draft branch. Allow plain saves to persist `data` without signalling.
 
-### 4. Form.io schema validation is still too permissive for production
-
-Severity: High
-
-Evidence:
-
-- `src/lib/formio-schema.ts:20` and `:26` allow arbitrary extra component and schema properties with `[key: string]: unknown`.
-- `validateFormioSchema` checks components, keys, duplicate keys, submit button presence, and two custom property flags (`src/lib/formio-schema.ts:37-93`).
-- It does not restrict risky Form.io features such as custom JavaScript hooks, calculated values, HTML content, file upload settings, remote data sources, or unknown component types.
-
-Impact:
-
-- Admin-authored JSON can introduce behavior the backend does not understand or review.
-- The renderer may execute or expose Form.io features that were not part of the intended product/security model.
-- Backend field access and encryption can drift from what the frontend renders.
-
-Fix:
-
-- Define an explicit supported component allowlist and allowed property allowlist.
-- Reject or strip executable/custom Form.io fields server-side.
-- Add tests for rejected dangerous properties and accepted supported components.
-
-### 5. Submission payloads are not validated against the form schema
-
-Severity: High
-
-Evidence:
-
-- `src/lib/validation/submissions.ts:5` and `:11` accept `data: z.record(z.string(), z.any())`.
-- `src/app/api/submissions/route.ts:108-128` encrypts selected fields and stores the whole submitted object.
-- There is no server-side pruning of unknown keys or type checking against the saved Form.io schema.
-
-Impact:
-
-- Clients can submit extra fields that were never present in the form.
-- Reporting, audit exports, and field-level redaction can be polluted by unmodeled data.
-- Sensitive fields can be missed if the submitted shape differs from the expected schema.
-
-Fix:
-
-- Build a schema-aware submission validator from the stored Form.io schema.
-- Reject unknown keys by default, validate primitive types where possible, and normalize optional empty values.
-- Store a validation result/audit entry when submission data is rejected.
-
-### 6. Nested sensitive fields are likely not encrypted or filtered correctly
-
-Severity: High
-
-Evidence:
-
-- `visitFormioComponents` walks nested structures including columns, rows, field sets, and edit grids (`src/lib/formio-schema.ts:104-157`).
-- `encryptSensitiveSubmissionData` collects sensitive keys but only checks `if (key in encrypted)` at the root data object (`src/lib/formio-sensitive-fields.ts:14-24`).
-- `filterSubmissionDataForUser` also iterates only over root `Object.entries(input.data)` (`src/lib/field-access.ts:20-42`).
-
-Impact:
-
-- Sensitive fields inside DataGrid/EditGrid/nested containers can be discovered in the schema but not encrypted or redacted in the nested submitted data.
-- This is a serious risk if the product allows complex Form.io layouts.
-
-Fix:
-
-- Track full component paths, not only field keys.
-- Apply encryption and redaction recursively to arrays/objects according to those paths.
-- Add tests for sensitive fields inside columns, datagrids, editgrids, and nested components.
-
-### 7. Mutation protection is useful but not a full CSRF strategy
+### 3. Submit path is not atomic with the Temporal workflow start
 
 Severity: Medium
 
 Evidence:
 
-- Mutating routes call `assertMutationRequest`.
-- `src/lib/request-guard.ts:7-13` requires a static `x-formflow-intent: mutation` header.
-- Origin and referer are only rejected if they are present (`src/lib/request-guard.ts:20-37`).
+- `src/app/api/submissions/route.ts:130-182` and `src/app/api/submissions/[id]/route.ts:155-222`: the submission row is created/updated, then `temporal.workflow.start(...)` is called, then a separate `db.submission.update` sets `status: "submitted"`.
+- None of this is wrapped in a transaction or compensating logic.
 
 Impact:
 
-- The custom header blocks normal HTML form CSRF attempts, but the protection is not tied to a session-specific token.
-- Missing Origin/Referer headers are accepted.
-- The static header can be copied by any same-origin script if an XSS issue appears.
+- If `workflow.start` succeeds but the final status update fails, the workflow runs while the row stays `draft`.
+- If `workflow.start` throws after the row is created, the submission is orphaned in `draft` with no workflow.
 
 Fix:
 
-- Add a session-bound CSRF token for mutating requests, or use a NextAuth CSRF/token flow consistently.
-- Decide whether missing Origin/Referer should be rejected in production.
-- Add tests for missing header, bad origin, missing origin, and valid same-origin mutation.
+- Start the workflow first (idempotent on `workflowId = submission.id`), then update status; on workflow-start failure, delete/flag the draft.
+- Consider a reconciliation job that detects `submitted` rows with no live workflow run and vice versa.
 
-### 8. Authentication lacks abuse controls
-
-Severity: High
-
-Evidence:
-
-- The credentials provider in `src/lib/auth.ts:44-103` validates LDAP or local passwords directly.
-- There is no rate limiting, lockout, IP/user throttling, failed-login audit event, or suspicious-auth alerting in that flow.
-- JWT session lifetime is set in-process in `src/lib/auth.ts:9-10` and `:105-124`, with no persistent server-side session revocation list.
-
-Impact:
-
-- Password guessing against local or LDAP credentials is not controlled by the app.
-- Lost/stolen JWT sessions cannot be revoked centrally unless NextAuth secret rotation or user deactivation side effects are used.
-
-Fix:
-
-- Add rate limiting on `/api/auth/*` by IP and username/UID.
-- Write failed-login audit events without storing submitted passwords.
-- Define a revocation strategy: DB sessions, token version per user, or short JWT plus forced reauth after role/deactivation changes.
-
-### 9. Workflow authoring is too raw for non-technical admins
+### 4. Workflow `goTo` / role / user / org targets are not validated before publish
 
 Severity: Medium
 
 Evidence:
 
-- `src/app/admin/workflows/WorkflowsManagerClient.tsx:205` exposes workflow definition as a raw JSON `<textarea>`.
-- Runtime supports advanced stage types, but the UI only summarizes parsed JSON and does not guide safe construction (`src/app/admin/workflows/WorkflowsManagerClient.tsx:93-101`, `:213-231`).
-- The workflow schema accepts `approval`, `notification`, `trigger-form`, and `condition` stages (`src/lib/validation/workflows.ts:30`).
-- Workflow role targets are still statically limited to `admin`, `approver`, and `compliance` in `src/domain/workflow.ts:2` and `src/lib/validation/workflows.ts:6-8`, even though the database role model can store arbitrary business roles.
-- Published forms are listed and opened based mainly on publication status, not explicit audience rules (`src/app/submissions/page.tsx:54-61`, `src/app/forms/[slug]/page.tsx:29-33`, `src/app/api/submissions/route.ts:96-109`).
+- `src/lib/validation/workflows.ts:53` allows `onReject: { goTo: z.string() }` — any string, no cross-check that the stage id exists.
+- `src/temporal/workflows/approvalWorkflow.ts:380-388` (`jumpToStage`) throws at runtime if the id is missing.
+- `src/lib/validation/workflow-server.ts:142`: `assertWorkflowRunnable` validates only `group` targets for emptiness. Role/user existence is checked at workflow-API write time (`assertRoleTargetsExist`) but org resolvers (`submitter.manager`, `submitter.skip-level`, `department.head`) are never validated, and `goTo` targets are never validated anywhere.
 
 Impact:
 
-- A malformed but schema-valid workflow can be hard for admins to understand or debug.
-- Operational users have to author routing logic in JSON, which conflicts with the low-code product goal.
-- The current authoring experience cannot comfortably model real institutional routing such as finance, management, department heads, submitter manager, or org-unit teams without hand-edited JSON.
-- Forms cannot yet be restricted to specific roles or org units, so publication is too broad for role-specific internal processes.
+- An admin can publish a form whose workflow throws on the first submission (bad `goTo`, deactivated target user, or an org resolver that produces an empty assignee set).
+- `approvalWorkflow.ts:208` throws `No assignees resolved` only at execution time, surfacing as a failed Temporal workflow rather than a publish-time error.
 
 Fix:
 
-- Build a polished workflow designer UI, not just a safer JSON editor. It should provide stage cards, drag/reorder controls, explicit stage types, required-field states, inline validation, and a readable route map/timeline preview.
-- Add structured controls for approval, notification, condition, trigger-form, SLA/reminder, branch targets, return-to-submitter, and close/go-to outcomes.
-- Add workflow stage routing controls that select from live users, DB roles, org units/groups, and built-in org resolvers such as submitter manager, skip-level manager, and department head.
-- Replace hard-coded workflow role values with dynamic role validation against the `Role` table while preserving app-level system roles for permissions.
-- Add support for approver-stage fields, for example finance-only data such as cost center or bank account, stored with the approval task rather than mutating the submitter's original answers.
-- Add form visibility/audience settings for roles and org units, then enforce those settings in published-form listings, form detail routes, and submission create/update APIs.
-- Keep the JSON view as an advanced/debug panel with round-trip validation against the structured editor.
-- Add a workflow "dry run" validator that resolves sample routing, detects empty assignee sets, warns on missing manager/head mappings, and reports unreachable/broken stages before publishing.
+- In `assertWorkflowRunnable`, validate every `goTo` resolves to an existing stage id, and warn (or block) when org resolvers cannot currently resolve to any active user.
+- The design spec's "workflow dry-run validator" is the right target: resolve sample routing and report unreachable stages and empty assignee sets before publish.
 
-### 10. Workflow "runnable" checks are shallow
+### 5. Condition-stage expression evaluation can crash the workflow
 
 Severity: Medium
 
 Evidence:
 
-- Form creation only checks that an attached workflow definition is a non-empty array (`src/app/api/forms/route.ts:149-169`).
-- Form publish/update checks the same shape but does not validate runtime assignee resolvability (`src/app/api/forms/[id]/route.ts:58-79`).
-- Workflow creation validates child form IDs (`src/app/api/workflows/route.ts:46-75`) but not whether role/org/group targets currently resolve to active approvers.
+- `src/lib/workflow-conditions.ts`: `validateConditionExpression` checks syntax and identifier prefixes at authoring time; `evaluateCondition` calls `parsed.evaluate(context)` directly.
+- `src/temporal/workflows/approvalWorkflow.ts:132-134` runs `evaluateCondition` inside workflow code with no try/catch.
 
 Impact:
 
-- Admins can publish forms whose workflows fail only when a user submits.
-- Org/group routing can silently resolve to no assignees at runtime, causing Temporal workflow failure.
+- A syntactically valid expression can still throw at evaluation (missing member access on `undefined`, type mismatch against real submission data). An uncaught throw fails the whole Temporal workflow.
 
 Fix:
 
-- Validate that published workflows contain at least one terminal/executable route and can resolve all static role/user/group targets.
-- For org targets, provide warnings when the current org graph has no matching manager/head.
-- Validate that form audience settings resolve to at least one active role/org-unit population before publishing, or show an explicit warning when an audience is intentionally empty.
-- Add tests for unresolvable workflow targets and publishing behavior.
+- Wrap `evaluateCondition` in a try/catch; on error, treat as a defined branch outcome (e.g. false) and surface a workflow event/log rather than crashing.
 
-### 11. LDAP documentation conflicts with actual base-DN parsing
+### 6. Detached SLA reminder/overdue timers are not cancelled when a stage resolves
 
-Severity: Medium
+Severity: Low
 
 Evidence:
 
-- `README.md:31` shows `LDAP_BASE_DNS="o=uni-we,o=uni"`.
-- `.env.example:26-27` says `LDAP_BASE_DNS` uses `|` as the separator because commas belong inside DNs.
-- `src/lib/ldap.ts:185-193` implements `LDAP_BASE_DNS` splitting with `|`.
-- `src/jobs/ldapOrgAdapter.ts:43` uses a comma-splitting helper for org sync base DNs, creating a second interpretation.
+- `src/temporal/workflows/approvalWorkflow.ts:225-240`: per-task reminder and overdue timers are spawned as fire-and-forget `void (async () => { await sleep(...) })()`.
+- When a stage resolves early (any-one approval, reject, revision), these timers are not cancelled.
 
 Impact:
 
-- Sign-in LDAP and org-sync LDAP can interpret the same environment variable differently.
-- Copying the README example can produce invalid or surprising LDAP searches.
+- The activities are guarded (`sendReminderIfTaskPending`, `markTaskOverdueIfPending` no-op on non-pending tasks), so no wrong emails are sent — but the workflow keeps pending coroutines and Temporal timers alive longer than necessary, and a long SLA can delay perceived workflow completion.
 
 Fix:
 
-- Standardize one parser for all LDAP base DN lists, preferably `|`.
-- Update `README.md` to match `.env.example`.
-- Add tests for multi-base-DN parsing in auth and org sync.
+- Scope timers with a Temporal `CancellationScope` per stage and cancel it once the decision arrives.
 
-### 12. Demo credentials and docs are inconsistent
+### 7. Approval audit entry is written before the workflow applies the decision
 
-Severity: Medium
+Severity: Low
 
 Evidence:
 
-- `README.md:39-43` lists `admin@example.com`, `approver@example.com`, and `submitter@example.com`.
-- `prisma/seed.ts:44`, `:62`, and `:80` seed `admin@bauhaus.de`, `approver@bauhaus.de`, and `submitter@bauhaus.de`.
-- The seed also sets local passwords (`admin`, `approver`, `submitter`) in `prisma/seed.ts:46`, `:64`, and `:82`, but the README calls them "email-only sign-ins."
+- `src/app/api/submissions/[id]/approve/route.ts:37-46`: `submission.approved` is written to the audit log immediately after `handle.signal(...)`, before the workflow processes the signal.
 
 Impact:
 
-- New developers and testers can fail login during setup.
-- More importantly, default credentials must never survive into production.
+- The audit log records `submission.approved` even if the signal targets a stage that does not finalize the submission (intermediate stage) or if the workflow later errors. Audit semantics drift from actual state.
 
 Fix:
 
-- Align README with seed data.
-- Add an explicit production guard so the demo seed refuses to create default-password users unless `NODE_ENV !== "production"` or a dedicated `ALLOW_DEMO_USERS=true` flag is set.
+- Either rename the action to `submission.approval_signalled`, or move authoritative outcome audit writes into the workflow activities (`closeSubmission`-style) where the real state transition happens.
 
-### 13. Audit log immutability is implemented with triggers, but export and retention are still basic
+### 8. Duplicated route tree (`/admin/*` and `/[lang]/admin/*`)
 
-Severity: Medium
+Severity: Medium (maintainability)
 
 Evidence:
 
-- `prisma/migrations/20260511170000_submission_snapshots_and_audit_lockdown/migration.sql:7-24` prevents `AuditLog` update/delete with database triggers.
-- `src/app/admin/audit-log/page.tsx:35-42` pages through the latest 50 rows.
-- The CSV export link is filter based (`src/app/admin/audit-log/page.tsx:52-57`), but there is no visible retention policy, tamper-evident export, or archival strategy.
+- Every page exists twice: the implementation under `src/app/admin/...`, `src/app/submissions/...`, etc., and a one-line re-export under `src/app/[lang]/admin/...` (e.g. `src/app/[lang]/admin/page.tsx` is `export { default } from "@/app/admin/page"`).
+- `src/proxy.ts` redirects any non-locale-prefixed path to `/{defaultLocale}/...`.
 
 Impact:
 
-- Append-only is a good start, but production compliance usually needs retention windows, export completeness, and operational access controls.
-- Large audit tables will need indexing and archival planning.
+- Both trees are built and routable. The non-`[lang]` routes are only ever reached transiently before redirect, yet they double the route surface and every new page must be added in two places — easy to forget one.
+- This is a structural smell that will compound as pages are added.
 
 Fix:
 
-- Add indexes for common audit filters: `createdAt`, `actorId`, `resourceType`, `resourceId`, and `action`.
-- Define retention/export requirements.
-- Add signed exports or immutable storage handoff if compliance requires it.
+- Keep a single `[lang]` tree as the source of truth and delete the non-prefixed duplicates, or vice versa. The proxy already guarantees a locale prefix, so the non-prefixed tree is redundant.
 
-### 14. Sensitive list visibility is opt-in, but detail views still need stronger intent logging
+### 9. Inline translation tables duplicated across pages
 
-Severity: Medium
+Severity: Medium (maintainability)
 
 Evidence:
 
-- Admin/compliance submission lists exclude non-standard forms by default unless `includeSensitive=true` (`src/lib/submission-visibility.ts:11-21`, `src/app/admin/submissions/page.tsx:28-43`).
-- Sensitive detail views write `submission.viewed` and `sensitive.accessed` (`src/lib/submissions.ts:31-58`).
-- The detail page does not require an explicit reason or confirmation before showing sensitive fields.
+- `src/app/admin/page.tsx:192-279` carries ~90 lines of inline `copy` objects for `de`/`en`. Other pages follow the same pattern.
+- A dictionary system exists (`src/lib/i18n/dictionaries.ts`).
 
 Impact:
 
-- Every sensitive detail open is logged, which is good, but accidental clicks can expose data before intent is captured.
-- Compliance workflows often require "break glass" reason capture for sensitive/PII access.
+- Translations are scattered, duplicated, and drift-prone; adding a language means editing every page.
 
 Fix:
 
-- Add a reason prompt or explicit "Reveal sensitive data" action for sensitive submissions.
-- Include that reason in `sensitive.accessed` metadata.
-- Add role-specific policy for which sensitive categories can be revealed.
+- Move page copy into the i18n dictionaries and load via the existing `getDictionary`/locale context.
 
-### 15. Playwright e2e tests exist but are not part of CI
+### 10. README LDAP example is inconsistent with the parser
 
-Severity: Medium
+Severity: Low
 
 Evidence:
 
-- `.github/workflows/ci.yml` has lint, typecheck, build, and integration jobs, but no e2e job.
-- `package.json:18-21` defines `test:e2e`, `test:e2e:install`, `verify`, and `verify:smoke`.
-- `tests/e2e/formflow.spec.ts` covers the browser journey, but it is not enforced in GitHub Actions.
+- `README.md:31`: `LDAP_BASE_DNS="o=uni-we,o=uni"` (comma-separated).
+- `.env.example` and `src/lib/ldap-config.ts` (`parseLdapBaseDns`) split `LDAP_BASE_DNS` on `|`. The code drift flagged in the prior audit is fixed (`ldapOrgAdapter.ts` now uses `getLdapBaseDnsFromEnv`), but the README example was not updated.
 
 Impact:
 
-- CI can pass while the browser-level admin -> submitter -> approver flow is broken.
-- The most important user journeys rely on Form.io, Next routing, cookies, and Temporal behavior together; integration tests alone do not cover that.
+- Copying the README produces a single base DN `o=uni-we,o=uni` rather than two — surprising, possibly broken, LDAP searches.
 
 Fix:
 
-- Add a CI job that starts the Docker stack, installs Chromium, and runs a smoke-tagged Playwright suite.
-- Upload Playwright traces/screenshots as artifacts on failure.
+- Update `README.md` to use `|` and match `.env.example`.
 
-### 16. Production Docker/Compose settings are still development-oriented
+### 11. Minor operational / hygiene items
 
-Severity: Medium
+Severity: Low
 
-Evidence:
+- `docker-compose.yml:36` still pins `temporalio/ui:latest`; pin a version for reproducibility.
+- `docker-compose.yml`: app, Temporal, and Temporal metadata still share one Postgres service/credentials. Acceptable at this scale, but document it as a deliberate local-only choice and provide a production template.
+- `src/app/api/submissions/[id]/route.ts`: the draft-submit path issues three sequential `db.submission.update` calls (`:155`, `:186`, `:216`); collapse to one update before and one after the workflow start.
+- `src/lib/field-access.ts` is a single re-export line — trivial indirection that can be inlined or removed.
+- Non-auth mutation APIs have no rate limiting. Acceptable for an internal ~5000-user tool, but worth a note.
 
-- `docker-compose.yml` hardcodes local database credentials and ports.
-- `temporal-ui` uses `temporalio/ui:latest`.
-- The app, Temporal, and Temporal metadata all share one Postgres service in the compose stack.
-- There are no container healthchecks for `web` or `worker`.
+## Resolved Since 2026-05-13
 
-Impact:
-
-- This is fine for local development but weak for production.
-- `latest` images reduce reproducibility, and shared credentials/DB boundaries complicate least privilege.
-
-Fix:
-
-- Treat `docker-compose.yml` as local-only, and add a separate production deployment template.
-- Pin all image tags.
-- Separate app and Temporal databases or at least credentials/schemas.
-- Add healthchecks and restart/alerting behavior for the worker.
-
-### 17. Observability is too thin for production incident response
-
-Severity: Medium
-
-Evidence:
-
-- The app uses `pino` through `src/lib/logger.ts`, and `apiErrorResponse` logs 500s (`src/lib/errors.ts:20-38`).
-- There is no request ID propagation, metrics endpoint, health endpoint, tracing, Temporal workflow failure dashboard integration, or structured audit-vs-operational log boundary documented.
-
-Impact:
-
-- When a workflow stalls, email fails, LDAP sync misbehaves, or a form submission is rejected, operators will have limited clues.
-
-Fix:
-
-- Add `/api/health` or a server health route covering DB and Temporal connectivity.
-- Add request IDs to API logs and audit metadata.
-- Export metrics for workflow failures, pending tasks, overdue tasks, email failures, LDAP sync results, and API 5xx rates.
+The following prior findings appear addressed in the current tree: Google Fonts build dependency (no `next/font/google` imports remain); Prisma generation footgun (`prebuild`/`prelint`/`pretest:integration`/`prepare` all run `prisma generate`); lint warnings (`--max-warnings=0`); Form.io schema permissiveness (component allowlist, dangerous-key and unsafe-HTML rejection in `formio-schema.ts`); submission payload validation (`normalizeSubmissionData` rejects unknown keys and type-checks); nested sensitive fields (path-based recursive encrypt/redact in `formio-data.ts`); CSRF (double-submit token + Origin/Referer enforcement in `request-guard.ts`); auth abuse controls (rate limiting, lockout, `sessionVersion` revocation); raw workflow JSON editor (replaced by the visual stage designer); break-glass reason capture for sensitive submissions (`x-break-glass-reason`, HTTP 428); Playwright smoke in CI; Docker healthchecks; audit-log indexes.
 
 ## Test Coverage Gaps
 
-Add coverage for:
-
-- Form.io schema allowlist and rejected executable/custom properties.
-- Nested sensitive field encryption/redaction for DataGrid/EditGrid/columns.
-- Submission-data validation rejecting unknown keys and wrong types.
-- Workflow runtime behavior for `notification`, `condition`, `trigger-form`, `goTo`, and `return-to-submitter`.
-- Publishing forms with unresolvable role/org/group targets.
-- Workflow stage routing to dynamic DB roles, org units, managers, department heads, and direct users.
-- Form visibility/audience rules across form listing, form detail, submission create, and submission update routes.
-- LDAP base-DN parsing and LDAP org-sync normalization.
-- CSRF/mutation guard edge cases.
-- Auth rate limiting and failed-login audit behavior.
-- Playwright smoke e2e in CI.
+- Scheduled org sync actually registering and advancing the directory cache (would have caught finding 1).
+- `needs_revision` save-vs-resubmit behavior (finding 2).
+- Workflow publish-time validation: bad `goTo`, deactivated user targets, empty org-resolver results (finding 4).
+- Condition-stage evaluation against malformed/missing data (finding 5).
+- Workflow runtime behavior for `notification`, `condition`, `trigger-form`, `goTo`, and `return-to-submitter` paths.
 
 ## Production Readiness Checklist
 
-- Reproducible build with local fonts and generated Prisma client.
-- Zero lint warnings and CI failure on new warnings.
-- Full CI: lint, typecheck, build, integration, Playwright smoke e2e.
-- Hardened auth: rate limits, failed-login auditing, token/session revocation.
-- Server-side Form.io schema allowlist and schema-aware submission validation.
-- Recursive encryption/redaction for nested sensitive fields.
-- Polished workflow designer with dynamic routing, approver-stage fields, form audience controls, and dry-run validation.
-- LDAP config/docs aligned and tested.
-- Demo seed guarded from production.
-- Production deployment template with pinned images, separate secrets, healthchecks, backups, and monitoring.
-- Audit retention/export strategy and indexes.
+- Register `orgSyncWorkflow` with the worker; verify the schedule runs.
+- Make the submit path atomic / add reconciliation.
+- Gate `needs_revision` resubmission on an explicit submit flag.
+- Publish-time workflow validation (goTo, role/user/org targets, dry run).
+- Defensive condition-expression evaluation.
+- Collapse the duplicated route tree; move copy into i18n dictionaries.
+- Align README LDAP docs; pin the `temporal-ui` image; provide a production deploy template.
