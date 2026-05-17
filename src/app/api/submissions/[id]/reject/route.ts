@@ -36,7 +36,7 @@ export async function POST(
 
     await writeAuditLog({
       actorId: user.id,
-      action: "submission.rejected",
+      action: "submission.rejection_signalled",
       resourceType: "submission",
       resourceId: id,
       metadata: {

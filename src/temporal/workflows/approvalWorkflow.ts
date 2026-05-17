@@ -1,4 +1,5 @@
 import {
+  CancellationScope,
   condition,
   defineSignal,
   proxyActivities,
@@ -130,7 +131,7 @@ export async function approvalWorkflow(input: {
         input.submissionId,
       );
       const matches = (stage.conditions ?? []).every((item) =>
-        evaluateCondition(item.expression, workflowContext),
+        evaluateCondition(item.expression, workflowContext, false),
       );
 
       if (matches) {
@@ -221,21 +222,22 @@ export async function approvalWorkflow(input: {
     });
 
     const reminderHours = stage.sla?.reminderAt ?? [];
+    const timerScope = new CancellationScope();
 
     for (const taskId of taskIds) {
       for (const reminderHour of reminderHours) {
-        void (async () => {
+        void timerScope.run(async () => {
           await sleep(`${reminderHour} hours`);
           await activities.sendReminderIfTaskPending(taskId);
-        })();
+        });
       }
 
       const overdueHours = stage.sla?.hours;
       if (overdueHours) {
-        void (async () => {
+        void timerScope.run(async () => {
           await sleep(`${overdueHours} hours`);
           await activities.markTaskOverdueIfPending(taskId);
-        })();
+        });
       }
     }
 
@@ -249,6 +251,7 @@ export async function approvalWorkflow(input: {
     });
 
     const decision = latestDecision;
+    timerScope.cancel();
 
     if (!decision) {
       throw new Error("Approval decision missing.");

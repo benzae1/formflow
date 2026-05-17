@@ -30,8 +30,13 @@ export function validateConditionExpression(expression: string): string | null {
 export function evaluateCondition(
   expression: string,
   context: Record<string, unknown>,
+  fallback = false,
 ) {
-  const parser = new Parser();
-  const parsed = parser.parse(expression);
-  return Boolean(parsed.evaluate(context as never));
+  try {
+    const parser = new Parser();
+    const parsed = parser.parse(expression);
+    return Boolean(parsed.evaluate(context as never));
+  } catch {
+    return fallback;
+  }
 }

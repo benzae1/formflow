@@ -11,12 +11,14 @@ import {
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
-import { getTemporalClient } from "@/lib/temporal";
+import {
+  startSubmissionApprovalWorkflow,
+  terminateSubmissionWorkflow,
+} from "@/lib/submission-workflow";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { resolveFormSchema } from "@/lib/form-translations";
 import { normalizeSubmissionData } from "@/lib/formio-data";
-import { approvalWorkflow } from "@/temporal/workflows/approvalWorkflow";
 
 async function getVisibilityContext(userId: string, roles: string[]) {
   if (!roles.includes("approver")) return { teamScope: false, orgUnitIds: [] };
@@ -154,32 +156,39 @@ export async function POST(req: Request) {
         );
       }
 
-      const temporal = await getTemporalClient();
+      try {
+        await startSubmissionApprovalWorkflow({
+          submissionId: submission.id,
+          formId: form.id,
+          workflowId: workflow.id,
+          workflowVersion: workflow.version,
+          workflowDefinition: workflow.definition as Parameters<
+            typeof startSubmissionApprovalWorkflow
+          >[0]["workflowDefinition"],
+          submitterId: user.id,
+        });
+      } catch (error) {
+        await db.submission.delete({
+          where: { id: submission.id },
+        });
+        throw error;
+      }
 
-      await temporal.workflow.start(approvalWorkflow, {
-        taskQueue: "formflow-approval",
-        workflowId: submission.id,
-        args: [
-          {
-            submissionId: submission.id,
-            formId: form.id,
-            workflowId: workflow.id,
-            workflowVersion: workflow.version,
-            workflowDefinition: workflow.definition as Parameters<
-              typeof approvalWorkflow
-            >[0]["workflowDefinition"],
-            submitterId: user.id,
+      try {
+        submission = await db.submission.update({
+          where: { id: submission.id },
+          data: {
+            status: "submitted",
+            workflowRunId: submission.id,
           },
-        ],
-      });
-
-      submission = await db.submission.update({
-        where: { id: submission.id },
-        data: {
-          status: "submitted",
-          workflowRunId: submission.id,
-        },
-      });
+        });
+      } catch (error) {
+        await terminateSubmissionWorkflow(
+          submission.id,
+          "Submission activation failed before persistence completed.",
+        );
+        throw error;
+      }
     }
 
     await writeAuditLog({

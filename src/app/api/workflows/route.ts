@@ -5,7 +5,7 @@ import { apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { createWorkflowSchema } from "@/lib/validation/workflows";
-import { assertChildFormsExist, assertRoleTargetsExist } from "@/lib/validation/workflow-server";
+import { assertWorkflowDefinitionRunnable } from "@/lib/validation/workflow-server";
 
 export async function GET() {
   try {
@@ -27,8 +27,7 @@ export async function POST(req: Request) {
     const user = await requireRole(["admin"]);
     const body = await req.json();
     const input = createWorkflowSchema.parse(body);
-    await assertRoleTargetsExist(input.definition);
-    await assertChildFormsExist(input.definition);
+    await assertWorkflowDefinitionRunnable(input.definition);
 
     const workflow = await db.workflow.create({
       data: {

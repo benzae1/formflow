@@ -57,9 +57,9 @@ describe("approval signal routes", () => {
   });
 
   test.each([
-    ["approve", approveRoute, "approve", "submission.approved"],
-    ["reject", rejectRoute, "reject", "submission.rejected"],
-    ["revise", reviseRoute, "request-revision", "submission.revision_requested"],
+    ["approve", approveRoute, "approve", "submission.approval_signalled"],
+    ["reject", rejectRoute, "reject", "submission.rejection_signalled"],
+    ["revise", reviseRoute, "request-revision", "submission.revision_requested_signalled"],
   ] as const)(
     "%s routes send the expected Temporal signal and audit log",
     async (_label, route, decision, action) => {
@@ -162,7 +162,7 @@ describe("approval signal routes", () => {
       where: {
         resourceType: "submission",
         resourceId: submission.id,
-        action: "submission.approved",
+        action: "submission.approval_signalled",
       },
     });
 

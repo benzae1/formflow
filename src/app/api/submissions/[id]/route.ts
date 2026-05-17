@@ -11,12 +11,15 @@ import {
   getSubmissionSchema,
   presentSubmissionForUser,
 } from "@/lib/submissions";
-import { getTemporalClient } from "@/lib/temporal";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
+import {
+  startSubmissionApprovalWorkflow,
+  terminateSubmissionWorkflow,
+} from "@/lib/submission-workflow";
+import { getTemporalClient } from "@/lib/temporal";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
 import {
-  approvalWorkflow,
   resubmittedSignal,
 } from "@/temporal/workflows/approvalWorkflow";
 import { resolveFormSchema } from "@/lib/form-translations";
@@ -170,7 +173,6 @@ export async function PATCH(
         );
       }
 
-      const temporal = await getTemporalClient();
       const workflow = await db.workflow.findUnique({
         where: { id: workflowId },
       });
@@ -196,33 +198,35 @@ export async function PATCH(
         },
       });
 
-      await temporal.workflow.start(approvalWorkflow, {
-        taskQueue: "formflow-approval",
-        workflowId: submission.id,
-        args: [
-          {
-            submissionId: submission.id,
-            formId: submission.form.id,
-            workflowId: workflow.id,
-            workflowVersion: workflow.version,
-            workflowDefinition: workflow.definition as Parameters<
-              typeof approvalWorkflow
-            >[0]["workflowDefinition"],
-            submitterId: user.id,
-          },
-        ],
+      await startSubmissionApprovalWorkflow({
+        submissionId: submission.id,
+        formId: submission.form.id,
+        workflowId: workflow.id,
+        workflowVersion: workflow.version,
+        workflowDefinition: workflow.definition as Parameters<
+          typeof startSubmissionApprovalWorkflow
+        >[0]["workflowDefinition"],
+        submitterId: user.id,
       });
 
-      updated = await db.submission.update({
-        where: { id },
-        data: {
-          status: "submitted",
-          workflowRunId: submission.id,
-        },
-      });
+      try {
+        updated = await db.submission.update({
+          where: { id },
+          data: {
+            status: "submitted",
+            workflowRunId: submission.id,
+          },
+        });
+      } catch (error) {
+        await terminateSubmissionWorkflow(
+          submission.id,
+          "Submission activation failed before persistence completed.",
+        );
+        throw error;
+      }
     }
 
-    if (submission.status === "needs_revision") {
+    if (submission.status === "needs_revision" && input.submit) {
       const temporal = await getTemporalClient();
       const handle = temporal.workflow.getHandle(id);
       await handle.signal(resubmittedSignal);

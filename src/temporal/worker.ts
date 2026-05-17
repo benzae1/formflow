@@ -62,7 +62,7 @@ async function run() {
     connection: nativeConnection,
     namespace,
     taskQueue: "formflow-approval",
-    workflowsPath: require.resolve("./workflows/approvalWorkflow"),
+    workflowsPath: require.resolve("./workflows"),
     activities: {
       ...approvalActivities,
       ...notificationActivities,

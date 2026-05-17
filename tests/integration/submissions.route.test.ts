@@ -186,6 +186,39 @@ describe("submissions route", () => {
     expect(payload.error.code).toBe("FORM_HAS_NO_WORKFLOW");
   });
 
+  test("failed workflow starts do not leave orphaned submitted drafts behind", async () => {
+    const { admin, approver, submitter } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const form = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+    });
+
+    startWorkflowMock.mockRejectedValueOnce(new Error("Temporal unavailable"));
+    setMockSession(submitter);
+
+    const response = await POST(
+      new Request("http://localhost/api/submissions", {
+        method: "POST",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          formId: form.id,
+          data: {
+            requestTitle: "Broken workflow start",
+          },
+          saveAsDraft: false,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await db.submission.count()).toBe(0);
+  });
+
   test("visibility and field access are role-aware", async () => {
     const { admin, approver, submitter, compliance } = await seedBaseUsers();
     const workflow = await createWorkflowFixture({

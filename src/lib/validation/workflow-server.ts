@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { ApiError } from "@/lib/errors";
+import type { WorkflowDefinition } from "@/domain/workflow";
 import { workflowStageSchema } from "@/lib/validation/workflows";
 
 export async function assertChildFormsExist(definition: Array<{ childFormId?: string }>) {
@@ -22,7 +23,11 @@ export async function assertChildFormsExist(definition: Array<{ childFormId?: st
   }
 }
 
-type StageWithAssignTo = { assignTo?: unknown };
+type StageWithAssignTo = {
+  id?: string;
+  assignTo?: unknown;
+  onReject?: unknown;
+};
 
 function collectTargetsByType(definition: StageWithAssignTo[], type: string): string[] {
   const values = new Set<string>();
@@ -72,6 +77,40 @@ export async function assertRoleTargetsExist(definition: StageWithAssignTo[]) {
   }
 }
 
+export async function assertUserTargetsActive(definition: StageWithAssignTo[]) {
+  const userIds = collectTargetsByType(definition, "user");
+
+  if (userIds.length === 0) return;
+
+  const users = await db.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, deactivatedAt: true },
+  });
+
+  const activeIds = new Set(
+    users.filter((user) => user.deactivatedAt === null).map((user) => user.id),
+  );
+  const knownIds = new Set(users.map((user) => user.id));
+
+  const missingId = userIds.find((id) => !knownIds.has(id));
+  if (missingId) {
+    throw new ApiError(
+      "USER_NOT_FOUND",
+      `User "${missingId}" does not exist. Choose an active user or a different routing target.`,
+      422,
+    );
+  }
+
+  const deactivatedId = userIds.find((id) => !activeIds.has(id));
+  if (deactivatedId) {
+    throw new ApiError(
+      "USER_DEACTIVATED",
+      `User "${deactivatedId}" is deactivated and cannot receive workflow tasks.`,
+      422,
+    );
+  }
+}
+
 export async function assertGroupTargetsResolvable(definition: StageWithAssignTo[]) {
   const groupIds = collectTargetsByType(definition, "group");
 
@@ -107,6 +146,111 @@ export async function assertGroupTargetsResolvable(definition: StageWithAssignTo
   }
 }
 
+export function assertGoToTargetsExist(definition: WorkflowDefinition) {
+  const stageIds = new Set(definition.map((stage) => stage.id));
+
+  for (const stage of definition) {
+    const goTo =
+      typeof stage.onReject === "object" && stage.onReject !== null && "goTo" in stage.onReject
+        ? String((stage.onReject as { goTo: string }).goTo)
+        : null;
+
+    if (goTo && !stageIds.has(goTo)) {
+      throw new ApiError(
+        "WORKFLOW_INVALID",
+        `Stage "${stage.name || stage.id}" routes to missing stage "${goTo}".`,
+        422,
+      );
+    }
+  }
+}
+
+export async function assertOrgTargetsResolvable(definition: StageWithAssignTo[]) {
+  const orgTargets = collectTargetsByType(definition, "org");
+
+  if (orgTargets.length === 0) return;
+
+  const units = await db.orgUnit.findMany({
+    include: {
+      memberships: {
+        include: {
+          user: {
+            select: { deactivatedAt: true },
+          },
+        },
+      },
+      parent: {
+        include: {
+          memberships: {
+            include: {
+              user: {
+                select: { deactivatedAt: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const hasResolvableTarget = (target: string) => {
+    if (target === "submitter.manager") {
+      return units.some((unit) => {
+        const hasActiveSubmitter = unit.memberships.some(
+          (membership) => !membership.isManager && membership.user.deactivatedAt === null,
+        );
+        const hasActiveManager = unit.memberships.some(
+          (membership) => membership.isManager && membership.user.deactivatedAt === null,
+        );
+        return hasActiveSubmitter && hasActiveManager;
+      });
+    }
+
+    if (target === "submitter.skip-level") {
+      return units.some((unit) => {
+        const hasActiveSubmitter = unit.memberships.some(
+          (membership) => !membership.isManager && membership.user.deactivatedAt === null,
+        );
+        const hasActiveParentManager = unit.parent?.memberships.some(
+          (membership) => membership.isManager && membership.user.deactivatedAt === null,
+        );
+        return hasActiveSubmitter && hasActiveParentManager;
+      });
+    }
+
+    if (target === "department.head") {
+      return units.some((unit) => {
+        const department = unit.type === "department" ? unit : unit.parent;
+        return department?.memberships.some(
+          (membership) =>
+            membership.user.deactivatedAt === null &&
+            (membership.roleInUnit === "head" || membership.isManager),
+        );
+      });
+    }
+
+    return false;
+  };
+
+  const unresolvedTarget = orgTargets.find((target) => !hasResolvableTarget(target));
+  if (unresolvedTarget) {
+    throw new ApiError(
+      "ORG_TARGET_UNRESOLVABLE",
+      `Org routing target "${unresolvedTarget}" cannot currently resolve to any active user.`,
+      422,
+    );
+  }
+}
+
+export async function assertWorkflowDefinitionRunnable(definition: WorkflowDefinition) {
+  await assertRoleTargetsExist(definition);
+  await assertUserTargetsActive(definition);
+  await assertChildFormsExist(definition);
+  await assertGroupTargetsResolvable(definition);
+  await assertOrgTargetsResolvable(definition);
+  assertGoToTargetsExist(definition);
+}
+
 export async function assertWorkflowRunnable(workflowId: string) {
   const workflow = await db.workflow.findUnique({
     where: { id: workflowId },
@@ -139,5 +283,5 @@ export async function assertWorkflowRunnable(workflowId: string) {
     );
   }
 
-  await assertGroupTargetsResolvable(result.data);
+  await assertWorkflowDefinitionRunnable(result.data);
 }
