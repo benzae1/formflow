@@ -181,6 +181,49 @@ export type Dictionary = {
     draftSaved: string;
     reviewStatus: string;
   };
+  adminDashboard: {
+    submitted: string;
+    inReview: string;
+    overdue: string;
+    needsRevision: string;
+    approved: string;
+    rejected: string;
+    closed: string;
+    archive: string;
+    submissions: string;
+    submissionsSub: string;
+    auditLog: string;
+    auditSub: string;
+    sensitive: string;
+    overdueAlerts: string;
+    failedWorkflows: string;
+    forms: string;
+    formsSub: string;
+    drafts: string;
+    published: string;
+    archived: string;
+    workflowHealth: string;
+    workflowHealthSub: string;
+    active: string;
+    errors: string;
+    users: string;
+    usersSub: string;
+    total: string;
+    deactivated: string;
+    adminOps: string;
+    complianceOps: string;
+    oversight: string;
+    operations: string;
+    heroDescription: string;
+    manageForms: string;
+    reviewWorkflows: string;
+    orgSync: string;
+    orgCurrent: string;
+    lastSync: string;
+    open: string;
+    openPipeline: string;
+    usersCount: string;
+  };
 };
 
 const dictionaries: Record<Locale, Dictionary> = {
@@ -364,6 +407,49 @@ const dictionaries: Record<Locale, Dictionary> = {
       draftSaved: "Entwurf gespeichert.",
       reviewStatus: "Prüfstatus",
     },
+    adminDashboard: {
+      submitted: "Eingereicht",
+      inReview: "In Prüfung",
+      overdue: "Überfällig",
+      needsRevision: "Revision nötig",
+      approved: "Freigegeben",
+      rejected: "Abgelehnt",
+      closed: "Geschlossen",
+      archive: "Archiv",
+      submissions: "Einreichungen",
+      submissionsSub: "Pipeline von neu eingereichter Arbeit bis zum endgültigen Ergebnis.",
+      auditLog: "Audit-Log",
+      auditSub: "Spuren sensibler Zugriffe und Compliance-relevanter Ereignisse.",
+      sensitive: "Sensibel",
+      overdueAlerts: "Überfällige Hinweise",
+      failedWorkflows: "Fehlgeschlagene Workflows",
+      forms: "Formulare",
+      formsSub: "Veröffentlichungsstatus und Builder-Zugang.",
+      drafts: "Entwürfe",
+      published: "Veröffentlicht",
+      archived: "Archiviert",
+      workflowHealth: "Workflow-Status",
+      workflowHealthSub: "Ausführungsdruck, SLA-Risiko und Temporal-Fehler.",
+      active: "Aktiv",
+      errors: "Fehler",
+      users: "Benutzer",
+      usersSub: "Verzeichnis- und Lebenszyklusereignisse.",
+      total: "Gesamt",
+      deactivated: "Deaktiviert",
+      adminOps: "Administration · Betrieb",
+      complianceOps: "Compliance · Betrieb",
+      oversight: "Aufsicht",
+      operations: "Betrieb",
+      heroDescription: "Bauhaus Forms - Einreichungspipeline, Workflows und Verzeichnis auf einen Blick.",
+      manageForms: "Formulare verwalten",
+      reviewWorkflows: "Workflows prüfen",
+      orgSync: "Organisationsabgleich",
+      orgCurrent: "Verzeichnis aktuell - keine inaktiven Identitäten erkannt",
+      lastSync: "Letzte Synchronisation",
+      open: "Öffnen ->",
+      openPipeline: "Pipeline öffnen ->",
+      usersCount: "Benutzer",
+    },
   },
   en: {
     common: {
@@ -544,6 +630,49 @@ const dictionaries: Record<Locale, Dictionary> = {
       formPublished: "Form published.",
       draftSaved: "Draft saved.",
       reviewStatus: "Review status",
+    },
+    adminDashboard: {
+      submitted: "Submitted",
+      inReview: "In Review",
+      overdue: "Overdue",
+      needsRevision: "Needs Revision",
+      approved: "Approved",
+      rejected: "Rejected",
+      closed: "Closed",
+      archive: "Archive",
+      submissions: "Submissions",
+      submissionsSub: "Pipeline from newly submitted work through final outcomes.",
+      auditLog: "Audit Log",
+      auditSub: "Sensitive access trails and compliance-significant events.",
+      sensitive: "Sensitive",
+      overdueAlerts: "Overdue alerts",
+      failedWorkflows: "Failed workflows",
+      forms: "Forms",
+      formsSub: "Publication status and builder access.",
+      drafts: "Drafts",
+      published: "Published",
+      archived: "Archived",
+      workflowHealth: "Workflow Health",
+      workflowHealthSub: "Execution pressure, SLA risk, and Temporal failures.",
+      active: "Active",
+      errors: "Errors",
+      users: "Users",
+      usersSub: "Directory and lifecycle events.",
+      total: "Total",
+      deactivated: "Deactivated",
+      adminOps: "Admin · Operations",
+      complianceOps: "Compliance · Operations",
+      oversight: "Oversight",
+      operations: "Operations",
+      heroDescription: "Bauhaus Forms - submission pipeline, workflows, and directory at a glance.",
+      manageForms: "Manage forms",
+      reviewWorkflows: "Review workflows",
+      orgSync: "Org Sync",
+      orgCurrent: "Directory current - no inactive identities detected",
+      lastSync: "Last sync",
+      open: "Open ->",
+      openPipeline: "Open pipeline ->",
+      usersCount: "Users",
     },
   },
 };

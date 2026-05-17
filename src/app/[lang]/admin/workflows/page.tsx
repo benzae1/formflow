@@ -1,1 +1,1 @@
-export { default } from "@/app/admin/workflows/page";
+export { default } from "@/app/admin/workflows/AdminWorkflowsPage";

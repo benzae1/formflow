@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
-import { filterSubmissionDataForUser } from "@/lib/field-access";
+import { filterSubmissionDataForUser } from "@/lib/formio-data";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 
 export type VisibleSubmissionUser = {

@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import SubmitFormClient from "@/app/forms/[slug]/SubmitFormClient";
 import { requirePageUser } from "@/lib/page-auth";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
-import { filterSubmissionDataForUser } from "@/lib/field-access";
+import { filterSubmissionDataForUser } from "@/lib/formio-data";
 import { getSubmissionSchema } from "@/lib/submissions";
 import type { RenderableFormSchema } from "@/components/form-renderer/FormRenderer";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
