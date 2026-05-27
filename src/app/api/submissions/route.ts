@@ -12,8 +12,8 @@ import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
 import {
+  activateSubmissionWorkflow,
   startSubmissionApprovalWorkflow,
-  terminateSubmissionWorkflow,
 } from "@/lib/submission-workflow";
 import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
       }
 
       try {
-        await startSubmissionApprovalWorkflow({
+        submission = await activateSubmissionWorkflow({
           submissionId: submission.id,
           formId: form.id,
           workflowId: workflow.id,
@@ -166,27 +166,12 @@ export async function POST(req: Request) {
             typeof startSubmissionApprovalWorkflow
           >[0]["workflowDefinition"],
           submitterId: user.id,
+          statusBeforeSubmit: "draft",
         });
       } catch (error) {
         await db.submission.delete({
           where: { id: submission.id },
         });
-        throw error;
-      }
-
-      try {
-        submission = await db.submission.update({
-          where: { id: submission.id },
-          data: {
-            status: "submitted",
-            workflowRunId: submission.id,
-          },
-        });
-      } catch (error) {
-        await terminateSubmissionWorkflow(
-          submission.id,
-          "Submission activation failed before persistence completed.",
-        );
         throw error;
       }
     }

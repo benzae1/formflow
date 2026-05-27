@@ -219,6 +219,50 @@ describe("submissions route", () => {
     expect(await db.submission.count()).toBe(0);
   });
 
+  test("already-started workflows can still mark the submission as submitted", async () => {
+    const { admin, approver, submitter } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const form = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+    });
+
+    startWorkflowMock.mockRejectedValueOnce(
+      Object.assign(new Error("Workflow execution already started"), {
+        name: "WorkflowExecutionAlreadyStartedError",
+      }),
+    );
+    setMockSession(submitter);
+
+    const response = await POST(
+      new Request("http://localhost/api/submissions", {
+        method: "POST",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          formId: form.id,
+          data: {
+            requestTitle: "Retry-safe workflow start",
+          },
+          saveAsDraft: false,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+
+    const payload = await parseJson<{ submission: { id: string; status: string } }>(response);
+    const storedSubmission = await db.submission.findUnique({
+      where: { id: payload.submission.id },
+    });
+
+    expect(payload.submission.status).toBe("submitted");
+    expect(storedSubmission?.workflowRunId).toBe(payload.submission.id);
+  });
+
   test("visibility and field access are role-aware", async () => {
     const { admin, approver, submitter, compliance } = await seedBaseUsers();
     const workflow = await createWorkflowFixture({

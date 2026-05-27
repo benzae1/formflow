@@ -14,8 +14,8 @@ import {
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import {
+  activateSubmissionWorkflow,
   startSubmissionApprovalWorkflow,
-  terminateSubmissionWorkflow,
 } from "@/lib/submission-workflow";
 import { getTemporalClient } from "@/lib/temporal";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
@@ -208,7 +208,7 @@ export async function PATCH(
         );
       }
 
-      await startSubmissionApprovalWorkflow({
+      updated = await activateSubmissionWorkflow({
         submissionId: submission.id,
         formId: submission.form.id,
         workflowId: workflow.id,
@@ -217,23 +217,8 @@ export async function PATCH(
           typeof startSubmissionApprovalWorkflow
         >[0]["workflowDefinition"],
         submitterId: user.id,
+        statusBeforeSubmit: "draft",
       });
-
-      try {
-        updated = await db.submission.update({
-          where: { id },
-          data: {
-            status: "submitted",
-            workflowRunId: submission.id,
-          },
-        });
-      } catch (error) {
-        await terminateSubmissionWorkflow(
-          submission.id,
-          "Submission activation failed before persistence completed.",
-        );
-        throw error;
-      }
     }
 
     if (submission.status === "needs_revision" && input.submit) {
