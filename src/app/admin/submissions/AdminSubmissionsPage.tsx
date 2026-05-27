@@ -1,12 +1,16 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { writeAuditLog } from "@/lib/audit";
 import { resolveFormTitle } from "@/lib/form-translations";
 import { getLocaleContextOrDefault } from "@/lib/i18n/server";
 import { localizePath } from "@/lib/i18n/routing";
 import { requirePageRole } from "@/lib/page-auth";
+import { BreakGlassGate } from "@/components/submissions/BreakGlassGate";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateTime, getStatusLabel } from "@/lib/ui";
+import { getSensitiveAccessGrant, getSensitiveAccessScope } from "@/lib/sensitive-access";
 
 type SearchParams = Promise<{
   status?: string;
@@ -22,10 +26,46 @@ export default async function AdminSubmissionsPage({
   searchParams: SearchParams;
   params?: Promise<{ lang?: string }>;
 }) {
-  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
-  await requirePageRole(["admin", "compliance"], locale);
+  const { locale, dictionary } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  const user = await requirePageRole(["admin", "compliance"], locale);
   const filters = await searchParams;
   const includeSensitive = filters.includeSensitive === "true";
+  const sensitiveScope = getSensitiveAccessScope({ kind: "admin-submissions" });
+  const cookieStore = await cookies();
+  const sensitiveGrant = getSensitiveAccessGrant(cookieStore, user.id, sensitiveScope);
+  const requestsSensitiveRecords =
+    includeSensitive || filters.sensitivity === "pii" || filters.sensitivity === "sensitive";
+
+  if (requestsSensitiveRecords && !sensitiveGrant) {
+    const returnTo = localizePath(
+      locale,
+      `/admin/submissions?${new URLSearchParams(
+        Object.entries(filters).flatMap(([key, value]) => (value ? [[key, value]] : [])),
+      ).toString()}`,
+    );
+
+    return (
+      <BreakGlassGate
+        backHref={localizePath(locale, "/admin/submissions")}
+        scope={sensitiveScope}
+        dictionary={dictionary}
+        returnTo={returnTo}
+      />
+    );
+  }
+
+  if (requestsSensitiveRecords && sensitiveGrant) {
+    await writeAuditLog({
+      actorId: user.id,
+      action: "sensitive.list_accessed",
+      resourceType: "submission_list",
+      resourceId: "admin-submissions",
+      metadata: {
+        reason: sensitiveGrant.reason,
+        filters,
+      },
+    });
+  }
 
   const [forms, submissions] = await Promise.all([
     db.form.findMany({

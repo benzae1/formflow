@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { requirePageUser } from "@/lib/page-auth";
 import {
@@ -16,18 +17,17 @@ import { formatDateTime, getStatusLabel, summarizeWorkflow } from "@/lib/ui";
 import { getLocaleContext } from "@/lib/i18n/server";
 import { localizePath } from "@/lib/i18n/routing";
 import { resolveFormTitle } from "@/lib/form-translations";
+import { getSensitiveAccessGrant, getSensitiveAccessScope } from "@/lib/sensitive-access";
 
 export default async function LocalizedSubmissionDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ lang: string; id: string }>;
-  searchParams: Promise<{ reason?: string }>;
 }) {
   const { lang, id } = await params;
   const { locale, dictionary } = await getLocaleContext(lang);
   const user = await requirePageUser(locale);
-  const { reason } = await searchParams;
+  const cookieStore = await cookies();
 
   const submission = await getVisibleSubmissionById({
     submissionId: id,
@@ -38,16 +38,17 @@ export default async function LocalizedSubmissionDetailPage({
     notFound();
   }
 
-  const needsBreakGlass =
-    submission.form.sensitivity === "sensitive" &&
-    (!reason || reason.trim().length < 10);
+  const sensitiveScope = getSensitiveAccessScope({ kind: "submission", id });
+  const sensitiveGrant = getSensitiveAccessGrant(cookieStore, user.id, sensitiveScope);
+  const needsBreakGlass = submission.form.sensitivity === "sensitive" && !sensitiveGrant;
 
   if (needsBreakGlass) {
     return (
       <BreakGlassGate
-        action={localizePath(locale, `/submissions/${id}`)}
         backHref={localizePath(locale, "/submissions")}
+        scope={sensitiveScope}
         dictionary={dictionary}
+        returnTo={localizePath(locale, `/submissions/${id}`)}
       />
     );
   }
@@ -56,7 +57,7 @@ export default async function LocalizedSubmissionDetailPage({
     actorId: user.id,
     submissionId: submission.id,
     sensitivity: submission.form.sensitivity,
-    reason: reason?.trim() ?? "submission.viewed",
+    reason: sensitiveGrant?.reason ?? "submission.viewed",
   });
 
   const visibleSubmission = presentSubmissionForUser(

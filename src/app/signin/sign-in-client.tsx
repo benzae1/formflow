@@ -349,7 +349,7 @@ export default function SignInClient({
             </button>
 
             <div className="bu-alt-links">
-              <a href="#">{dictionary.auth.help}</a>
+              <a href={localizePath(locale, "/help")}>{dictionary.auth.help}</a>
             </div>
           </form>
         </main>
@@ -357,9 +357,9 @@ export default function SignInClient({
         <footer className="bu-ftr">
           <span>Bauhaus-Universität Weimar | {dictionary.common.brandSubtitle}</span>
           <span className="spacer" />
-          <a href="#">{dictionary.auth.imprint}</a>
-          <a href="#">{dictionary.auth.privacy}</a>
-          <a href="#">{dictionary.auth.accessibility}</a>
+          <a href={localizePath(locale, "/imprint")}>{dictionary.auth.imprint}</a>
+          <a href={localizePath(locale, "/privacy")}>{dictionary.auth.privacy}</a>
+          <a href={localizePath(locale, "/accessibility")}>{dictionary.auth.accessibility}</a>
         </footer>
       </div>
     </>
