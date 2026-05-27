@@ -92,7 +92,7 @@ Add the following to `.env` to enable LDAP sign-in and org sync:
 ```bash
 LDAP_URLS="ldap://141.54.29.3:389"
 LDAP_BASE_DNS="o=uni"
-LDAP_ADMIN_UIDS="sowa2176"          # Comma-separated UIDs that get the admin role
+LDAP_ADMIN_UIDS=""          # Comma-separated UIDs that get the admin role
 LDAP_APPROVER_UIDS=""               # Comma-separated UIDs that get the approver role
 LDAP_COMPLIANCE_UIDS=""             # Comma-separated UIDs that get the compliance role
 LDAP_ROLE_ATTRIBUTE="eduPersonAffiliation"  # Optional: LDAP attr for role mapping
