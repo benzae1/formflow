@@ -56,11 +56,7 @@ See [DECISIONS_REQUIRED.md](../DECISIONS_REQUIRED.md) for full details.
 - [ ] TLS certificate provisioned and configured on reverse proxy
 - [ ] `NEXTAUTH_URL` and `APP_URL` set to the HTTPS production URL
 - [ ] `NODE_ENV=production` set in the environment
-- [ ] HSTS header will be set automatically when `NODE_ENV=production` (via `src/proxy.ts` once renamed to `middleware.ts`)
-
-### Critical fix before deployment
-
-- [ ] Rename `src/proxy.ts` → `src/middleware.ts` and rename the exported function to `default` (or add `export default proxy`). Without this, all security headers are absent and locale detection is broken.
+- [ ] HSTS header is set automatically when `NODE_ENV=production` (via `src/middleware.ts`)
 
 ---
 

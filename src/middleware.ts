@@ -30,7 +30,7 @@ function withSecurityHeaders(response: NextResponse) {
   return response;
 }
 
-export function proxy(request: NextRequest) {
+export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const maybeLocale = pathname.split("/")[1];
   const locale = maybeLocale && isLocale(maybeLocale) ? maybeLocale : defaultLocale;

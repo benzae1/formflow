@@ -20,7 +20,7 @@ FormFlow is a Next.js 15 application backed by PostgreSQL, with Temporal.io mana
 │  └────────────────────┘   └─────────────────────────────┘   │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
-│  │  src/proxy.ts (middleware — must be renamed)           │  │
+│  │  src/middleware.ts                                     │  │
 │  │  • Locale detection & x-formflow-locale injection      │  │
 │  │  • CSP, X-Frame-Options, HSTS, Referrer-Policy        │  │
 │  └────────────────────────────────────────────────────────┘  │
@@ -218,7 +218,7 @@ On each LDAP login:
 
 ### Defense-in-Depth Layers
 
-1. **Edge / middleware** — `src/proxy.ts` (must be renamed `middleware.ts`) injects CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS, and locale header
+1. **Edge / middleware** — `src/middleware.ts` injects CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS, and locale header
 2. **Session** — NextAuth JWT with short access token (15 min), session version invalidation
 3. **CSRF** — HMAC-SHA256 token in cookie + header, timing-safe comparison
 4. **API guards** — `requireUser()` / `requireRole()` on every route; `assertMutationRequest()` on mutations
@@ -251,7 +251,7 @@ The app supports German (`de`) and English (`en`). All UI text lives in `src/lib
 
 Locale is determined by:
 1. URL segment: `/de/` or `/en/`
-2. Default: `de` (applied by `src/proxy.ts` redirect logic and the root layout fallback)
+2. Default: `de` (applied by `src/middleware.ts` redirect logic and the root layout fallback)
 
 The root layout reads `x-formflow-locale` from the request headers (set by the middleware) to apply the correct `lang` attribute to the `<html>` element.
 

@@ -70,7 +70,7 @@ Browser
 Next.js app (src/app/)
   ├─ Pages & UI  ([lang]/ routes, Bauhaus design system)
   ├─ API routes  (/api/*)
-  └─ Proxy middleware  (src/proxy.ts → rename to middleware.ts)
+  └─ Middleware  (src/middleware.ts)
         │
         ├─ PostgreSQL  (Prisma ORM)
         │    └─ Users, Forms, Workflows, Submissions,
