@@ -41,7 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# AI tooling — not part of the shipped codebase
+# AI tooling
 graphify-out/
 AGENTS.md
 CLAUDE.md
