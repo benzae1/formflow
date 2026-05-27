@@ -112,13 +112,13 @@ Key rotation: add a new key to `FIELD_ENCRYPTION_KEYS` and update `FIELD_ENCRYPT
 
 | Variable | Default | Description |
 |---|---|---|
-| `ALLOW_DEMO_USERS` | *(empty)* | Set to any non-empty value to allow seed demo users. Leave blank in production. |
+| `ALLOW_DEMO_USERS` | *(empty)* | Set to `true` to allow the seed to run in production. In all non-production environments demo users are always seeded. |
 
 ### Temporal Worker
 
 | Variable | Default | Description |
 |---|---|---|
-| `TEMPORAL_ORG_SYNC_INTERVAL_MINUTES` | `60` | How often the org sync schedule fires |
+| `ORG_SYNC_INTERVAL_MINUTES` | `60` | How often the org sync schedule fires |
 
 ---
 

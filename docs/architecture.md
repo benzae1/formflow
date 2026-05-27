@@ -93,7 +93,7 @@ A separate Node.js process polls Temporal for workflow tasks. It runs alongside 
 - `notificationActivities` — writes `Notification` records and optionally sends email via Resend
 - `orgActivities` — upserts `OrgUnit` and `OrgMembership` records from LDAP data
 
-The worker also schedules a recurring `orgSync` schedule via the Temporal Schedules API (default interval: 60 minutes, configurable via `TEMPORAL_ORG_SYNC_INTERVAL_MINUTES`).
+The worker also schedules a recurring `orgSync` schedule via the Temporal Schedules API (default interval: 60 minutes, configurable via `ORG_SYNC_INTERVAL_MINUTES`).
 
 ---
 

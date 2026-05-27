@@ -112,7 +112,7 @@ The `translations` structure is a JSON object mapping locale codes to alternativ
 }
 ```
 
-The LLM-assisted translation service (`src/lib/form-translation-service.ts`) can generate draft translations for an existing German form schema. The output should always be reviewed by a human before publishing.
+The DeepL-backed translation service (`src/lib/form-translation-service.ts`) can generate a draft English translation via `POST /api/forms/[id]/translate-draft`. This requires a `DEEPL_API_KEY` environment variable to be configured; if not set the endpoint returns `409 TRANSLATION_UNAVAILABLE`. The output should always be reviewed by a human before publishing.
 
 ---
 

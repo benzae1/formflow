@@ -12,7 +12,7 @@ All routes require a valid NextAuth session cookie. Unauthenticated requests rec
 
 ## Mutation Protection
 
-All `POST`, `PATCH`, and `DELETE` routes require:
+All `POST`, `PUT`, and `DELETE` routes require:
 
 | Header | Value |
 |---|---|
@@ -31,7 +31,7 @@ The CSRF token is fetched fresh before each mutation. Helper: `src/lib/mutation-
 
 Returns a signed CSRF token. Call this before any mutation.
 
-**Auth:** None required (session cookie is enough)
+**Auth:** Session cookie required
 
 **Response:**
 ```json
@@ -127,22 +127,41 @@ Create a new form (draft). **Admin only.**
 
 ### `GET /api/forms/[id]`
 
-Get a single form by ID.
+Get a single form by ID, including attached workflow and version history. **Admin only.**
 
-### `PATCH /api/forms/[id]`
+### `PUT /api/forms/[id]`
 
-Update a form. **Admin only.** Updating `schema` on a published form creates a new `FormVersion` snapshot and increments `version`.
+Update a form. **Admin only.**
 
-**Body:** Partial form fields — any of `title`, `slug`, `schema`, `sensitivity`, `workflowId`, `status`.
+Updating `schema` or `title` on a published form automatically creates a new `FormVersion` snapshot and increments `version`. Publishing (setting `status` to `published`) requires a workflow to be attached and validates all workflow routing targets.
 
-### `POST /api/forms/[id]/publish`
-
-Publish a draft form. Validates that the attached workflow has valid routing targets before publishing. **Admin only.**
+**Body:** Any subset of:
+```json
+{
+  "title": "…",
+  "slug": "…",
+  "schema": { /* Form.io schema */ },
+  "translations": { "en": { /* translated labels */ } },
+  "sensitivity": "standard",
+  "workflowId": "uuid",
+  "parentFormId": "uuid",
+  "status": "published"
+}
+```
 
 **Response `200`:** `{ "form": { … } }`
 
 **Errors:**
-- `409 WORKFLOW_TARGET_INVALID` — a workflow stage references a user, role, or org that does not exist
+- `409 FORM_HAS_NO_WORKFLOW` — attempting to publish without a workflow
+- `404 WORKFLOW_NOT_FOUND` / `404 PARENT_FORM_NOT_FOUND` — referenced ID does not exist
+
+### `POST /api/forms/[id]/translate-draft`
+
+Generate a draft English translation of the form using DeepL. **Admin only.** Requires `DEEPL_API_KEY` to be configured; returns `409 TRANSLATION_UNAVAILABLE` otherwise.
+
+The generated translation is saved to the form's `translations.en` field. It should be reviewed before publishing.
+
+**Response `200`:** `{ "translation": { … }, "form": { … } }`
 
 ---
 
@@ -152,9 +171,9 @@ Publish a draft form. Validates that the attached workflow has valid routing tar
 
 List submissions visible to the current user.
 
-- **Submitters** see their own submissions
-- **Approvers** see submissions with a pending task assigned to them (and all submissions in their org scope if `teamScope` is enabled)
-- **Admin / Compliance** see all submissions (with optional sensitive filter — requires break-glass grant)
+- **Submitters** see their own submissions only
+- **Approvers** see submissions with a pending task assigned to them (and, if `teamScope` is enabled on their account, all submissions from their org unit)
+- **Admin / Compliance** see all submissions; sensitive submissions require a break-glass grant
 
 **Query parameters:**
 
@@ -162,7 +181,7 @@ List submissions visible to the current user.
 |---|---|---|
 | `status` | `SubmissionStatus` | Filter by status |
 | `formId` | UUID | Filter by form |
-| `sensitivity` | `standard \| pii \| sensitive` | Filter by sensitivity |
+| `sensitivity` | `standard \| pii \| sensitive` | Filter by sensitivity level |
 | `includeSensitive` | `true` | Include sensitive submissions (requires break-glass grant) |
 
 ### `POST /api/submissions`
@@ -181,7 +200,7 @@ Create a new draft submission for a published form.
 
 ### `GET /api/submissions/[id]`
 
-Get a single submission. Sensitive submissions require the `X-Break-Glass-Reason` header (minimum 10 characters). The access is always audited.
+Get a single submission. Sensitive submissions require the `X-Break-Glass-Reason` header (minimum 10 characters). Access is always audited.
 
 **Headers (sensitive forms only):**
 ```
@@ -189,12 +208,12 @@ X-Break-Glass-Reason: Reviewing for compliance audit, case ref #1234
 ```
 
 **Errors:**
-- `404` — not found or not visible to user
-- `428 BREAK_GLASS_REQUIRED` — sensitive submission, reason header missing or too short
+- `404` — not found or not visible to the current user
+- `428 BREAK_GLASS_REQUIRED` — sensitive submission; reason header missing or too short
 
 ### `PATCH /api/submissions/[id]`
 
-Update a submission. Only the submission owner can edit. Only `draft` and `needs_revision` submissions are editable.
+Update a submission's data. Only the submission owner can edit. Only `draft` and `needs_revision` submissions are editable.
 
 **Body:**
 ```json
@@ -208,12 +227,12 @@ Setting `submit: true` on a `draft` submission transitions it to `submitted` and
 
 **Errors:**
 - `403 FORBIDDEN` — not the submission owner
-- `409 SUBMISSION_NOT_EDITABLE` — wrong status
-- `409 FORM_HAS_NO_WORKFLOW` — form has no attached workflow (required for submission)
+- `409 SUBMISSION_NOT_EDITABLE` — submission is not in an editable status
+- `409 FORM_HAS_NO_WORKFLOW` — form has no attached workflow (required to submit)
 
 ### `POST /api/submissions/[id]/approve`
 
-Approve a submission at the current workflow stage. **Approver or Admin only.**
+Approve the current workflow stage. **Approver or Admin only.**
 
 **Body:**
 ```json
@@ -222,14 +241,14 @@ Approve a submission at the current workflow stage. **Approver or Admin only.**
 
 ### `POST /api/submissions/[id]/reject`
 
-Reject a submission. **Approver or Admin only.**
+Reject the submission. **Approver or Admin only.**
 
 **Body:**
 ```json
 { "taskId": "uuid", "note": "Missing transcript." }
 ```
 
-### `POST /api/submissions/[id]/request-revision`
+### `POST /api/submissions/[id]/revise`
 
 Request changes from the submitter. **Approver or Admin only.**
 
@@ -275,76 +294,80 @@ Create a new workflow. **Admin only.**
 
 See [workflow-authoring.md](workflow-authoring.md) for the `WorkflowStage` schema.
 
-### `PATCH /api/workflows/[id]`
+### `GET /api/workflows/[id]`
 
-Update a workflow. Increments `version`. **Admin only.**
+Get a single workflow, including attached forms. **Admin only.**
 
-### `DELETE /api/workflows/[id]`
+### `PUT /api/workflows/[id]`
 
-Delete a workflow. Fails if any published forms reference it. **Admin only.**
+Update a workflow name and definition. Increments `version`. **Admin only.**
+
+**Body:**
+```json
+{
+  "name": "…",
+  "definition": [ /* WorkflowStage[] */ ]
+}
+```
 
 ---
 
 ## Users
 
-### `GET /api/users`
+> **Note:** There are no REST API endpoints for listing or creating users. User management is handled server-side via the admin UI pages. The only user-related API endpoint is role assignment.
 
-List all users. **Admin only.**
+### `PATCH /api/users/[id]/roles`
 
-**Query parameters:**
-
-| Parameter | Type | Description |
-|---|---|---|
-| `role` | role name | Filter by role |
-| `q` | string | Search by name or email |
-
-### `POST /api/users`
-
-Create a local user (not LDAP). **Admin only.**
+Update a user's roles and team scope setting. **Admin only.** Immediately increments `sessionVersion`, invalidating the user's existing sessions.
 
 **Body:**
 ```json
 {
-  "email": "max.mustermann@uni-weimar.de",
-  "name": "Max Mustermann",
-  "password": "…",
-  "roles": ["submitter"]
+  "roles": ["approver", "submitter"],
+  "teamScope": false
 }
 ```
 
-### `PATCH /api/users/[id]`
+**Response `200`:** `{ "user": { … } }`
 
-Update a user's roles or deactivation status. **Admin only.**
-
-**Body:** Any of `roles`, `deactivatedAt`, `name`.
+**Errors:**
+- `400 ROLE_NOT_FOUND` — one of the supplied role names does not exist
+- `404 USER_NOT_FOUND` — user does not exist
 
 ---
 
 ## Delegations
 
-### `GET /api/delegations`
-
-List the current user's active delegations.
-
 ### `POST /api/delegations`
 
-Create a delegation window. The current user nominates a delegate to cover their approvals for a time range.
+Create a delegation window. An approver nominates a delegate to cover their approvals for a time range. Admins can create delegations on behalf of any approver by supplying `approverId`; non-admins can only create delegations for themselves.
+
+**Auth:** Approver or Admin
 
 **Body:**
 ```json
 {
   "delegateId": "uuid",
   "startsAt": "2026-06-01T00:00:00Z",
-  "endsAt": "2026-06-07T23:59:59Z"
+  "endsAt": "2026-06-07T23:59:59Z",
+  "approverId": "uuid"
 }
 ```
 
+(`approverId` is optional for admins; ignored for approvers.)
+
+**Response `201`:** `{ "delegation": { … } }`
+
 **Errors:**
 - `409 DELEGATION_OVERLAP` — existing delegation overlaps the requested window
+- `409 DELEGATION_SELF_NOT_ALLOWED` — approver and delegate are the same user
+- `409 DELEGATION_APPROVER_ROLE_REQUIRED` — the approver account lacks the approver role
+- `409 DELEGATION_DELEGATE_ROLE_REQUIRED` — the delegate account lacks the approver role
+- `409 DELEGATION_INACTIVE_USER` — approver or delegate is deactivated
 
 ### `DELETE /api/delegations/[id]`
 
-Remove a delegation. Only the delegation owner can delete it.
+Remove a delegation. Approvers can only delete their own; admins can delete any.
 
 ---
 
@@ -393,42 +416,23 @@ Retrieve audit log entries. **Admin or Compliance only.**
 | `pageSize` | integer | Results per page (default: 50, max: 200) |
 | `format` | `csv` | Download as CSV instead of JSON |
 
-**Response `200` (JSON):**
-```json
-{
-  "entries": [
-    {
-      "id": "uuid",
-      "actorId": "uuid",
-      "action": "submission.created",
-      "resourceType": "submission",
-      "resourceId": "uuid",
-      "beforeState": null,
-      "afterState": { … },
-      "metadata": { … },
-      "createdAt": "…"
-    }
-  ],
-  "total": 1234,
-  "page": 1,
-  "pageSize": 50
-}
-```
-
 **Common `action` values:**
 
 | Action | Trigger |
 |---|---|
 | `submission.created` | Submission submitted from draft |
 | `submission.resubmitted` | Revision submitted back to workflow |
-| `submission.approved` | Final approval |
-| `submission.rejected` | Final rejection |
 | `submission.accessed` | Submission detail viewed |
-| `sensitive.accessed` | Sensitive submission viewed (with reason) |
-| `sensitive.list_accessed` | Admin sensitive list viewed (with reason) |
-| `auth.login_failed` | Failed login (includes reason: `invalid_credentials`, `rate_limited`, `account_locked`, `deactivated`) |
-| `auth.login_success` | Successful login |
+| `sensitive.accessed` | Sensitive submission viewed (includes reason) |
+| `sensitive.list_accessed` | Admin sensitive list viewed (includes reason) |
+| `form.updated` | Form schema or metadata changed |
+| `form.published` | Form status changed to published |
+| `form.translation_draft_generated` | DeepL translation generated |
+| `workflow.updated` | Workflow definition changed |
 | `user.role_changed` | Admin changed a user's roles |
+| `delegation.created` | Delegation window created |
+| `auth.login_failed` | Failed login (reason: `invalid_credentials`, `rate_limited`, `account_locked`, `deactivated`) |
+| `auth.login_success` | Successful login |
 
 ---
 
@@ -438,21 +442,36 @@ Retrieve audit log entries. **Admin or Compliance only.**
 
 Trigger an immediate LDAP org sync. **Admin only.**
 
-**Response `202`:** `{ "message": "Org sync triggered." }`
+**Response `202`:** Triggers the sync; does not wait for completion.
 
 ---
 
 ## Notifications
 
-### `GET /api/notifications`
+### `GET /api/notifications/unread`
 
-List the current user's unread notifications (polled by the inbox component).
+Get the current user's unread notification count and the 10 most recent unread items.
 
-### `PATCH /api/notifications/[id]`
-
-Mark a notification as read.
-
-**Body:**
+**Response:**
 ```json
-{ "readAt": "2026-05-27T10:00:00Z" }
+{
+  "count": 3,
+  "items": [
+    {
+      "id": "uuid",
+      "type": "submission_revision_requested",
+      "title": "Revision requested",
+      "body": "An approver requested changes to your submission.",
+      "linkUrl": "/submissions/uuid",
+      "readAt": null,
+      "createdAt": "…"
+    }
+  ]
+}
 ```
+
+### `POST /api/notifications/[id]/read`
+
+Mark a specific notification as read.
+
+**Response `200`:** `{ "ok": true }`

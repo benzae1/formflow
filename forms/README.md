@@ -40,16 +40,9 @@ A form for requesting a university email account at Bauhaus-Universität Weimar.
 5. Attach a workflow
 6. Click **Publish**
 
-### Option 2: Import a JSON file
+### Option 2: Store a JSON file here for manual reference
 
-1. Export an existing form from another FormFlow instance (admin → form → Export JSON)
-2. Navigate to `/de/admin/forms` → **New form** → **Import JSON**
-3. Paste or upload the JSON
-4. Review fields, attach a workflow, and publish
-
-### Option 3: Store a JSON file here for manual reference
-
-Place a Form.io schema file in this directory as a reference or template. To actually use it, import it via the admin UI (Option 2 above). The seed script does not read this directory.
+Place a Form.io schema file in this directory as a reference or template. The seed script does not read this directory; to use a form definition you need to recreate it through the admin UI form builder.
 
 ---
 
