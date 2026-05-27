@@ -163,7 +163,7 @@ Panel: Unterschrift (Signature)
 
 ### Loading this form into a development instance
 
-The seed script (`prisma/seed.ts`) automatically imports all JSON files in the `forms/` directory as published forms. After running `docker compose up --build`, the E-Mail-Antrag form is available at `/forms/emailantrag`.
+The seed script does not import forms automatically. To load the E-Mail-Antrag form, sign in as admin and use **Admin → Forms → New form → Import JSON**, then paste the contents of `forms/emailantrag.json`. Attach a workflow and publish it to make it available at `/forms/emailantrag`.
 
 ### Using this form as a template
 

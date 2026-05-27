@@ -1,6 +1,6 @@
 # FormFlow — Form Library
 
-This directory contains Form.io form definition files that are loaded into FormFlow as published forms on first startup (via the Prisma seed script).
+This directory contains Form.io form definition files. These are **not** loaded automatically — they serve as importable templates and reference examples. To use a form, import it through the admin UI.
 
 ## Available Forms
 
@@ -47,28 +47,9 @@ A form for requesting a university email account at Bauhaus-Universität Weimar.
 3. Paste or upload the JSON
 4. Review fields, attach a workflow, and publish
 
-### Option 3: Add a file to this directory (for seed-time import)
+### Option 3: Store a JSON file here for manual reference
 
-1. Create a file `forms/my-form.json` with a valid Form.io schema:
-
-```json
-{
-  "title": "My Form",
-  "slug": "my-form",
-  "sensitivity": "standard",
-  "components": [
-    {
-      "type": "textfield",
-      "key": "name",
-      "label": "Name",
-      "validate": { "required": true }
-    }
-  ]
-}
-```
-
-2. Run the seed: `npx ts-node prisma/seed.ts` (or restart the Docker stack)
-3. The form appears in the admin panel as a draft — attach a workflow and publish it
+Place a Form.io schema file in this directory as a reference or template. To actually use it, import it via the admin UI (Option 2 above). The seed script does not read this directory.
 
 ---
 

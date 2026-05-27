@@ -158,8 +158,10 @@ Opens a visual browser at [http://localhost:5555](http://localhost:5555).
 
 The seed is in `prisma/seed.ts`. It creates:
 - The four system roles (`admin`, `approver`, `submitter`, `compliance`)
-- Three demo users if `ALLOW_DEMO_USERS` is set
-- Any forms found in `forms/*.json` as published forms
+- Three demo users (`admin`, `approver`, `submitter`) if the environment is not production
+- One hardcoded "Basic approval" workflow assigned to the approver demo user
+
+Forms in `forms/` are **not** imported by the seed. Load them manually via the admin UI.
 
 Re-run seed without resetting:
 
