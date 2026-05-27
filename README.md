@@ -48,6 +48,8 @@ Open `http://localhost:3000` in your browser.
 ## Docker Notes
 
 - The `web` and `worker` containers read from `.env`, but their internal service URLs are overridden to use Docker service names like `postgres` and `temporal`.
+- `docker-compose.yml` is optimized for local development and intentionally shares one Postgres instance across the app and Temporal for convenience.
+- For production-style separation, start from [docker-compose.production.yml.example](/C:/Users/anton/Desktop/formflow/docker-compose.production.yml.example:1) and provision distinct databases, credentials, and durable secrets per service.
 - The single Postgres service and shared credentials are a deliberate local-development shortcut for this stack. For production, split the app database from Temporal persistence and use distinct credentials.
 - The `init` container runs `npm run prisma:init`, which deploys migrations and, for local Docker only, repairs a drifted schema with `prisma db push` if required tables are missing before seeding.
 - If you change dependencies or Docker config, rerun `docker compose up --build`.
