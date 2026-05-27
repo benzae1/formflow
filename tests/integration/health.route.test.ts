@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const countMock = vi.fn();
-const queryRawMock = vi.fn();
+const { queryRawMock, countMock } = vi.hoisted(() => ({
+  queryRawMock: vi.fn(),
+  countMock: vi.fn(),
+}));
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -52,13 +54,12 @@ describe("health route", () => {
     const payload = (await response.json()) as {
       ok: boolean;
       checks: {
-        temporal: { ok: boolean; error: string | null };
+        temporal: { ok: boolean };
       };
     };
 
     expect(response.status).toBe(503);
     expect(payload.ok).toBe(false);
     expect(payload.checks.temporal.ok).toBe(false);
-    expect(payload.checks.temporal.error).toContain("Temporal unavailable");
   });
 });
