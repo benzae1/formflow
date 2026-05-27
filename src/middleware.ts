@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { defaultLocale, isLocale } from "@/lib/i18n/config";
 
 const PUBLIC_FILE = /\.(.*)$/;
+// Next.js 15 App Router injects inline scripts for streaming hydration,
+// so 'unsafe-inline' is required here. Migrate to nonce-based CSP once
+// Next.js nonce support is wired through the root layout.
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -12,7 +15,7 @@ const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "connect-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
 ].join("; ");
 
