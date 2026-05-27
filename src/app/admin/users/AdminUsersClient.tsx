@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DelegationManager from "@/components/users/DelegationManager";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { getMutationHeaders } from "@/lib/mutation-headers";
 import { formatDateTime, getRoleLabel } from "@/lib/ui";
 
@@ -49,40 +50,23 @@ export default function AdminUsersClient({
   delegations,
   delegateOptions,
   locale,
+  dictionary,
 }: {
   users: UserRecord[];
   availableRoles: RoleRecord[];
   delegations: DelegationRecord[];
   delegateOptions: DelegateOption[];
   locale: Locale;
+  dictionary: Dictionary;
 }) {
   const router = useRouter();
+  const copy = dictionary.adminUsers;
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const copy =
-    locale === "de"
-      ? {
-          saveError: "Rollenänderungen konnten nicht gespeichert werden.",
-          searchPlaceholder: "Nach Name oder E-Mail suchen",
-          allRoles: "Alle Rollen",
-          allStatuses: "Alle Status",
-          active: "Aktiv",
-          deactivated: "Deaktiviert",
-          noMatches: "Keine Benutzer entsprechen den aktuellen Filtern.",
-        }
-      : {
-          saveError: "Could not save role changes.",
-          searchPlaceholder: "Search by name or email",
-          allRoles: "All roles",
-          allStatuses: "All statuses",
-          active: "Active",
-          deactivated: "Deactivated",
-          noMatches: "No users match the current filters.",
-        };
 
   async function updateRoles(userId: string, roles: string[]) {
     setPendingUserId(userId);
@@ -120,7 +104,7 @@ export default function AdminUsersClient({
         const email = user.email.toLowerCase();
         if (!name.includes(q) && !email.includes(q)) return false;
       }
-      if (roleFilter && !user.roles.some((r) => r.name === roleFilter)) return false;
+      if (roleFilter && !user.roles.some((role) => role.name === roleFilter)) return false;
       if (statusFilter === "active" && user.deactivatedAt) return false;
       if (statusFilter === "deactivated" && !user.deactivatedAt) return false;
       return true;
@@ -164,16 +148,17 @@ export default function AdminUsersClient({
 
       <section className="bf-list">
         {filteredUsers.length === 0 ? (
-          <p className="text-sm text-[var(--muted-strong)] px-1">{copy.noMatches}</p>
+          <p className="px-1 text-sm text-[var(--muted-strong)]">{copy.noMatches}</p>
         ) : (
           filteredUsers.map((user) => (
             <UserCard
               key={user.id}
               user={user}
               availableRoles={availableRoles}
-              delegations={delegations.filter((d) => d.approverId === user.id)}
+              delegations={delegations.filter((delegation) => delegation.approverId === user.id)}
               delegateOptions={delegateOptions}
               locale={locale}
+              dictionary={dictionary}
               pending={pendingUserId === user.id}
               expanded={expandedUserId === user.id}
               onToggle={() => toggleExpanded(user.id)}
@@ -192,6 +177,7 @@ function UserCard({
   delegations,
   delegateOptions,
   locale,
+  dictionary,
   pending,
   expanded,
   onToggle,
@@ -202,34 +188,14 @@ function UserCard({
   delegations: DelegationRecord[];
   delegateOptions: DelegateOption[];
   locale: Locale;
+  dictionary: Dictionary;
   pending: boolean;
   expanded: boolean;
   onToggle: () => void;
   onSaveRoles: (roles: string[]) => Promise<void>;
 }) {
+  const copy = dictionary.adminUsers;
   const [roles, setRoles] = useState<string[]>(user.roles.map((role) => role.name));
-  const copy =
-    locale === "de"
-      ? {
-          updated: "Aktualisiert",
-          roles: "Rollen",
-          saveRoles: "Rollen speichern",
-          orgMemberships: "Organisationsmitgliedschaften",
-          noMemberships: "Keine Mitgliedschaften synchronisiert.",
-          member: "Mitglied",
-          manager: "Leitung",
-          delegationDescription: "Administrierende können zeitlich begrenzte Vertretungen für Freigaben festlegen.",
-        }
-      : {
-          updated: "Updated",
-          roles: "Roles",
-          saveRoles: "Save roles",
-          orgMemberships: "Org memberships",
-          noMemberships: "No memberships synced.",
-          member: "member",
-          manager: "manager",
-          delegationDescription: "Admins can set backup approvers for date-bound coverage.",
-        };
 
   function toggleRole(roleName: string) {
     setRoles((current) => {
@@ -270,16 +236,16 @@ function UserCard({
             ))}
             {user.deactivatedAt ? <StatusBadge status="archived" /> : null}
             <span
-              className="ml-2 text-xs font-bold tracking-widest uppercase text-[var(--muted)]"
+              className="ml-2 text-xs font-bold uppercase tracking-widest text-[var(--muted)]"
               aria-hidden="true"
             >
-              {expanded ? "▲" : "▼"}
+              {expanded ? "^" : "v"}
             </span>
           </div>
         </div>
       </button>
 
-      {expanded && (
+      {expanded ? (
         <div className="mt-5 grid gap-4 border-t border-[var(--line)] pt-5 xl:grid-cols-3">
           <div className="bf-panel-muted px-4 py-4">
             <p className="bf-eyebrow">{copy.roles}</p>
@@ -327,10 +293,11 @@ function UserCard({
             delegates={delegateOptions}
             canManage={canManageDelegation}
             locale={locale}
+            copy={dictionary.delegations}
             description={copy.delegationDescription}
           />
         </div>
-      )}
+      ) : null}
     </article>
   );
 }

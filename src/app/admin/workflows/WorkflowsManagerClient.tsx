@@ -4,7 +4,7 @@ import { type ReactNode, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ZodIssue } from "zod";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { getMutationHeaders } from "@/lib/mutation-headers";
 import { createWorkflowSchema } from "@/lib/validation/workflows";
 import type { WorkflowStage, RoutingTarget } from "@/domain/workflow";
@@ -21,6 +21,7 @@ type WorkflowRecord = {
 
 type RoleOption = { name: string; label: string | null };
 type FormOption = { id: string; title: string };
+type WorkflowCopy = Dictionary["adminWorkflows"];
 
 // ─── internal stage row (adds stable React key) ───────────────────────────────
 
@@ -81,26 +82,37 @@ function formatIssues(issues: ZodIssue[]): string[] {
 
 // ─── RoutingTargetEditor ──────────────────────────────────────────────────────
 
-const ORG_OPTIONS: Array<{ value: "submitter.manager" | "submitter.skip-level" | "department.head"; label: string }> = [
-  { value: "submitter.manager", label: "Submitter's Manager" },
-  { value: "submitter.skip-level", label: "Skip-level Manager" },
-  { value: "department.head", label: "Department Head" },
-];
+function getOrgOptions(copy: WorkflowCopy) {
+  return [
+    {
+      value: "submitter.manager" as const,
+      label: copy.orgOptions.submitterManager,
+    },
+    {
+      value: "submitter.skip-level" as const,
+      label: copy.orgOptions.submitterSkipLevel,
+    },
+    {
+      value: "department.head" as const,
+      label: copy.orgOptions.departmentHead,
+    },
+  ];
+}
 
 function RoutingTargetEditor({
   id: editorId,
   targets,
   onChange,
   roles,
-  locale,
+  copy,
 }: {
   id: string;
   targets: RoutingTarget[];
   onChange: (targets: RoutingTarget[]) => void;
   roles: RoleOption[];
-  locale: Locale;
+  copy: WorkflowCopy;
 }) {
-  const isDE = locale === "de";
+  const orgOptions = getOrgOptions(copy);
 
   function update(index: number, target: RoutingTarget) {
     const next = [...targets];
@@ -136,10 +148,10 @@ function RoutingTargetEditor({
             value={target.type}
             onChange={(e) => changeType(index, e.target.value as RoutingTarget["type"])}
           >
-            <option value="role">{isDE ? "Rolle" : "Role"}</option>
-            <option value="org">{isDE ? "Org-Hierarchie" : "Org hierarchy"}</option>
-            <option value="user">{isDE ? "Benutzer" : "User"}</option>
-            <option value="group">{isDE ? "Gruppe" : "Group"}</option>
+            <option value="role">{copy.role}</option>
+            <option value="org">{copy.orgHierarchy}</option>
+            <option value="user">{copy.user}</option>
+            <option value="group">{copy.group}</option>
           </select>
 
           {target.type === "role" && (
@@ -155,7 +167,7 @@ function RoutingTargetEditor({
                 className="bf-input"
                 list={`${editorId}-dl-${index}`}
                 value={target.value}
-                placeholder={isDE ? "Rollenname" : "Role name"}
+                placeholder={copy.roleName}
                 onChange={(e) => update(index, { type: "role", value: e.target.value })}
               />
             </>
@@ -168,11 +180,11 @@ function RoutingTargetEditor({
               onChange={(e) =>
                 update(index, {
                   type: "org",
-                  value: e.target.value as (typeof ORG_OPTIONS)[number]["value"],
+                  value: e.target.value as (typeof orgOptions)[number]["value"],
                 })
               }
             >
-              {ORG_OPTIONS.map((opt) => (
+              {orgOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -184,7 +196,7 @@ function RoutingTargetEditor({
             <input
               className="bf-input"
               value={target.value}
-              placeholder={target.type === "user" ? "User UUID" : "Group UUID"}
+              placeholder={target.type === "user" ? copy.userUuid : copy.groupUuid}
               onChange={(e) =>
                 update(index, { type: target.type as "user" | "group", value: e.target.value })
               }
@@ -196,7 +208,7 @@ function RoutingTargetEditor({
             className="bf-btn"
             style={{ minWidth: 44, flexShrink: 0 }}
             onClick={() => remove(index)}
-            aria-label={isDE ? "Entfernen" : "Remove"}
+            aria-label={copy.remove}
           >
             ✕
           </button>
@@ -209,7 +221,7 @@ function RoutingTargetEditor({
         style={{ alignSelf: "flex-start" }}
         onClick={add}
       >
-        + {isDE ? "Ziel hinzufügen" : "Add target"}
+        + {copy.addTarget}
       </button>
     </div>
   );
@@ -225,12 +237,14 @@ function FieldLabel({ children }: { children: ReactNode }) {
   );
 }
 
-const STAGE_TYPE_LABELS: Record<WorkflowStage["type"], { de: string; en: string }> = {
-  approval: { de: "Freigabe", en: "Approval" },
-  notification: { de: "Benachrichtigung", en: "Notification" },
-  "trigger-form": { de: "Formular auslösen", en: "Trigger form" },
-  condition: { de: "Bedingung", en: "Condition" },
-};
+function getStageTypeLabels(copy: WorkflowCopy) {
+  return {
+    approval: copy.stageTypes.approval,
+    notification: copy.stageTypes.notification,
+    "trigger-form": copy.stageTypes.triggerForm,
+    condition: copy.stageTypes.condition,
+  } satisfies Record<WorkflowStage["type"], string>;
+}
 
 function StageCard({
   stage,
@@ -242,7 +256,7 @@ function StageCard({
   forms,
   roles,
   stageIds,
-  locale,
+  copy,
   isDragOver,
   onDragStart,
   onDragOver,
@@ -257,14 +271,14 @@ function StageCard({
   forms: FormOption[];
   roles: RoleOption[];
   stageIds: string[];
-  locale: Locale;
+  copy: WorkflowCopy;
   isDragOver: boolean;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
 }) {
-  const isDE = locale === "de";
   const targets = normalizeTargets(stage.assignTo);
+  const stageTypeLabels = getStageTypeLabels(copy);
 
   const rejectType =
     !stage.onReject ? "close" : typeof stage.onReject === "string" ? stage.onReject : "go-to";
@@ -295,7 +309,7 @@ function StageCard({
     }
   }
 
-  const typeLabel = STAGE_TYPE_LABELS[stage.type];
+  const typeLabel = stageTypeLabels[stage.type];
 
   return (
     <div
@@ -337,14 +351,14 @@ function StageCard({
           className="bf-input"
           style={{ flex: 1, minWidth: 0, padding: "6px 10px", fontSize: 14 }}
           value={stage.name}
-          placeholder={isDE ? "Stufenname" : "Stage name"}
+          placeholder={copy.stageName}
           onChange={(e) => onChange({ ...stage, name: e.target.value })}
           onClick={(e) => e.stopPropagation()}
         />
 
         <StatusBadge
           status={stage.type}
-          label={isDE ? typeLabel.de : typeLabel.en}
+          label={typeLabel}
         />
 
         <button
@@ -353,7 +367,7 @@ function StageCard({
           style={{ padding: "0 8px", minHeight: 34 }}
           disabled={index === 0}
           onClick={() => onMove(index, index - 1)}
-          aria-label={isDE ? "Nach oben" : "Move up"}
+          aria-label={copy.moveUp}
         >
           ▲
         </button>
@@ -363,7 +377,7 @@ function StageCard({
           style={{ padding: "0 8px", minHeight: 34 }}
           disabled={index === total - 1}
           onClick={() => onMove(index, index + 1)}
-          aria-label={isDE ? "Nach unten" : "Move down"}
+          aria-label={copy.moveDown}
         >
           ▼
         </button>
@@ -372,7 +386,7 @@ function StageCard({
           className="bf-btn"
           style={{ padding: "0 8px", minHeight: 34, color: "var(--accent)", borderColor: "var(--accent)" }}
           onClick={onRemove}
-          aria-label={isDE ? "Stufe entfernen" : "Remove stage"}
+          aria-label={copy.removeStage}
         >
           ✕
         </button>
@@ -384,7 +398,7 @@ function StageCard({
         {/* ID + Type */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
-            <FieldLabel>{isDE ? "Stufen-ID" : "Stage ID"}</FieldLabel>
+            <FieldLabel>{copy.stageId}</FieldLabel>
             <input
               className="bf-input"
               value={stage.id}
@@ -393,15 +407,15 @@ function StageCard({
             />
           </div>
           <div>
-            <FieldLabel>{isDE ? "Typ" : "Type"}</FieldLabel>
+            <FieldLabel>{copy.type}</FieldLabel>
             <select
               className="bf-select"
               value={stage.type}
               onChange={(e) => setType(e.target.value as WorkflowStage["type"])}
             >
-              {(Object.keys(STAGE_TYPE_LABELS) as WorkflowStage["type"][]).map((t) => (
+              {(Object.keys(stageTypeLabels) as WorkflowStage["type"][]).map((t) => (
                 <option key={t} value={t}>
-                  {isDE ? STAGE_TYPE_LABELS[t].de : STAGE_TYPE_LABELS[t].en}
+                  {stageTypeLabels[t]}
                 </option>
               ))}
             </select>
@@ -411,13 +425,13 @@ function StageCard({
         {/* assignTo – approval & notification */}
         {(stage.type === "approval" || stage.type === "notification") && (
           <div>
-            <FieldLabel>{isDE ? "Zuweisen an" : "Assign to"}</FieldLabel>
+            <FieldLabel>{copy.assignTo}</FieldLabel>
             <RoutingTargetEditor
               id={`rt-${stage._key}`}
               targets={targets}
               onChange={setAssignTo}
               roles={roles}
-              locale={locale}
+              copy={copy}
             />
           </div>
         )}
@@ -425,14 +439,14 @@ function StageCard({
         {/* childFormId – trigger-form */}
         {stage.type === "trigger-form" && (
           <div>
-            <FieldLabel>{isDE ? "Unterformular" : "Child form"}</FieldLabel>
+            <FieldLabel>{copy.childForm}</FieldLabel>
             {forms.length > 0 ? (
               <select
                 className="bf-select"
                 value={stage.childFormId ?? ""}
                 onChange={(e) => onChange({ ...stage, childFormId: e.target.value })}
               >
-                <option value="">{isDE ? "Formular wählen…" : "Select a form…"}</option>
+                <option value="">{copy.selectForm}</option>
                 {forms.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.title}
@@ -453,7 +467,7 @@ function StageCard({
         {/* conditions */}
         {stage.type === "condition" && (
           <div>
-            <FieldLabel>{isDE ? "Bedingungen" : "Conditions"}</FieldLabel>
+            <FieldLabel>{copy.conditions}</FieldLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(stage.conditions ?? []).map((cond, ci) => (
                 <div key={ci} style={{ display: "flex", gap: 8 }}>
@@ -472,7 +486,7 @@ function StageCard({
                     className="bf-btn"
                     style={{ minWidth: 44, flexShrink: 0 }}
                     onClick={() => onChange({ ...stage, conditions: (stage.conditions ?? []).filter((_, i) => i !== ci) })}
-                    aria-label={isDE ? "Entfernen" : "Remove"}
+                    aria-label={copy.remove}
                   >
                     ✕
                   </button>
@@ -484,7 +498,7 @@ function StageCard({
                 style={{ alignSelf: "flex-start" }}
                 onClick={() => onChange({ ...stage, conditions: [...(stage.conditions ?? []), { expression: "" }] })}
               >
-                + {isDE ? "Bedingung" : "Add condition"}
+                + {copy.addCondition}
               </button>
             </div>
           </div>
@@ -494,18 +508,18 @@ function StageCard({
         {stage.type === "approval" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <FieldLabel>{isDE ? "Bei Freigabe" : "On approve"}</FieldLabel>
+              <FieldLabel>{copy.onApprove}</FieldLabel>
               <select
                 className="bf-select"
                 value={stage.onApprove ?? "next-stage"}
                 onChange={(e) => onChange({ ...stage, onApprove: e.target.value as "next-stage" | "close" })}
               >
-                <option value="next-stage">{isDE ? "Nächste Stufe" : "Next stage"}</option>
-                <option value="close">{isDE ? "Abschließen" : "Close"}</option>
+                <option value="next-stage">{copy.nextStage}</option>
+                <option value="close">{copy.close}</option>
               </select>
             </div>
             <div>
-              <FieldLabel>{isDE ? "Bei Ablehnung" : "On reject"}</FieldLabel>
+              <FieldLabel>{copy.onReject}</FieldLabel>
               <select
                 className="bf-select"
                 value={rejectType}
@@ -518,9 +532,9 @@ function StageCard({
                   }
                 }}
               >
-                <option value="close">{isDE ? "Abschließen" : "Close"}</option>
-                <option value="return-to-submitter">{isDE ? "Zurück an Einreicher" : "Return to submitter"}</option>
-                <option value="go-to">{isDE ? "Zu Stufe…" : "Go to stage…"}</option>
+                <option value="close">{copy.close}</option>
+                <option value="return-to-submitter">{copy.returnToSubmitter}</option>
+                <option value="go-to">{copy.goToStage}</option>
               </select>
               {rejectType === "go-to" && (
                 <select
@@ -529,7 +543,7 @@ function StageCard({
                   value={rejectGoTo}
                   onChange={(e) => onChange({ ...stage, onReject: { goTo: e.target.value } })}
                 >
-                  <option value="">{isDE ? "Stufe wählen…" : "Select stage…"}</option>
+                  <option value="">{copy.selectStage}</option>
                   {stageIds
                     .filter((sid) => sid !== stage.id)
                     .map((sid) => (
@@ -552,7 +566,7 @@ function StageCard({
           {slaEnabled && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
               <div>
-                <FieldLabel>{isDE ? "Frist (Stunden)" : "Deadline (hours)"}</FieldLabel>
+                <FieldLabel>{copy.deadlineHours}</FieldLabel>
                 <input
                   type="number"
                   className="bf-input"
@@ -564,7 +578,7 @@ function StageCard({
                 />
               </div>
               <div>
-                <FieldLabel>{isDE ? "Erinnerungen (Std., kommagetrennt)" : "Reminders (h, comma-separated)"}</FieldLabel>
+                <FieldLabel>{copy.remindersHours}</FieldLabel>
                 <input
                   className="bf-input"
                   value={slaReminders.join(", ")}
@@ -590,14 +604,14 @@ function StageCard({
 
 export default function WorkflowsManagerClient({
   workflows,
-  locale,
   roles = [],
   forms = [],
+  dictionary,
 }: {
   workflows: WorkflowRecord[];
-  locale: Locale;
   roles?: RoleOption[];
   forms?: FormOption[];
+  dictionary: Dictionary;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(workflows[0]?.id ?? null);
   const [name, setName] = useState(workflows[0]?.name ?? "");
@@ -611,49 +625,7 @@ export default function WorkflowsManagerClient({
   const dragFrom = useRef<number | null>(null);
   const router = useRouter();
 
-  const isDE = locale === "de";
-
-  const copy = isDE
-    ? {
-        saveError: "Der Workflow konnte nicht gespeichert werden.",
-        newWorkflowName: "Neuer Workflow",
-        libraryEyebrow: "Workflow-Bibliothek",
-        libraryTitle: "Definitionen",
-        newWorkflow: "Neuer Workflow",
-        version: "Version",
-        attachedForms: "verknüpfte Formulare",
-        editorEyebrow: "Editor",
-        editWorkflow: "Workflow bearbeiten",
-        createWorkflow: "Workflow erstellen",
-        saving: "Wird gespeichert…",
-        saveWorkflow: "Workflow speichern",
-        workflowName: "Workflow-Name",
-        attachedFormsTitle: "Verknüpfte Formulare",
-        noAttachedForms: "Derzeit verweist kein Formular auf diesen Workflow.",
-        validationErrorsTitle: "Die Definition enthält Fehler:",
-        addStage: "Stufe hinzufügen",
-        noStages: "Noch keine Stufen. Fügen Sie eine hinzu.",
-      }
-    : {
-        saveError: "Workflow could not be saved.",
-        newWorkflowName: "New workflow",
-        libraryEyebrow: "Workflow library",
-        libraryTitle: "Definitions",
-        newWorkflow: "New workflow",
-        version: "Version",
-        attachedForms: "attached forms",
-        editorEyebrow: "Editor",
-        editWorkflow: "Edit workflow",
-        createWorkflow: "Create workflow",
-        saving: "Saving…",
-        saveWorkflow: "Save workflow",
-        workflowName: "Workflow name",
-        attachedFormsTitle: "Attached forms",
-        noAttachedForms: "No forms currently reference this workflow.",
-        validationErrorsTitle: "Definition has errors:",
-        addStage: "Add stage",
-        noStages: "No stages yet. Add one below.",
-      };
+  const copy = dictionary.adminWorkflows;
 
   const selectedWorkflow = workflows.find((w) => w.id === selectedId) ?? null;
   const stageIds = stages.map((s) => s.id);
@@ -854,7 +826,7 @@ export default function WorkflowsManagerClient({
                 forms={forms}
                 roles={roles}
                 stageIds={stageIds}
-                locale={locale}
+                copy={copy}
                 isDragOver={dragOverIndex === index}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}

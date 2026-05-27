@@ -106,6 +106,8 @@ export default async function LocalizedInboxPage({
           email: delegate.email,
         }))}
         canManage
+        locale={locale}
+        copy={dictionary.delegations}
         title={dictionary.inbox.coverageTitle}
         description={dictionary.inbox.coverageDescription}
       />

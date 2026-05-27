@@ -106,12 +106,9 @@ export default async function InboxPage({
         }))}
         canManage
         locale={locale}
-        title={locale === "de" ? "Vertretung" : "Coverage"}
-        description={
-          locale === "de"
-            ? "Legen Sie eine Vertretung fest, damit neue Freigabeaufgaben bei Abwesenheit sauber weitergeleitet werden."
-            : "Set a delegate when you are away so new approval tasks route cleanly during that window."
-        }
+        copy={dictionary.delegations}
+        title={dictionary.inbox.coverageTitle}
+        description={dictionary.inbox.coverageDescription}
       />
       <InboxClient locale={locale} dictionary={dictionary} tasks={tasks} view={view} />
     </div>
