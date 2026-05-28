@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, type CSSProperties, useEffect, useState } from "react";
+import { FormEvent, type CSSProperties, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
@@ -16,8 +16,6 @@ const ACCENT_COLORS = [
   "var(--haus-teal)",
   "var(--haus-magenta)",
 ] as const;
-
-type AccentColor = (typeof ACCENT_COLORS)[number];
 
 function getAccentColor(locale: Locale) {
   return ACCENT_COLORS[locale === "de" ? 0 : 4];
@@ -239,6 +237,7 @@ export default function SignInClient({
   locale: Locale;
   dictionary: Dictionary;
 }) {
+  const pageRef = useRef<HTMLDivElement | null>(null);
   const [uid, setUid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -247,10 +246,10 @@ export default function SignInClient({
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? localizePath(locale, "/");
   const year = new Date().getFullYear();
-  const [accentColor, setAccentColor] = useState<AccentColor>(() => getAccentColor(locale));
+  const accentColor = getAccentColor(locale);
 
   useEffect(() => {
-    setAccentColor(pickAccentColor());
+    pageRef.current?.style.setProperty("--t-picked", pickAccentColor());
   }, []);
 
   async function handleSubmit(e: FormEvent) {
@@ -309,7 +308,7 @@ export default function SignInClient({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <div className="bu-page" style={cssVars}>
+      <div ref={pageRef} className="bu-page" style={cssVars}>
         <header className="bu-hdr">
           <div className="bu-hdr-brand">
             <div className="bu-hdr-logo">
