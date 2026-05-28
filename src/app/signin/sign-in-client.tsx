@@ -248,23 +248,48 @@ export default function SignInClient({
     setPending(true);
     setError(null);
 
-    const result = await signIn("credentials", {
-      uid,
-      email: uid,
-      password,
-      redirect: false,
-      callbackUrl,
-    });
+    try {
+      const result = await signIn("credentials", {
+        uid,
+        email: uid,
+        password,
+        redirect: false,
+        callbackUrl,
+      });
 
-    setPending(false);
+      if (!result?.ok) {
+        setError(dictionary.auth.error);
+        return;
+      }
 
-    if (!result?.ok) {
+      const sessionResponse = await fetch("/api/auth/session", {
+        cache: "no-store",
+      });
+
+      if (!sessionResponse.ok) {
+        setError(dictionary.auth.error);
+        return;
+      }
+
+      const session = (await sessionResponse.json()) as {
+        error?: string;
+        user?: {
+          id?: string;
+        };
+      };
+
+      if (session.error || !session.user?.id) {
+        setError(dictionary.auth.error);
+        return;
+      }
+
+      router.replace(callbackUrl);
+      router.refresh();
+    } catch {
       setError(dictionary.auth.error);
-      return;
+    } finally {
+      setPending(false);
     }
-
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   const cssVars = {
