@@ -144,7 +144,14 @@ async function main() {
     });
   }
 
-  console.log({ admin, approver, submitter });
+  console.log({
+    users: [
+      { email: admin.email, externalId: admin.externalId },
+      { email: approver.email, externalId: approver.externalId },
+      { email: submitter.email, externalId: submitter.externalId },
+    ],
+    workflow: basicApprovalWorkflow.name,
+  });
 }
 
 main().finally(async () => {
