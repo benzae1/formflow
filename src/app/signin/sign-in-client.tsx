@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, type CSSProperties, useState } from "react";
+import { FormEvent, type CSSProperties, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
@@ -17,8 +17,14 @@ const ACCENT_COLORS = [
   "var(--haus-magenta)",
 ] as const;
 
+type AccentColor = (typeof ACCENT_COLORS)[number];
+
 function getAccentColor(locale: Locale) {
   return ACCENT_COLORS[locale === "de" ? 0 : 4];
+}
+
+function pickAccentColor() {
+  return ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)];
 }
 
 const STYLES = `
@@ -241,7 +247,11 @@ export default function SignInClient({
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? localizePath(locale, "/");
   const year = new Date().getFullYear();
-  const accentColor = getAccentColor(locale);
+  const [accentColor, setAccentColor] = useState<AccentColor>(() => getAccentColor(locale));
+
+  useEffect(() => {
+    setAccentColor(pickAccentColor());
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
