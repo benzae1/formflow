@@ -3,21 +3,27 @@ import { NextResponse } from "next/server";
 import { defaultLocale, isLocale } from "@/lib/i18n/config";
 
 const PUBLIC_FILE = /\.(.*)$/;
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-].join("; ");
+function getContentSecurityPolicy() {
+  const scriptSrc = process.env.NODE_ENV === "development"
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'",
+  ].join("; ");
+}
 
 function withSecurityHeaders(response: NextResponse) {
-  response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  response.headers.set("Content-Security-Policy", getContentSecurityPolicy());
   response.headers.set("Referrer-Policy", "same-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   response.headers.set("X-Content-Type-Options", "nosniff");
