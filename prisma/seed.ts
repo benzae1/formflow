@@ -45,7 +45,13 @@ async function main() {
   const admin = await db.user.upsert({
     where: { email: "admin@bauhaus.de" },
     update: {
+      name: "Admin User",
+      externalId: "admin",
       passwordHash: await hash("admin", 10),
+      deactivatedAt: null,
+      failedLoginCount: 0,
+      lastFailedLoginAt: null,
+      lockedUntil: null,
       roles: connectRoles(["admin", "submitter"]),
     },
     create: {
@@ -62,7 +68,13 @@ async function main() {
   const approver = await db.user.upsert({
     where: { email: "approver@bauhaus.de" },
     update: {
+      name: "Approver User",
+      externalId: "approver",
       passwordHash: await hash("approver", 10),
+      deactivatedAt: null,
+      failedLoginCount: 0,
+      lastFailedLoginAt: null,
+      lockedUntil: null,
       roles: connectRoles(["approver", "submitter"]),
     },
     create: {
@@ -79,7 +91,13 @@ async function main() {
   const submitter = await db.user.upsert({
     where: { email: "submitter@bauhaus.de" },
     update: {
+      name: "Submitter User",
+      externalId: "submitter",
       passwordHash: await hash("submitter", 10),
+      deactivatedAt: null,
+      failedLoginCount: 0,
+      lastFailedLoginAt: null,
+      lockedUntil: null,
       roles: connectRoles(["submitter"]),
     },
     create: {
@@ -97,25 +115,32 @@ async function main() {
     where: { name: "Basic approval" },
   });
 
-  if (!existingWorkflow) {
-    await db.workflow.create({
-      data: {
-        name: "Basic approval",
-        createdById: admin.id,
-        definition: [
-          {
-            id: "approval",
-            name: "Approval",
-            type: "approval",
-            assignTo: {
-              type: "user",
-              value: approver.id,
-            },
-            onApprove: "close",
-            onReject: "close",
-          },
-        ],
+  const basicApprovalWorkflow = {
+    name: "Basic approval",
+    createdById: admin.id,
+    definition: [
+      {
+        id: "approval",
+        name: "Approval",
+        type: "approval",
+        assignTo: {
+          type: "user",
+          value: approver.id,
+        },
+        onApprove: "close",
+        onReject: "close",
       },
+    ],
+  };
+
+  if (existingWorkflow) {
+    await db.workflow.update({
+      where: { id: existingWorkflow.id },
+      data: basicApprovalWorkflow,
+    });
+  } else {
+    await db.workflow.create({
+      data: basicApprovalWorkflow,
     });
   }
 

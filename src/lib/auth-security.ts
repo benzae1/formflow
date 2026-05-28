@@ -178,17 +178,43 @@ export async function findUserForAuthentication(login: string) {
     return null;
   }
 
+  const userSelect = {
+    roles: {
+      select: { name: true },
+    },
+  };
+
+  if (normalizedLogin.includes("@")) {
+    return db.user.findFirst({
+      where: {
+        email: normalizedLogin,
+      },
+      include: userSelect,
+    });
+  }
+
+  const activeExternalUser = await db.user.findFirst({
+    where: {
+      externalId: normalizedLogin,
+      deactivatedAt: null,
+    },
+    include: userSelect,
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+
+  if (activeExternalUser) {
+    return activeExternalUser;
+  }
+
   return db.user.findFirst({
     where: {
-      OR: [
-        { externalId: normalizedLogin },
-        { email: normalizedLogin },
-      ],
+      externalId: normalizedLogin,
     },
-    include: {
-      roles: {
-        select: { name: true },
-      },
+    include: userSelect,
+    orderBy: {
+      updatedAt: "desc",
     },
   });
 }
