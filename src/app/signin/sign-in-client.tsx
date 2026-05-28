@@ -17,8 +17,8 @@ const ACCENT_COLORS = [
   "var(--haus-magenta)",
 ] as const;
 
-function pickAccentColor() {
-  return ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)];
+function getAccentColor(locale: Locale) {
+  return ACCENT_COLORS[locale === "de" ? 0 : 4];
 }
 
 const STYLES = `
@@ -241,7 +241,7 @@ export default function SignInClient({
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? localizePath(locale, "/");
   const year = new Date().getFullYear();
-  const [accentColor] = useState(pickAccentColor);
+  const accentColor = getAccentColor(locale);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
