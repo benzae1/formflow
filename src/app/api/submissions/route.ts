@@ -1,13 +1,13 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  auditSubmissionListAccess,
+  presentSubmissionForUser,
+} from "@/lib/submissions";
 import { apiErrorResponse, ApiError } from "@/lib/errors";
 import { writeAuditLog } from "@/lib/audit";
 import { requireUser } from "@/lib/permissions";
 import { encryptSensitiveSubmissionData } from "@/lib/submission-encryption";
-import {
-  auditSubmissionAccess,
-  presentSubmissionForUser,
-} from "@/lib/submissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import { submissionVisibilityWhere } from "@/lib/submission-visibility";
@@ -19,6 +19,11 @@ import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { resolveFormSchema } from "@/lib/form-translations";
 import { normalizeSubmissionData } from "@/lib/formio-data";
+import {
+  createCookieStoreFromHeader,
+  getSensitiveAccessGrant,
+  getSensitiveAccessScope,
+} from "@/lib/sensitive-access";
 
 async function getVisibilityContext(userId: string, roles: string[]) {
   if (!roles.includes("approver")) return { teamScope: false, orgUnitIds: [] };
@@ -42,10 +47,46 @@ export async function GET(req: Request) {
     const user = await requireUser();
     const { searchParams } = new URL(req.url);
     const includeSensitive = searchParams.get("includeSensitive") === "true";
+    const sensitivityFilter = searchParams.get("sensitivity") ?? undefined;
+    const statusFilter = searchParams.get("status") ?? undefined;
+    const formIdFilter = searchParams.get("formId") ?? undefined;
+    const requestsSensitiveRecords =
+      includeSensitive || sensitivityFilter === "pii" || sensitivityFilter === "sensitive";
     const visibilityCtx = await getVisibilityContext(user.id, user.roles);
+    const isAdminListActor = user.roles.includes("admin") || user.roles.includes("compliance");
+    const sensitiveGrant =
+      isAdminListActor && requestsSensitiveRecords
+        ? getSensitiveAccessGrant(
+            createCookieStoreFromHeader(req.headers.get("cookie")),
+            user.id,
+            getSensitiveAccessScope({ kind: "admin-submissions" }),
+          )
+        : null;
+
+    if (isAdminListActor && requestsSensitiveRecords && !sensitiveGrant) {
+      throw new ApiError(
+        "BREAK_GLASS_REQUIRED",
+        "A valid sensitive-access grant is required before listing PII or sensitive submissions.",
+        428,
+      );
+    }
 
     const submissions = await db.submission.findMany({
-      where: submissionVisibilityWhere({ ...user, ...visibilityCtx }, { includeSensitive }),
+      where: {
+        ...submissionVisibilityWhere(
+          { ...user, ...visibilityCtx },
+          { includeSensitive: requestsSensitiveRecords },
+        ),
+        ...(statusFilter ? { status: statusFilter as never } : {}),
+        ...(formIdFilter ? { formId: formIdFilter } : {}),
+        ...(sensitivityFilter
+          ? {
+              form: {
+                sensitivity: sensitivityFilter as never,
+              },
+            }
+          : {}),
+      },
       include: {
         form: true,
         approvalTasks: true,
@@ -53,16 +94,19 @@ export async function GET(req: Request) {
       orderBy: { updatedAt: "desc" },
     });
 
-    await Promise.all(
-      submissions.map((submission) =>
-        auditSubmissionAccess({
-          actorId: user.id,
-          submissionId: submission.id,
-          sensitivity: submission.form.sensitivity,
-          reason: "submission.viewed",
-        }),
-      ),
-    );
+    await auditSubmissionListAccess({
+      actorId: user.id,
+      scope: "api-submissions",
+      filters: {
+        includeSensitive: includeSensitive ? "true" : undefined,
+        sensitivity: sensitivityFilter,
+        status: statusFilter,
+        formId: formIdFilter,
+      },
+      reason: requestsSensitiveRecords ? sensitiveGrant?.reason ?? undefined : undefined,
+      resultCount: submissions.length,
+      source: "api",
+    });
 
     const visibleSubmissions = submissions.map((submission) =>
       presentSubmissionForUser(

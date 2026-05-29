@@ -114,3 +114,29 @@ export function buildSensitiveAccessCookie(input: {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   return `${SENSITIVE_ACCESS_COOKIE}=${serializeSignedCookie([nextGrant])}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SENSITIVE_ACCESS_TTL_SECONDS}${secure}`;
 }
+
+export function createCookieStoreFromHeader(cookieHeader?: string | null): CookieStore {
+  const cookies = new Map<string, string>();
+
+  for (const part of (cookieHeader ?? "").split(";")) {
+    const separatorIndex = part.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const name = part.slice(0, separatorIndex).trim();
+    const value = part.slice(separatorIndex + 1).trim();
+    if (!name) {
+      continue;
+    }
+
+    cookies.set(name, value);
+  }
+
+  return {
+    get(name: string) {
+      const value = cookies.get(name);
+      return value === undefined ? undefined : { value };
+    },
+  };
+}

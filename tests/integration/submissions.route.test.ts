@@ -15,6 +15,7 @@ import {
 import { createMutationRequestHeaders } from "../support/mutation";
 import { parseJson } from "../support/response";
 import { setMockSession } from "../support/vitest.setup";
+import { buildSensitiveAccessCookie, getSensitiveAccessScope } from "../../src/lib/sensitive-access";
 
 const startWorkflowMock = vi.fn();
 
@@ -326,10 +327,21 @@ describe("submissions route", () => {
     ).toBeNull();
 
     setMockSession(compliance);
+    const sensitiveCookie = buildSensitiveAccessCookie({
+      actorId: compliance.id,
+      scope: getSensitiveAccessScope({ kind: "admin-submissions" }),
+      reason: "Compliance case review 2026-001",
+    }).split(";", 1)[0];
     const compliancePayload = await parseJson<{
       submissions: Array<{ id: string; data: { salary: number | null } }>;
     }>(
-      await GET(new Request("http://localhost/api/submissions?includeSensitive=true")),
+      await GET(
+        new Request("http://localhost/api/submissions?includeSensitive=true", {
+          headers: {
+            cookie: sensitiveCookie,
+          },
+        }),
+      ),
     );
 
     expect(compliancePayload.submissions.map((item) => item.id)).toEqual(
@@ -338,6 +350,41 @@ describe("submissions route", () => {
     expect(
       compliancePayload.submissions.find((item) => item.id === ownSubmission.id)?.data.salary,
     ).toBe(150000);
+  });
+
+  test("sensitive admin list requests require a signed grant", async () => {
+    const { admin, approver, submitter, compliance } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const sensitiveForm = await createSensitiveFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+    });
+
+    await createSubmissionFixture({
+      formId: sensitiveForm.id,
+      formVersion: sensitiveForm.version,
+      submittedById: submitter.id,
+      status: "submitted",
+      schema: sensitiveForm.schema as never,
+      data: {
+        publicNote: "Restricted",
+        salary: 90000,
+      },
+    });
+
+    setMockSession(compliance);
+
+    const response = await GET(new Request("http://localhost/api/submissions?includeSensitive=true"));
+    const payload = await parseJson<{
+      error: { code: string; message: string; status: number };
+    }>(response);
+
+    expect(response.status).toBe(428);
+    expect(payload.error.code).toBe("BREAK_GLASS_REQUIRED");
   });
 
   test("compliance list excludes pii and sensitive submissions by default", async () => {

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { writeAuditLog } from "@/lib/audit";
 import { resolveFormTitle } from "@/lib/form-translations";
 import { getLocaleContextOrDefault } from "@/lib/i18n/server";
 import { localizePath } from "@/lib/i18n/routing";
@@ -11,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateTime, getStatusLabel } from "@/lib/ui";
 import { getSensitiveAccessGrant, getSensitiveAccessScope } from "@/lib/sensitive-access";
+import { auditSubmissionListAccess } from "@/lib/submissions";
 
 type SearchParams = Promise<{
   status?: string;
@@ -54,19 +54,6 @@ export default async function AdminSubmissionsPage({
     );
   }
 
-  if (requestsSensitiveRecords && sensitiveGrant) {
-    await writeAuditLog({
-      actorId: user.id,
-      action: "sensitive.list_accessed",
-      resourceType: "submission_list",
-      resourceId: "admin-submissions",
-      metadata: {
-        reason: sensitiveGrant.reason,
-        filters,
-      },
-    });
-  }
-
   const [forms, submissions] = await Promise.all([
     db.form.findMany({
       orderBy: {
@@ -107,6 +94,15 @@ export default async function AdminSubmissionsPage({
       },
     }),
   ]);
+
+  await auditSubmissionListAccess({
+    actorId: user.id,
+    scope: "admin-submissions",
+    filters,
+    reason: requestsSensitiveRecords ? sensitiveGrant?.reason ?? undefined : undefined,
+    resultCount: submissions.length,
+    source: "page",
+  });
 
   return (
     <div className="bf-stack">
