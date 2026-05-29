@@ -133,11 +133,17 @@ AuditLog (standalone, indexed by actor/resource/action/time)
 - `workflowDefinition` — Copy of the workflow definition at time of submission
 - `status` — `draft → submitted → in_review → needs_revision → approved | rejected → closed`
 - `parentSubmissionId` — Links child submissions triggered by `trigger-form` workflow stages
+- `retainUntil` / `purgeAt` / `deletedAt` — retention and erasure markers used by operational cleanup scripts
 
 **AuditLog**
 - Indexed on `(createdAt)`, `(actorId, createdAt)`, `(resourceType, resourceId, createdAt)`, `(action, createdAt)`
 - Records every state change, access event, and administrative action
 - Exported via `GET /api/audit-log?format=csv` for compliance review
+- `retainUntil` and `exportedForDsarAt` support privacy review workflows without deleting evidence ad hoc
+
+**LoginRateLimitBucket**
+- Shared per-login and per-IP counters stored in PostgreSQL
+- Used for the short-window login throttle so counters survive restarts and scale across replicas
 
 **Delegation**
 - Allows an approver to nominate a delegate for a time window (`startsAt`–`endsAt`)
@@ -150,7 +156,7 @@ AuditLog (standalone, indexed by actor/resource/action/time)
 ```
 POST /api/auth/callback/credentials
   │
-  ├─ checkRateLimited()           ← in-memory bucket (resets on restart)
+  ├─ checkRateLimited()           ← PostgreSQL-backed bucket (shared across replicas)
   ├─ isUserLoginLocked()          ← database-backed (survives restarts)
   ├─ LDAP bind or bcrypt verify
   ├─ recordFailedLoginAttempt()   ← writes to User table
@@ -237,11 +243,11 @@ Fields marked sensitive in the Form.io schema are identified by `src/lib/formio-
   "iv": "<base64>",
   "tag": "<base64>",
   "data": "<base64 ciphertext>",
-  "keyId": "key-1"
+  "keyId": "default"
 }
 ```
 
-Multi-key rotation is supported via `FIELD_ENCRYPTION_KEYS` (comma-separated `id:hexkey` pairs). The `FIELD_ENCRYPTION_KEY` variable is a shorthand for a single key named `key-1`.
+Multi-key rotation is supported via `FIELD_ENCRYPTION_KEYS` (comma-separated `id=hexkey` pairs). The `FIELD_ENCRYPTION_KEY` variable is a shorthand for a single key named `default`, and `FIELD_ENCRYPTION_KEY_ID` selects the active key for new writes.
 
 ---
 

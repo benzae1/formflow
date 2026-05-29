@@ -93,7 +93,7 @@ The access flow:
 5. A short-lived (10-minute) HMAC-signed cookie is issued
 6. The submission page loads and the access is written to `AuditLog`
 
-Accessing a sensitive submission via the API (`GET /api/submissions/[id]`) requires the `X-Break-Glass-Reason` header instead.
+The same signed cookie is required for API reads of sensitive submissions and for admin/compliance list views that include `pii` or `sensitive` records.
 
 The audit log entry records the actor, timestamp, submission ID, sensitivity level, and the stated reason. These entries cannot be deleted through the application.
 

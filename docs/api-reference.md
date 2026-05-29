@@ -182,7 +182,7 @@ List submissions visible to the current user.
 | `status` | `SubmissionStatus` | Filter by status |
 | `formId` | UUID | Filter by form |
 | `sensitivity` | `standard \| pii \| sensitive` | Filter by sensitivity level |
-| `includeSensitive` | `true` | Include sensitive submissions (requires break-glass grant) |
+| `includeSensitive` | `true` | Include PII and sensitive submissions (admin/compliance only, requires break-glass grant) |
 
 ### `POST /api/submissions`
 
@@ -200,16 +200,11 @@ Create a new draft submission for a published form.
 
 ### `GET /api/submissions/[id]`
 
-Get a single submission. Sensitive submissions require the `X-Break-Glass-Reason` header (minimum 10 characters). Access is always audited.
-
-**Headers (sensitive forms only):**
-```
-X-Break-Glass-Reason: Reviewing for compliance audit, case ref #1234
-```
+Get a single submission. Sensitive submissions require the same signed break-glass cookie issued by `POST /api/sensitive-access`. Access is always audited.
 
 **Errors:**
 - `404` — not found or not visible to the current user
-- `428 BREAK_GLASS_REQUIRED` — sensitive submission; reason header missing or too short
+- `428 BREAK_GLASS_REQUIRED` — sensitive submission; signed break-glass grant missing or expired
 
 ### `PATCH /api/submissions/[id]`
 
@@ -389,7 +384,7 @@ Create a short-lived access grant for a sensitive submission or sensitive submis
 - `submission:<id>` — grant for a specific submission detail page
 - `admin-submissions` — grant for the admin submissions console with sensitive filters
 
-**Response `200`:** Sets a signed `sensitive_access` cookie.
+**Response `200`:** Sets the signed `formflow-sensitive-access` cookie.
 
 **Errors:**
 - `400` — reason too short (minimum 10 characters)
@@ -422,7 +417,8 @@ Retrieve audit log entries. **Admin or Compliance only.**
 |---|---|
 | `submission.created` | Submission submitted from draft |
 | `submission.resubmitted` | Revision submitted back to workflow |
-| `submission.accessed` | Submission detail viewed |
+| `submission.viewed` | Submission detail viewed |
+| `submission_list.viewed` | Submission list viewed without elevated access |
 | `sensitive.accessed` | Sensitive submission viewed (includes reason) |
 | `sensitive.list_accessed` | Admin sensitive list viewed (includes reason) |
 | `form.updated` | Form schema or metadata changed |

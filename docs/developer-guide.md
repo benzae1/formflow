@@ -68,10 +68,11 @@ All variables live in `.env`. The `web` and `worker` containers load `.env` via 
 
 | Variable | Description |
 |---|---|
-| `FIELD_ENCRYPTION_KEY` | 64-character hex string (32 bytes). Used as key ID `key-1`. Required if any form has sensitive fields. |
-| `FIELD_ENCRYPTION_KEYS` | Comma-separated `id:hexkey` pairs for multi-key rotation, e.g. `key-1:aabbcc…,key-2:ddeeff…`. Takes precedence over `FIELD_ENCRYPTION_KEY`. |
+| `FIELD_ENCRYPTION_KEY` | 64-character hex string (32 bytes). Used as key ID `default`. Required if any form has sensitive fields. |
+| `FIELD_ENCRYPTION_KEYS` | Comma-separated `id=hexkey` pairs for multi-key rotation, e.g. `default=aabbcc…,rotated-2026-06=ddeeff…`. Takes precedence over `FIELD_ENCRYPTION_KEY`. |
+| `FIELD_ENCRYPTION_KEY_ID` | Optional active key ID for new writes. When omitted, the first `FIELD_ENCRYPTION_KEYS` entry is used, or `default` for single-key mode. |
 
-Key rotation: add a new key to `FIELD_ENCRYPTION_KEYS` and update `FIELD_ENCRYPTION_KEY` to the new key ID. Existing encrypted values are decrypted with whichever key was active at encryption time (stored in the `keyId` field).
+Key rotation: add a new key to `FIELD_ENCRYPTION_KEYS` and set `FIELD_ENCRYPTION_KEY_ID` to the new key ID. Existing encrypted values are decrypted with whichever key was active at encryption time (stored in the `keyId` field). Malformed `FIELD_ENCRYPTION_KEYS` entries are rejected at runtime instead of being skipped.
 
 ### Authentication Hardening
 
@@ -89,7 +90,7 @@ Key rotation: add a new key to `FIELD_ENCRYPTION_KEYS` and update `FIELD_ENCRYPT
 |---|---|---|
 | `RESEND_API_KEY` | *(empty)* | Resend API key. Email is disabled when empty. |
 | `DISABLE_EMAIL_DELIVERY` | `true` | Set to `false` to enable email sending |
-| `EMAIL_FROM_ADDRESS` | `FormFlow <notifications@example.com>` | **Must be set to a real address in production.** |
+| `EMAIL_FROM_ADDRESS` | *(empty)* | Required whenever `RESEND_API_KEY` is set and `DISABLE_EMAIL_DELIVERY` is not `true`. Use a real deliverable institutional address. |
 
 ### LDAP
 
@@ -168,6 +169,22 @@ Re-run seed without resetting:
 ```bash
 npx ts-node prisma/seed.ts
 ```
+
+### Retention operations
+
+Generate a report of records already marked for purge or retention review:
+
+```bash
+npm run retention:report
+```
+
+Delete records whose `purgeAt` has passed:
+
+```bash
+npm run retention:purge
+```
+
+The purge script removes eligible `Notification`, `ApprovalTask`, and `Submission` rows. `AuditLog` rows are only reported and must be reviewed manually before deletion.
 
 ---
 
