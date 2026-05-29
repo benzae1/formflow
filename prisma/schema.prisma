@@ -153,9 +153,15 @@ model Submission {
   childSubmissions    Submission[]     @relation("ParentChildSubmissions")
 
   approvalTasks       ApprovalTask[]
+  retainUntil         DateTime?
+  purgeAt             DateTime?
+  deletedAt           DateTime?
 
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
+
+  @@index([retainUntil])
+  @@index([purgeAt])
 }
 
 model ApprovalTask {
@@ -171,9 +177,14 @@ model ApprovalTask {
   decisionAt    DateTime?
   note          String?
   dueAt         DateTime?
+  retainUntil   DateTime?
+  purgeAt       DateTime?
 
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
+
+  @@index([retainUntil])
+  @@index([purgeAt])
 }
 
 model Notification {
@@ -184,8 +195,11 @@ model Notification {
   body        String
   linkUrl     String?
   readAt      DateTime?
+  purgeAt     DateTime?
 
   createdAt   DateTime @default(now())
+
+  @@index([purgeAt])
 }
 
 model OrgUnit {
@@ -237,6 +251,8 @@ model AuditLog {
   beforeState   Json?
   afterState    Json?
   metadata      Json?
+  retainUntil   DateTime?
+  exportedForDsarAt DateTime?
 
   createdAt     DateTime @default(now())
 
@@ -244,5 +260,16 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([resourceType, resourceId, createdAt])
   @@index([action, createdAt])
+  @@index([retainUntil])
+}
+
+model LoginRateLimitBucket {
+  key        String   @id
+  count      Int
+  resetAt    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([resetAt])
 }
 

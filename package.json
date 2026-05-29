@@ -14,6 +14,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "retention:report": "tsx scripts/retention-operations.ts",
+    "retention:purge": "tsx scripts/retention-operations.ts --purge",
     "build": "next build",
     "start": "next start",
     "prebuild": "prisma generate",

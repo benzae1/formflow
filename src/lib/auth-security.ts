@@ -1,4 +1,4 @@
-import type { Role, User } from "@prisma/client";
+import { Prisma, type Role, type User } from "@prisma/client";
 import { db } from "./db";
 import { writeAuditLog } from "./audit";
 
@@ -34,13 +34,6 @@ type LoginFailureReason =
   | "account_locked"
   | "deactivated"
   | "password_unavailable";
-
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-};
-
-const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
 function getFailedLoginLimit() {
   return getPositiveNumberEnv("AUTH_MAX_FAILED_ATTEMPTS", 5);
@@ -121,37 +114,53 @@ function getRateLimitKeys(login: string, provider: "local" | "ldap", ipAddress: 
   return keys;
 }
 
-function consumeRateLimitBucket(key: string) {
-  const now = Date.now();
+async function consumeRateLimitBucket(key: string) {
+  const now = new Date();
   const windowMs = getLoginRateLimitWindowMs();
   const maxAttempts = getLoginRateLimitMaxAttempts();
-  const existing = rateLimitBuckets.get(key);
+  const nextResetAt = new Date(now.getTime() + windowMs);
 
-  if (!existing || existing.resetAt <= now) {
-    rateLimitBuckets.set(key, {
-      count: 1,
-      resetAt: now + windowMs,
-    });
-    return false;
-  }
+  const [row] = await db.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+    INSERT INTO "LoginRateLimitBucket" ("key", "count", "resetAt", "createdAt", "updatedAt")
+    VALUES (${key}, 1, ${nextResetAt}, NOW(), NOW())
+    ON CONFLICT ("key") DO UPDATE
+    SET
+      "count" = CASE
+        WHEN "LoginRateLimitBucket"."resetAt" <= ${now} THEN 1
+        ELSE "LoginRateLimitBucket"."count" + 1
+      END,
+      "resetAt" = CASE
+        WHEN "LoginRateLimitBucket"."resetAt" <= ${now} THEN ${nextResetAt}
+        ELSE "LoginRateLimitBucket"."resetAt"
+      END,
+      "updatedAt" = NOW()
+    RETURNING "count"
+  `);
 
-  existing.count += 1;
-  rateLimitBuckets.set(key, existing);
-  return existing.count > maxAttempts;
+  return (row?.count ?? 0) > maxAttempts;
 }
 
-function clearRateLimitBuckets(login: string, provider: "local" | "ldap", ipAddress: string | null) {
+async function clearRateLimitBuckets(
+  login: string,
+  provider: "local" | "ldap",
+  ipAddress: string | null,
+) {
   for (const key of getRateLimitKeys(login, provider, ipAddress)) {
     if (key.startsWith(`login:${provider}:`)) {
-      rateLimitBuckets.delete(key);
+      await db.loginRateLimitBucket.deleteMany({
+        where: { key },
+      });
     }
   }
 }
 
 export async function checkRateLimited(context: LoginAuditContext) {
-  const limited = getRateLimitKeys(context.login, context.provider, context.ipAddress).some((key) =>
-    consumeRateLimitBucket(key),
-  );
+  let limited = false;
+  for (const key of getRateLimitKeys(context.login, context.provider, context.ipAddress)) {
+    if (await consumeRateLimitBucket(key)) {
+      limited = true;
+    }
+  }
 
   if (!limited) {
     return false;
@@ -302,7 +311,7 @@ export async function resetFailedLoginState(
     },
   });
 
-  clearRateLimitBuckets(login, provider, ipAddress);
+  await clearRateLimitBuckets(login, provider, ipAddress);
 }
 
 export async function revokeUserSessions(userId: string) {
