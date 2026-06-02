@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { validateFormioSchema } from "@/lib/formio-schema";
+import { roleNameSchema } from "@/lib/validation/roles";
 
 const formSchemaJson = z
   .custom<Record<string, unknown>>(
@@ -24,6 +25,7 @@ export const createFormSchema = z.object({
   sensitivity: z.enum(["standard", "pii", "sensitive"]).default("standard"),
   workflowId: z.string().uuid().optional().nullable(),
   parentFormId: z.string().uuid().optional().nullable(),
+  allowedRoleNames: z.array(roleNameSchema).optional(),
   translations: z
     .custom<Record<string, unknown>>(
       (value) => value === undefined || value === null || (typeof value === "object" && !Array.isArray(value)),

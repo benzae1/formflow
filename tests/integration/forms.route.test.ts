@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, test } from "vitest";
 import { db } from "../../src/lib/db";
 import { POST } from "../../src/app/api/forms/route";
+import { PUT } from "../../src/app/api/forms/[id]/route";
 import {
+  createFormFixture,
   createWorkflowFixture,
   resetDatabase,
   seedBaseUsers,
@@ -58,6 +60,7 @@ describe("forms route", () => {
           sensitivity: "standard",
           workflowId: workflow.id,
           parentFormId: null,
+          allowedRoleNames: ["approver", "submitter"],
           schema: validSchema,
         }),
       }),
@@ -65,7 +68,13 @@ describe("forms route", () => {
 
     expect(response.status).toBe(201);
 
-    const payload = await parseJson<{ form: { id: string; workflowId: string } }>(response);
+    const payload = await parseJson<{
+      form: {
+        id: string;
+        workflowId: string;
+        allowedRoles: Array<{ name: string }>;
+      };
+    }>(response);
     const version = await db.formVersion.findFirst({
       where: { formId: payload.form.id, version: 1 },
     });
@@ -78,8 +87,13 @@ describe("forms route", () => {
     });
 
     expect(payload.form.workflowId).toBe(workflow.id);
+    expect(payload.form.allowedRoles.map((role) => role.name)).toEqual(["approver", "submitter"]);
     expect(version).not.toBeNull();
     expect(auditLog?.actorId).toBe(admin.id);
+    expect((auditLog?.afterState as { allowedRoles?: Array<{ name: string }> } | null)?.allowedRoles?.map((role) => role.name)).toEqual([
+      "approver",
+      "submitter",
+    ]);
   });
 
   test("duplicate slugs are rejected with a clear error", async () => {
@@ -196,5 +210,98 @@ describe("forms route", () => {
 
     expect(response.status).toBe(201);
     expect(payload.form.schema.display).toBe("form");
+  });
+
+  test("unknown allowed role names are rejected before saving", async () => {
+    const { admin } = await seedBaseUsers();
+    setMockSession(admin);
+
+    const response = await POST(
+      new Request("http://localhost/api/forms", {
+        method: "POST",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          slug: uniqueSlug("invalid-roles"),
+          title: "Invalid role form",
+          sensitivity: "standard",
+          allowedRoleNames: ["missing-role"],
+          schema: validSchema,
+        }),
+      }),
+    );
+
+    const payload = await parseJson<{
+      error: { code: string; message: string; status: number };
+    }>(response);
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("ROLE_NOT_FOUND");
+  });
+
+  test("updating allowed roles persists the relation and clears it when empty", async () => {
+    const { admin } = await seedBaseUsers();
+    setMockSession(admin);
+
+    const form = await createFormFixture({
+      createdById: admin.id,
+      status: "draft",
+      allowedRoleNames: ["submitter"],
+    });
+
+    const assignResponse = await PUT(
+      new Request(`http://localhost/api/forms/${form.id}`, {
+        method: "PUT",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          allowedRoleNames: ["admin", "approver"],
+        }),
+      }),
+      { params: Promise.resolve({ id: form.id }) },
+    );
+
+    expect(assignResponse.status).toBe(200);
+
+    const assignPayload = await parseJson<{
+      form: { allowedRoles: Array<{ name: string }> };
+    }>(assignResponse);
+    expect(assignPayload.form.allowedRoles.map((role) => role.name)).toEqual(["admin", "approver"]);
+
+    const updated = await db.form.findUniqueOrThrow({
+      where: { id: form.id },
+      include: { allowedRoles: { orderBy: { name: "asc" } } },
+    });
+    expect(updated.allowedRoles.map((role) => role.name)).toEqual(["admin", "approver"]);
+
+    const clearResponse = await PUT(
+      new Request(`http://localhost/api/forms/${form.id}`, {
+        method: "PUT",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          allowedRoleNames: [],
+        }),
+      }),
+      { params: Promise.resolve({ id: form.id }) },
+    );
+
+    expect(clearResponse.status).toBe(200);
+
+    const cleared = await db.form.findUniqueOrThrow({
+      where: { id: form.id },
+      include: { allowedRoles: true },
+    });
+    expect(cleared.allowedRoles).toHaveLength(0);
+
+    const auditLog = await db.auditLog.findFirst({
+      where: {
+        resourceType: "form",
+        resourceId: form.id,
+        action: "form.updated",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    expect((auditLog?.afterState as { allowedRoles?: unknown[] } | null)?.allowedRoles ?? []).toEqual([]);
   });
 });

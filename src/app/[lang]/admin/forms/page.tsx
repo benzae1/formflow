@@ -17,6 +17,11 @@ export default async function LocalizedAdminFormsPage({
     db.form.findMany({
       include: {
         workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
       },
       orderBy: {
         updatedAt: "desc",

@@ -1,10 +1,12 @@
 import { Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 import { db } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
+import { resolveRoleNamesOrThrow } from "@/lib/roles";
 import { updateFormSchema } from "@/lib/validation/forms";
 import { assertWorkflowRunnable } from "@/lib/validation/workflow-server";
 
@@ -21,6 +23,11 @@ export async function GET(
       where: { id },
       include: {
         workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
         versions: true,
       },
     });
@@ -49,8 +56,21 @@ export async function PUT(
     const { id } = await context.params;
     const body = await req.json();
     const input = updateFormSchema.parse(body);
+    const resolvedAllowedRoles =
+      input.allowedRoleNames !== undefined
+        ? await resolveRoleNamesOrThrow(input.allowedRoleNames)
+        : null;
 
-    const existing = await db.form.findUnique({ where: { id } });
+    const existing = await db.form.findUnique({
+      where: { id },
+      include: {
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
+    });
 
     if (!existing) {
       throw new ApiError("FORM_NOT_FOUND", isGerman ? "Formular nicht gefunden." : "Form not found.", 404);
@@ -98,7 +118,7 @@ export async function PUT(
       );
     }
 
-    const updateData: Prisma.FormUncheckedUpdateInput = {
+    const updateData: Prisma.FormUpdateInput = {
       version: nextVersion,
       ...(input.slug !== undefined ? { slug: input.slug } : {}),
       ...(input.title !== undefined ? { title: input.title } : {}),
@@ -111,16 +131,31 @@ export async function PUT(
       ...(input.sensitivity !== undefined
         ? { sensitivity: input.sensitivity }
         : {}),
-      ...(input.workflowId !== undefined ? { workflowId: input.workflowId } : {}),
+      ...(input.workflowId !== undefined ? { workflow: input.workflowId ? { connect: { id: input.workflowId } } : { disconnect: true } } : {}),
       ...(input.parentFormId !== undefined
-        ? { parentFormId: input.parentFormId }
+        ? { parentForm: input.parentFormId ? { connect: { id: input.parentFormId } } : { disconnect: true } }
         : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(resolvedAllowedRoles !== null
+        ? {
+            allowedRoles: {
+              set: resolvedAllowedRoles.map((role) => ({ id: role.id })),
+            },
+          }
+        : {}),
     };
 
     const form = await db.form.update({
       where: { id },
       data: updateData,
+      include: {
+        workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
     });
 
     if (shouldBumpVersion) {
@@ -156,6 +191,43 @@ export async function PUT(
 
     return Response.json({ form });
   } catch (error) {
+    if (error instanceof ZodError) {
+      const firstIssue = error.issues[0];
+      const message = firstIssue
+        ? `${firstIssue.path.join(".") || "form"}: ${firstIssue.message}`
+        : isGerman
+          ? "Die Formulardaten sind ungültig."
+          : "The form details are invalid.";
+
+      return apiErrorResponse(new ApiError("INVALID_FORM_INPUT", message, 400));
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        return apiErrorResponse(
+          new ApiError(
+            "FORM_SLUG_TAKEN",
+            isGerman
+              ? "Dieser Slug wird bereits verwendet. Bitte einen anderen wählen."
+              : "That slug is already in use. Choose a different slug.",
+            409,
+          ),
+        );
+      }
+
+      if (error.code === "P2003") {
+        return apiErrorResponse(
+          new ApiError(
+            "FORM_RELATION_INVALID",
+            isGerman
+              ? "Der ausgewählte Workflow, das Elternformular oder die Rollenzuweisung konnte nicht verknüpft werden."
+              : "The selected workflow, parent form, or allowed role assignment could not be linked.",
+            400,
+          ),
+        );
+      }
+    }
+
     return apiErrorResponse(error);
   }
 }

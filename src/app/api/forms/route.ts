@@ -6,6 +6,7 @@ import { ApiError, apiErrorResponse } from "@/lib/errors";
 import { requireRole } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
+import { resolveRoleNamesOrThrow } from "@/lib/roles";
 import { createFormSchema } from "@/lib/validation/forms";
 import { assertWorkflowRunnable } from "@/lib/validation/workflow-server";
 
@@ -17,6 +18,11 @@ export async function GET() {
       orderBy: { updatedAt: "desc" },
       include: {
         workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
       },
     });
 
@@ -35,6 +41,7 @@ export async function POST(req: Request) {
     const user = await requireRole(["admin"]);
     const body = await req.json();
     const input = createFormSchema.parse(body);
+    const resolvedAllowedRoles = await resolveRoleNamesOrThrow(input.allowedRoleNames ?? []);
 
     if (input.workflowId) {
       await assertWorkflowRunnable(input.workflowId);
@@ -67,6 +74,21 @@ export async function POST(req: Request) {
         workflowId: input.workflowId ?? null,
         parentFormId: input.parentFormId ?? null,
         createdById: user.id,
+        ...(input.allowedRoleNames !== undefined
+          ? {
+              allowedRoles: {
+                connect: resolvedAllowedRoles.map((role) => ({ id: role.id })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
       },
     });
 

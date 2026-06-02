@@ -13,6 +13,11 @@ export default async function AdminFormsPage() {
     db.form.findMany({
       include: {
         workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
       },
       orderBy: {
         updatedAt: "desc",

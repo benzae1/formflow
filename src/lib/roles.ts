@@ -24,6 +24,39 @@ export function isBuiltInRoleName(name: string) {
   return BUILT_IN_ROLE_NAME_SET.has(name);
 }
 
+export async function resolveRoleNamesOrThrow(roleNames: string[]) {
+  const uniqueRoleNames = Array.from(new Set(roleNames));
+
+  if (uniqueRoleNames.length === 0) {
+    return [];
+  }
+
+  const roles = await db.role.findMany({
+    where: {
+      name: {
+        in: uniqueRoleNames,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (roles.length !== uniqueRoleNames.length) {
+    const foundNames = new Set(roles.map((role) => role.name));
+    const missingRoles = uniqueRoleNames.filter((roleName) => !foundNames.has(roleName));
+
+    throw new ApiError(
+      "ROLE_NOT_FOUND",
+      `Unknown role: ${missingRoles.join(", ")}.`,
+      400,
+    );
+  }
+
+  return roles;
+}
+
 export function sortRoles<T extends Pick<Role, "name">>(roles: T[]) {
   return [...roles].sort((left, right) => {
     const leftBuiltIn = isBuiltInRoleName(left.name);
