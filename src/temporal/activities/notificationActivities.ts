@@ -5,10 +5,13 @@ import { Resend } from "resend";
 const emailDeliveryEnabled =
   Boolean(process.env.RESEND_API_KEY) &&
   process.env.DISABLE_EMAIL_DELIVERY !== "true";
-const emailFromAddress = process.env.EMAIL_FROM_ADDRESS?.trim() ?? "";
 
-if (emailDeliveryEnabled && !emailFromAddress) {
-  throw new Error("EMAIL_FROM_ADDRESS must be configured when email delivery is enabled.");
+function getEmailFromAddress() {
+  const address = process.env.EMAIL_FROM_ADDRESS?.trim() ?? "";
+  if (emailDeliveryEnabled && !address) {
+    throw new Error("EMAIL_FROM_ADDRESS must be configured when email delivery is enabled.");
+  }
+  return address;
 }
 
 const resend = process.env.RESEND_API_KEY
@@ -47,7 +50,7 @@ export async function sendNotification(input: {
     try {
       const linkUrl = toAbsoluteAppUrl(input.linkUrl);
       await resend.emails.send({
-        from: emailFromAddress,
+        from: getEmailFromAddress(),
         to: user.email,
         subject: input.title,
         html: `
