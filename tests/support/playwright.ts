@@ -47,8 +47,22 @@ export async function signInAs(
     throw new Error(`Sign-in failed for ${email} with status ${signInResponse.status()}.`);
   }
 
-  await page.goto(account.callbackUrl);
-  await page.waitForURL(`**${account.callbackUrl}`);
+  const sessionResponse = await page.context().request.get("/api/auth/session");
+  if (!sessionResponse.ok()) {
+    throw new Error(`Session check failed for ${email} with status ${sessionResponse.status()}.`);
+  }
+
+  const session = (await sessionResponse.json()) as {
+    error?: string;
+    user?: {
+      email?: string | null;
+      roles?: string[];
+    };
+  };
+
+  if (session.error || session.user?.email !== email) {
+    throw new Error(`Sign-in did not create a valid session for ${email}.`);
+  }
 }
 
 export async function signOut(page: Page) {

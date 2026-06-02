@@ -2,6 +2,15 @@ import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { Resend } from "resend";
 
+const emailDeliveryEnabled =
+  Boolean(process.env.RESEND_API_KEY) &&
+  process.env.DISABLE_EMAIL_DELIVERY !== "true";
+const emailFromAddress = process.env.EMAIL_FROM_ADDRESS?.trim() ?? "";
+
+if (emailDeliveryEnabled && !emailFromAddress) {
+  throw new Error("EMAIL_FROM_ADDRESS must be configured when email delivery is enabled.");
+}
+
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
@@ -38,7 +47,7 @@ export async function sendNotification(input: {
     try {
       const linkUrl = toAbsoluteAppUrl(input.linkUrl);
       await resend.emails.send({
-        from: process.env.EMAIL_FROM_ADDRESS ?? "FormFlow <notifications@example.com>",
+        from: emailFromAddress,
         to: user.email,
         subject: input.title,
         html: `

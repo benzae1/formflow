@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { requirePageUser } from "@/lib/page-auth";
 import {
@@ -15,18 +16,17 @@ import { BreakGlassGate } from "@/components/submissions/BreakGlassGate";
 import { formatDateTime, summarizeWorkflow } from "@/lib/ui";
 import { defaultLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { getSensitiveAccessGrant, getSensitiveAccessScope } from "@/lib/sensitive-access";
 
 export default async function SubmissionDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ reason?: string }>;
 }) {
   const dictionary = await getDictionary(defaultLocale);
   const user = await requirePageUser(defaultLocale);
   const { id } = await params;
-  const { reason } = await searchParams;
+  const cookieStore = await cookies();
 
   const submission = await getVisibleSubmissionById({
     submissionId: id,
@@ -37,16 +37,17 @@ export default async function SubmissionDetailPage({
     notFound();
   }
 
-  const needsBreakGlass =
-    submission.form.sensitivity === "sensitive" &&
-    (!reason || reason.trim().length < 10);
+  const sensitiveScope = getSensitiveAccessScope({ kind: "submission", id });
+  const sensitiveGrant = getSensitiveAccessGrant(cookieStore, user.id, sensitiveScope);
+  const needsBreakGlass = submission.form.sensitivity === "sensitive" && !sensitiveGrant;
 
   if (needsBreakGlass) {
     return (
       <BreakGlassGate
-        action={`/submissions/${id}`}
         backHref="/submissions"
+        scope={sensitiveScope}
         dictionary={dictionary}
+        returnTo={`/submissions/${id}`}
       />
     );
   }
@@ -55,7 +56,7 @@ export default async function SubmissionDetailPage({
     actorId: user.id,
     submissionId: submission.id,
     sensitivity: submission.form.sensitivity,
-    reason: reason?.trim() ?? "submission.viewed",
+    reason: sensitiveGrant?.reason ?? "submission.viewed",
   });
 
   const visibleSubmission = presentSubmissionForUser(

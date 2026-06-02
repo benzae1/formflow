@@ -1,7 +1,7 @@
+import { PageHeader } from "@/components/ui/PageHeader";
 import { db } from "@/lib/db";
 import { getLocaleContextOrDefault } from "@/lib/i18n/server";
 import { requirePageRole } from "@/lib/page-auth";
-import { PageHeader } from "@/components/ui/PageHeader";
 import WorkflowsManagerClient from "./WorkflowsManagerClient";
 
 export default async function AdminWorkflowsPage({
@@ -9,7 +9,9 @@ export default async function AdminWorkflowsPage({
 }: {
   params?: Promise<{ lang?: string }>;
 }) {
-  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  const { locale, dictionary } = await getLocaleContextOrDefault(
+    params ? (await params).lang : undefined,
+  );
   await requirePageRole(["admin"], locale);
 
   const [workflows, roles, forms] = await Promise.all([
@@ -34,15 +36,16 @@ export default async function AdminWorkflowsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={locale === "de" ? "Admin-Workflows" : "Admin workflows"}
-        title={locale === "de" ? "Routing-Definitionen" : "Routing definitions"}
-        description={
-          locale === "de"
-            ? "Gestalten Sie Genehmigungsstufen visuell – per Karte, Drag &amp; Drop und typenspezifischen Feldern."
-            : "Build approval stages visually – with cards, drag-and-drop, and type-specific field editors."
-        }
+        eyebrow={dictionary.adminWorkflows.pageEyebrow}
+        title={dictionary.adminWorkflows.pageTitle}
+        description={dictionary.adminWorkflows.pageDescription}
       />
-      <WorkflowsManagerClient workflows={workflows as never} locale={locale} roles={roles} forms={forms} />
+      <WorkflowsManagerClient
+        workflows={workflows as never}
+        roles={roles}
+        forms={forms}
+        dictionary={dictionary}
+      />
     </div>
   );
 }

@@ -74,6 +74,33 @@ describe("auth hardening", () => {
     });
   });
 
+  test("stores login rate-limit state in the database", async () => {
+    process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS = "1";
+
+    await authorizeCredentials({ uid: "unknown-user", password: "wrong-1" });
+    const result = await authorizeCredentials({ uid: "unknown-user", password: "wrong-2" });
+
+    expect(result).toBeNull();
+
+    const bucket = await db.loginRateLimitBucket.findUnique({
+      where: { key: "login:local:unknown-user" },
+    });
+    const latestAudit = await db.auditLog.findFirstOrThrow({
+      where: {
+        action: "auth.login_failed",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    expect(bucket?.count).toBe(2);
+    expect(latestAudit.metadata).toMatchObject({
+      login: "unknown-user",
+      reason: "rate_limited",
+    });
+  });
+
   test("revokes existing sessions when the user session version changes", async () => {
     const admin = await db.user.findFirstOrThrow({
       where: { externalId: "admin" },

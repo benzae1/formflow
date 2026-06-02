@@ -22,7 +22,7 @@ test.describe("FormFlow end-to-end", () => {
     const title = "Smoke workflow form";
 
     await signInAs(page, "admin@example.com");
-    await page.goto("/admin/forms");
+    await page.goto("/en/admin/forms");
 
     await page.getByRole("button", { name: "Create form" }).click();
     await page.getByPlaceholder("Form title").fill(title);
@@ -38,7 +38,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "submitter@example.com");
-    await page.goto("/submissions");
+    await page.goto("/en/submissions");
     await page.getByRole("link", { name: title }).click();
     await page.getByRole("button", { name: "Submit" }).click();
     await expect(page).toHaveURL(/\/submissions\/.+/);
@@ -47,7 +47,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "approver@example.com");
-    await page.goto("/inbox");
+    await page.goto("/en/inbox");
     await page.getByRole("link", { name: "Open submission" }).first().click();
     await page.getByRole("button", { name: "Approve" }).click();
     await page.getByRole("button", { name: "Confirm decision" }).click();
@@ -67,7 +67,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "submitter@example.com");
-    await page.goto(`/submissions/${submissionId}`);
+    await page.goto(`/en/submissions/${submissionId}`);
     await expect(page.getByText("No further action is required from this screen right now.")).toBeVisible();
   });
 
@@ -77,7 +77,7 @@ test.describe("FormFlow end-to-end", () => {
     const { title } = await seedPublishedFormScenario("Revision loop");
 
     await signInAs(page, "submitter@example.com");
-    await page.goto("/submissions");
+    await page.goto("/en/submissions");
     await page.getByRole("link", { name: title }).click();
     await page.getByRole("button", { name: "Submit" }).click();
     await expect(page).toHaveURL(/\/submissions\/.+/);
@@ -85,7 +85,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "approver@example.com");
-    await page.goto("/inbox");
+    await page.goto("/en/inbox");
     await page.getByRole("link", { name: "Open submission" }).first().click();
     await page.getByRole("button", { name: "Request revision" }).click();
     await page.getByPlaceholder("Add context for the audit trail or the submitter.").fill(
@@ -97,7 +97,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "submitter@example.com");
-    await page.goto(`/submissions/${submissionId}`);
+    await page.goto(`/en/submissions/${submissionId}`);
     await expect(page.getByText("Please add a little more detail.")).toBeVisible();
     await page.getByRole("link", { name: "Edit and resubmit" }).click();
     await page.getByRole("button", { name: "Submit" }).click();
@@ -108,7 +108,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "approver@example.com");
-    await page.goto(`/submissions/${submissionId}`);
+    await page.goto(`/en/submissions/${submissionId}`);
     await page.getByRole("button", { name: "Approve" }).click();
     await page.getByRole("button", { name: "Confirm decision" }).click();
     await waitForSubmissionStatus(submissionId, "closed");
@@ -120,10 +120,10 @@ test.describe("FormFlow end-to-end", () => {
     const { title } = await seedPublishedFormScenario("Reject path");
 
     await signInAs(page, "submitter@example.com");
-    await page.goto("/admin/forms");
+    await page.goto("/en/admin/forms");
     await expect(page).toHaveURL(/\/submissions$/);
 
-    await page.goto("/submissions");
+    await page.goto("/en/submissions");
     await page.getByRole("link", { name: title }).click();
     await page.getByRole("button", { name: "Submit" }).click();
     await expect(page).toHaveURL(/\/submissions\/.+/);
@@ -131,7 +131,7 @@ test.describe("FormFlow end-to-end", () => {
 
     await signOut(page);
     await signInAs(page, "approver@example.com");
-    await page.goto(`/submissions/${submissionId}`);
+    await page.goto(`/en/submissions/${submissionId}`);
     await page.getByRole("button", { name: "Reject" }).click();
     await page.getByPlaceholder("Add context for the audit trail or the submitter.").fill(
       "Rejected in browser test.",
@@ -153,14 +153,13 @@ test.describe("FormFlow end-to-end", () => {
 });
 
 function extractSubmissionId(url: string) {
-  const pathname = new URL(url).pathname;
-  const [, submissions, id] = pathname.split("/");
+  const match = new URL(url).pathname.match(/\/submissions\/([^/]+)/);
 
-  if (submissions !== "submissions" || !id) {
+  if (!match) {
     throw new Error(`Expected a submission URL, received ${url}`);
   }
 
-  return id;
+  return match[1];
 }
 
 async function seedFreshWorkflow() {

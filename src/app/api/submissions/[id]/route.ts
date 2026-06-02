@@ -14,8 +14,8 @@ import {
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getRequestLocale } from "@/lib/request-locale";
 import {
+  activateSubmissionWorkflow,
   startSubmissionApprovalWorkflow,
-  terminateSubmissionWorkflow,
 } from "@/lib/submission-workflow";
 import { getTemporalClient } from "@/lib/temporal";
 import { updateSubmissionSchema } from "@/lib/validation/submissions";
@@ -24,6 +24,11 @@ import {
 } from "@/temporal/workflows/approvalWorkflow";
 import { resolveFormSchema } from "@/lib/form-translations";
 import { normalizeSubmissionData } from "@/lib/formio-data";
+import {
+  createCookieStoreFromHeader,
+  getSensitiveAccessGrant,
+  getSensitiveAccessScope,
+} from "@/lib/sensitive-access";
 
 export async function GET(
   req: Request,
@@ -45,15 +50,19 @@ export async function GET(
     let reason = "submission.viewed";
 
     if (submission.form.sensitivity === "sensitive") {
-      const header = req.headers.get("x-break-glass-reason");
-      if (!header || header.trim().length < 10) {
+      const sensitiveGrant = getSensitiveAccessGrant(
+        createCookieStoreFromHeader(req.headers.get("cookie")),
+        user.id,
+        getSensitiveAccessScope({ kind: "submission", id }),
+      );
+      if (!sensitiveGrant) {
         throw new ApiError(
           "BREAK_GLASS_REQUIRED",
-          "A reason for accessing this sensitive submission is required. Supply a non-empty X-Break-Glass-Reason header (minimum 10 characters).",
+          "A valid sensitive-access grant is required before reading this sensitive submission.",
           428,
         );
       }
-      reason = header.trim();
+      reason = sensitiveGrant.reason;
     }
 
     await auditSubmissionAccess({
@@ -208,7 +217,7 @@ export async function PATCH(
         );
       }
 
-      await startSubmissionApprovalWorkflow({
+      updated = await activateSubmissionWorkflow({
         submissionId: submission.id,
         formId: submission.form.id,
         workflowId: workflow.id,
@@ -217,23 +226,8 @@ export async function PATCH(
           typeof startSubmissionApprovalWorkflow
         >[0]["workflowDefinition"],
         submitterId: user.id,
+        statusBeforeSubmit: "draft",
       });
-
-      try {
-        updated = await db.submission.update({
-          where: { id },
-          data: {
-            status: "submitted",
-            workflowRunId: submission.id,
-          },
-        });
-      } catch (error) {
-        await terminateSubmissionWorkflow(
-          submission.id,
-          "Submission activation failed before persistence completed.",
-        );
-        throw error;
-      }
     }
 
     if (submission.status === "needs_revision" && input.submit) {

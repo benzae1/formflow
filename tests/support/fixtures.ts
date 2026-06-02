@@ -83,6 +83,7 @@ const sensitiveSchema: FormioSchema = {
 };
 
 export async function resetDatabase() {
+  await db.loginRateLimitBucket.deleteMany();
   await db.notification.deleteMany();
   await db.approvalTask.deleteMany();
   await db.submission.deleteMany();

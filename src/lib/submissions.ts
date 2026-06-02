@@ -64,6 +64,28 @@ export async function auditSubmissionAccess(input: {
   }
 }
 
+export async function auditSubmissionListAccess(input: {
+  actorId: string;
+  scope: string;
+  filters?: Record<string, string | undefined>;
+  reason?: string;
+  resultCount: number;
+  source: "api" | "page";
+}) {
+  await writeAuditLog({
+    actorId: input.actorId,
+    action: input.reason ? "sensitive.list_accessed" : "submission_list.viewed",
+    resourceType: "submission_list",
+    resourceId: input.scope,
+    metadata: {
+      filters: input.filters,
+      reason: input.reason,
+      resultCount: input.resultCount,
+      source: input.source,
+    },
+  });
+}
+
 export function presentSubmissionForUser<
   T extends {
     form: { schema: Record<string, unknown> };

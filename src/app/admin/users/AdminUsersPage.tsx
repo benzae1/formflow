@@ -9,7 +9,9 @@ export default async function AdminUsersPage({
 }: {
   params?: Promise<{ lang?: string }>;
 }) {
-  const { locale } = await getLocaleContextOrDefault(params ? (await params).lang : undefined);
+  const { locale, dictionary } = await getLocaleContextOrDefault(
+    params ? (await params).lang : undefined,
+  );
   await requirePageRole(["admin"], locale);
 
   const [users, roles, delegations] = await Promise.all([
@@ -61,13 +63,9 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={locale === "de" ? "Verzeichnis" : "Directory"}
-        title={locale === "de" ? "Benutzer und Routing-Kontext" : "Users and routing context"}
-        description={
-          locale === "de"
-            ? "Prüfen Sie aktive Konten, passen Sie Rollenabdeckung an und legen Sie Vertretungszeiträume fest, damit das Routing verlässlich bleibt."
-            : "Review who is active, adjust role coverage, and set delegation windows so routing stays reliable."
-        }
+        eyebrow={dictionary.adminUsers.pageEyebrow}
+        title={dictionary.adminUsers.pageTitle}
+        description={dictionary.adminUsers.pageDescription}
       />
 
       <AdminUsersClient
@@ -94,6 +92,7 @@ export default async function AdminUsersPage({
         }))}
         delegateOptions={delegateOptions}
         locale={locale}
+        dictionary={dictionary}
       />
     </div>
   );

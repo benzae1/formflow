@@ -259,6 +259,12 @@ button {
   margin: 0;
 }
 
+.bf-legal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .bf-metric-value {
   margin-top: 12px;
   font-size: 30px;

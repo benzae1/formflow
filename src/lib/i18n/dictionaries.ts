@@ -128,8 +128,37 @@ export type Dictionary = {
     breakGlassCancel: string;
   };
   inbox: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    pending: string;
+    overdue: string;
+    completed: string;
+    emptyEyebrow: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    completedReview: string;
+    approvalTask: string;
+    submission: string;
+    created: string;
+    due: string;
+    openSubmission: string;
     coverageTitle: string;
     coverageDescription: string;
+  };
+  delegations: {
+    title: string;
+    description: string;
+    chooseDelegateAndDates: string;
+    saveError: string;
+    removeError: string;
+    noRecords: string;
+    remove: string;
+    chooseDelegate: string;
+    starts: string;
+    ends: string;
+    save: string;
+    to: string;
   };
   adminForms: {
     pageEyebrow: string;
@@ -223,6 +252,89 @@ export type Dictionary = {
     open: string;
     openPipeline: string;
     usersCount: string;
+  };
+  adminUsers: {
+    pageEyebrow: string;
+    pageTitle: string;
+    pageDescription: string;
+    saveError: string;
+    searchPlaceholder: string;
+    allRoles: string;
+    allStatuses: string;
+    active: string;
+    deactivated: string;
+    noMatches: string;
+    updated: string;
+    roles: string;
+    saveRoles: string;
+    orgMemberships: string;
+    noMemberships: string;
+    member: string;
+    manager: string;
+    delegationDescription: string;
+  };
+  adminWorkflows: {
+    pageEyebrow: string;
+    pageTitle: string;
+    pageDescription: string;
+    saveError: string;
+    newWorkflowName: string;
+    libraryEyebrow: string;
+    libraryTitle: string;
+    newWorkflow: string;
+    version: string;
+    attachedForms: string;
+    editorEyebrow: string;
+    editWorkflow: string;
+    createWorkflow: string;
+    saving: string;
+    saveWorkflow: string;
+    workflowName: string;
+    attachedFormsTitle: string;
+    noAttachedForms: string;
+    validationErrorsTitle: string;
+    addStage: string;
+    noStages: string;
+    role: string;
+    orgHierarchy: string;
+    user: string;
+    group: string;
+    roleName: string;
+    userUuid: string;
+    groupUuid: string;
+    remove: string;
+    addTarget: string;
+    stageName: string;
+    moveUp: string;
+    moveDown: string;
+    removeStage: string;
+    stageId: string;
+    type: string;
+    assignTo: string;
+    childForm: string;
+    selectForm: string;
+    conditions: string;
+    addCondition: string;
+    onApprove: string;
+    nextStage: string;
+    close: string;
+    onReject: string;
+    returnToSubmitter: string;
+    goToStage: string;
+    selectStage: string;
+    deadlineHours: string;
+    remindersHours: string;
+    stageTypes: {
+      approval: string;
+      notification: string;
+      triggerForm: string;
+      condition: string;
+    };
+    orgOptions: {
+      submitterManager: string;
+      submitterSkipLevel: string;
+      departmentHead: string;
+    };
   };
 };
 
@@ -354,8 +466,37 @@ const dictionaries: Record<Locale, Dictionary> = {
       breakGlassCancel: "Zurück",
     },
     inbox: {
+      eyebrow: "Freigabe-Arbeitsbereich",
+      title: "Freigabe-Postfach",
+      description: "Die Warteschlange sichten, in Falldetails springen und Entscheidungen erst mit vollem Kontext treffen.",
+      pending: "Ausstehend",
+      overdue: "Überfällig",
+      completed: "Abgeschlossen",
+      emptyEyebrow: "Warteschlange leer",
+      emptyTitle: "Keine Aufgaben in dieser Ansicht",
+      emptyDescription: "Neue Freigaben erscheinen hier, sobald Workflow-Stufen auf Sie aufgelöst werden.",
+      completedReview: "Abgeschlossene Prüfung",
+      approvalTask: "Freigabeaufgabe",
+      submission: "Einreichung",
+      created: "Erstellt",
+      due: "Fällig",
+      openSubmission: "Einreichung öffnen",
       coverageTitle: "Vertretung",
       coverageDescription: "Legen Sie eine Vertretung fest, damit neue Freigabeaufgaben während Ihrer Abwesenheit zuverlässig weitergeleitet werden.",
+    },
+    delegations: {
+      title: "Vertretung",
+      description: "Legen Sie eine Vertretung fest, damit neue Freigabeaufgaben bei Abwesenheit sauber weitergeleitet werden.",
+      chooseDelegateAndDates: "Wählen Sie eine Vertretung und beide Zeitpunkte aus.",
+      saveError: "Die Vertretung konnte nicht gespeichert werden.",
+      removeError: "Die Vertretung konnte nicht entfernt werden.",
+      noRecords: "Keine aktiven Vertretungen vorhanden.",
+      remove: "Entfernen",
+      chooseDelegate: "Vertretung wählen",
+      starts: "Beginn",
+      ends: "Ende",
+      save: "Vertretung speichern",
+      to: "bis",
     },
     adminForms: {
       pageEyebrow: "Admin-Formulare",
@@ -449,6 +590,89 @@ const dictionaries: Record<Locale, Dictionary> = {
       open: "Öffnen ->",
       openPipeline: "Pipeline öffnen ->",
       usersCount: "Benutzer",
+    },
+    adminUsers: {
+      pageEyebrow: "Verzeichnis",
+      pageTitle: "Benutzer und Routing-Kontext",
+      pageDescription: "Prüfen Sie aktive Konten, passen Sie Rollenabdeckung an und legen Sie Vertretungszeiträume fest, damit das Routing verlässlich bleibt.",
+      saveError: "Rollenänderungen konnten nicht gespeichert werden.",
+      searchPlaceholder: "Nach Name oder E-Mail suchen",
+      allRoles: "Alle Rollen",
+      allStatuses: "Alle Status",
+      active: "Aktiv",
+      deactivated: "Deaktiviert",
+      noMatches: "Keine Benutzer entsprechen den aktuellen Filtern.",
+      updated: "Aktualisiert",
+      roles: "Rollen",
+      saveRoles: "Rollen speichern",
+      orgMemberships: "Organisationsmitgliedschaften",
+      noMemberships: "Keine Mitgliedschaften synchronisiert.",
+      member: "Mitglied",
+      manager: "Leitung",
+      delegationDescription: "Administrierende können zeitlich begrenzte Vertretungen für Freigaben festlegen.",
+    },
+    adminWorkflows: {
+      pageEyebrow: "Admin-Workflows",
+      pageTitle: "Routing-Definitionen",
+      pageDescription: "Gestalten Sie Genehmigungsstufen visuell - per Karte, Drag-and-Drop und typenspezifischen Feldern.",
+      saveError: "Der Workflow konnte nicht gespeichert werden.",
+      newWorkflowName: "Neuer Workflow",
+      libraryEyebrow: "Workflow-Bibliothek",
+      libraryTitle: "Definitionen",
+      newWorkflow: "Neuer Workflow",
+      version: "Version",
+      attachedForms: "verknüpfte Formulare",
+      editorEyebrow: "Editor",
+      editWorkflow: "Workflow bearbeiten",
+      createWorkflow: "Workflow erstellen",
+      saving: "Wird gespeichert...",
+      saveWorkflow: "Workflow speichern",
+      workflowName: "Workflow-Name",
+      attachedFormsTitle: "Verknüpfte Formulare",
+      noAttachedForms: "Derzeit verweist kein Formular auf diesen Workflow.",
+      validationErrorsTitle: "Die Definition enthält Fehler:",
+      addStage: "Stufe hinzufügen",
+      noStages: "Noch keine Stufen. Fügen Sie eine hinzu.",
+      role: "Rolle",
+      orgHierarchy: "Org-Hierarchie",
+      user: "Benutzer",
+      group: "Gruppe",
+      roleName: "Rollenname",
+      userUuid: "Benutzer-UUID",
+      groupUuid: "Gruppen-UUID",
+      remove: "Entfernen",
+      addTarget: "Ziel hinzufügen",
+      stageName: "Stufenname",
+      moveUp: "Nach oben",
+      moveDown: "Nach unten",
+      removeStage: "Stufe entfernen",
+      stageId: "Stufen-ID",
+      type: "Typ",
+      assignTo: "Zuweisen an",
+      childForm: "Unterformular",
+      selectForm: "Formular wählen...",
+      conditions: "Bedingungen",
+      addCondition: "Bedingung",
+      onApprove: "Bei Freigabe",
+      nextStage: "Nächste Stufe",
+      close: "Abschließen",
+      onReject: "Bei Ablehnung",
+      returnToSubmitter: "Zurück an Einreicher",
+      goToStage: "Zu Stufe...",
+      selectStage: "Stufe wählen...",
+      deadlineHours: "Frist (Stunden)",
+      remindersHours: "Erinnerungen (Std., kommagetrennt)",
+      stageTypes: {
+        approval: "Freigabe",
+        notification: "Benachrichtigung",
+        triggerForm: "Formular auslösen",
+        condition: "Bedingung",
+      },
+      orgOptions: {
+        submitterManager: "Vorgesetzte Person der einreichenden Person",
+        submitterSkipLevel: "Nächsthöhere Führungskraft",
+        departmentHead: "Abteilungsleitung",
+      },
     },
   },
   en: {
@@ -578,8 +802,37 @@ const dictionaries: Record<Locale, Dictionary> = {
       breakGlassCancel: "Go back",
     },
     inbox: {
+      eyebrow: "Approver workspace",
+      title: "Approval inbox",
+      description: "Triage the queue, jump into case detail, and only commit a decision when you have the context you need.",
+      pending: "Pending",
+      overdue: "Overdue",
+      completed: "Completed",
+      emptyEyebrow: "Queue clear",
+      emptyTitle: "No tasks in this view",
+      emptyDescription: "New approval work will appear here as soon as workflow stages resolve to you.",
+      completedReview: "Completed review",
+      approvalTask: "Approval task",
+      submission: "Submission",
+      created: "Created",
+      due: "Due",
+      openSubmission: "Open submission",
       coverageTitle: "Coverage",
       coverageDescription: "Set a delegate when you are away so new approval tasks route cleanly during that window.",
+    },
+    delegations: {
+      title: "Coverage",
+      description: "Set a delegate when you are away so new approval tasks route cleanly during that window.",
+      chooseDelegateAndDates: "Choose a delegate and both dates.",
+      saveError: "Could not save delegation.",
+      removeError: "Could not remove delegation.",
+      noRecords: "No active delegation records.",
+      remove: "Remove",
+      chooseDelegate: "Choose delegate",
+      starts: "Starts",
+      ends: "Ends",
+      save: "Save delegation",
+      to: "to",
     },
     adminForms: {
       pageEyebrow: "Admin forms",
@@ -673,6 +926,89 @@ const dictionaries: Record<Locale, Dictionary> = {
       open: "Open ->",
       openPipeline: "Open pipeline ->",
       usersCount: "Users",
+    },
+    adminUsers: {
+      pageEyebrow: "Directory",
+      pageTitle: "Users and routing context",
+      pageDescription: "Review who is active, adjust role coverage, and set delegation windows so routing stays reliable.",
+      saveError: "Could not save role changes.",
+      searchPlaceholder: "Search by name or email",
+      allRoles: "All roles",
+      allStatuses: "All statuses",
+      active: "Active",
+      deactivated: "Deactivated",
+      noMatches: "No users match the current filters.",
+      updated: "Updated",
+      roles: "Roles",
+      saveRoles: "Save roles",
+      orgMemberships: "Org memberships",
+      noMemberships: "No memberships synced.",
+      member: "member",
+      manager: "manager",
+      delegationDescription: "Admins can set backup approvers for date-bound coverage.",
+    },
+    adminWorkflows: {
+      pageEyebrow: "Admin workflows",
+      pageTitle: "Routing definitions",
+      pageDescription: "Build approval stages visually - with cards, drag-and-drop, and type-specific field editors.",
+      saveError: "Workflow could not be saved.",
+      newWorkflowName: "New workflow",
+      libraryEyebrow: "Workflow library",
+      libraryTitle: "Definitions",
+      newWorkflow: "New workflow",
+      version: "Version",
+      attachedForms: "attached forms",
+      editorEyebrow: "Editor",
+      editWorkflow: "Edit workflow",
+      createWorkflow: "Create workflow",
+      saving: "Saving...",
+      saveWorkflow: "Save workflow",
+      workflowName: "Workflow name",
+      attachedFormsTitle: "Attached forms",
+      noAttachedForms: "No forms currently reference this workflow.",
+      validationErrorsTitle: "Definition has errors:",
+      addStage: "Add stage",
+      noStages: "No stages yet. Add one below.",
+      role: "Role",
+      orgHierarchy: "Org hierarchy",
+      user: "User",
+      group: "Group",
+      roleName: "Role name",
+      userUuid: "User UUID",
+      groupUuid: "Group UUID",
+      remove: "Remove",
+      addTarget: "Add target",
+      stageName: "Stage name",
+      moveUp: "Move up",
+      moveDown: "Move down",
+      removeStage: "Remove stage",
+      stageId: "Stage ID",
+      type: "Type",
+      assignTo: "Assign to",
+      childForm: "Child form",
+      selectForm: "Select a form...",
+      conditions: "Conditions",
+      addCondition: "Add condition",
+      onApprove: "On approve",
+      nextStage: "Next stage",
+      close: "Close",
+      onReject: "On reject",
+      returnToSubmitter: "Return to submitter",
+      goToStage: "Go to stage...",
+      selectStage: "Select stage...",
+      deadlineHours: "Deadline (hours)",
+      remindersHours: "Reminders (h, comma-separated)",
+      stageTypes: {
+        approval: "Approval",
+        notification: "Notification",
+        triggerForm: "Trigger form",
+        condition: "Condition",
+      },
+      orgOptions: {
+        submitterManager: "Submitter's manager",
+        submitterSkipLevel: "Skip-level manager",
+        departmentHead: "Department head",
+      },
     },
   },
 };

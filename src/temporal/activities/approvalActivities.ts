@@ -211,9 +211,7 @@ export async function notifySubmitterOfRevision(input: {
     userId: input.submitterId,
     type: "submission_revision_requested",
     title: "Revision requested",
-    body: input.note
-      ? `An approver requested changes: ${input.note}`
-      : "An approver requested changes to your submission.",
+    body: "An approver requested changes to your submission. Open FormFlow to review the details.",
     linkUrl: `/submissions/${input.submissionId}`,
     email: true,
   });
@@ -233,11 +231,9 @@ export async function notifySubmitterOfOutcome(input: {
         ? "Submission approved"
         : "Submission rejected",
     body:
-      input.note && input.outcome === "rejected"
-        ? `Your submission was rejected: ${input.note}`
-        : input.outcome === "approved"
-          ? "Your submission completed successfully."
-          : "Your submission was rejected.",
+      input.outcome === "approved"
+        ? "Your submission completed successfully."
+        : "Your submission was rejected. Open FormFlow to review the details.",
     linkUrl: `/submissions/${input.submissionId}`,
     email: true,
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, type CSSProperties, useState } from "react";
+import { FormEvent, type CSSProperties, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
@@ -16,6 +16,10 @@ const ACCENT_COLORS = [
   "var(--haus-teal)",
   "var(--haus-magenta)",
 ] as const;
+
+function getAccentColor(locale: Locale) {
+  return ACCENT_COLORS[locale === "de" ? 0 : 4];
+}
 
 function pickAccentColor() {
   return ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)];
@@ -233,6 +237,7 @@ export default function SignInClient({
   locale: Locale;
   dictionary: Dictionary;
 }) {
+  const pageRef = useRef<HTMLDivElement | null>(null);
   const [uid, setUid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -241,30 +246,59 @@ export default function SignInClient({
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? localizePath(locale, "/");
   const year = new Date().getFullYear();
-  const [accentColor] = useState(pickAccentColor);
+  const accentColor = getAccentColor(locale);
+
+  useEffect(() => {
+    pageRef.current?.style.setProperty("--t-picked", pickAccentColor());
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setPending(true);
     setError(null);
 
-    const result = await signIn("credentials", {
-      uid,
-      email: uid,
-      password,
-      redirect: false,
-      callbackUrl,
-    });
+    try {
+      const result = await signIn("credentials", {
+        uid,
+        email: uid,
+        password,
+        redirect: false,
+        callbackUrl,
+      });
 
-    setPending(false);
+      if (!result?.ok) {
+        setError(dictionary.auth.error);
+        return;
+      }
 
-    if (!result?.ok) {
+      const sessionResponse = await fetch("/api/auth/session", {
+        cache: "no-store",
+      });
+
+      if (!sessionResponse.ok) {
+        setError(dictionary.auth.error);
+        return;
+      }
+
+      const session = (await sessionResponse.json()) as {
+        error?: string;
+        user?: {
+          id?: string;
+        };
+      };
+
+      if (session.error || !session.user?.id) {
+        setError(dictionary.auth.error);
+        return;
+      }
+
+      router.replace(callbackUrl);
+      router.refresh();
+    } catch {
       setError(dictionary.auth.error);
-      return;
+    } finally {
+      setPending(false);
     }
-
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   const cssVars = {
@@ -274,7 +308,7 @@ export default function SignInClient({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <div className="bu-page" style={cssVars}>
+      <div ref={pageRef} className="bu-page" style={cssVars}>
         <header className="bu-hdr">
           <div className="bu-hdr-brand">
             <div className="bu-hdr-logo">
@@ -349,7 +383,7 @@ export default function SignInClient({
             </button>
 
             <div className="bu-alt-links">
-              <a href="#">{dictionary.auth.help}</a>
+              <a href={localizePath(locale, "/help")}>{dictionary.auth.help}</a>
             </div>
           </form>
         </main>
@@ -357,9 +391,9 @@ export default function SignInClient({
         <footer className="bu-ftr">
           <span>Bauhaus-Universität Weimar | {dictionary.common.brandSubtitle}</span>
           <span className="spacer" />
-          <a href="#">{dictionary.auth.imprint}</a>
-          <a href="#">{dictionary.auth.privacy}</a>
-          <a href="#">{dictionary.auth.accessibility}</a>
+          <a href={localizePath(locale, "/imprint")}>{dictionary.auth.imprint}</a>
+          <a href={localizePath(locale, "/privacy")}>{dictionary.auth.privacy}</a>
+          <a href={localizePath(locale, "/accessibility")}>{dictionary.auth.accessibility}</a>
         </footer>
       </div>
     </>

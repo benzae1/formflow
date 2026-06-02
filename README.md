@@ -1,83 +1,144 @@
 # FormFlow
 
-## Getting Started
+FormFlow is a secure, bilingual (German/English) workflow platform for managing administrative forms and approval processes at Bauhaus-Universität Weimar. It handles form authoring, submission routing, multi-stage approvals, compliance-grade audit logging, and LDAP-backed authentication.
 
-1. Copy `.env.example` to `.env` and adjust values for your local services.
-2. Start the full stack with Docker:
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | System architecture, data flow, and component overview |
+| [docs/api-reference.md](docs/api-reference.md) | Full REST API reference |
+| [docs/developer-guide.md](docs/developer-guide.md) | Local setup, environment variables, and testing |
+| [docs/workflow-authoring.md](docs/workflow-authoring.md) | How to build approval workflows |
+| [docs/form-authoring.md](docs/form-authoring.md) | How to create forms and mark sensitive fields |
+| [docs/roles-and-permissions.md](docs/roles-and-permissions.md) | Role definitions and permission matrix |
+| [docs/deployment.md](docs/deployment.md) | Production deployment guide |
+| [forms/README.md](forms/README.md) | Form library and example forms |
+| [audits/](audits/) | LLM-assisted production readiness audits |
+| [DECISIONS_REQUIRED.md](DECISIONS_REQUIRED.md) | Governance and legal items requiring sign-off |
+
+## Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js 20+ (for running tests outside Docker)
+
+### 1. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` as needed. The defaults work for local development without LDAP.
+
+### 2. Start the stack
 
 ```bash
 docker compose up --build
 ```
 
-This starts:
+This starts six containers in order:
 
-- PostgreSQL on `localhost:5432`
-- Temporal on `localhost:7233`
-- Temporal UI on `http://localhost:8080`
-- Next.js app on `http://localhost:3000`
-- Temporal worker in its own container
-- Prisma migration and seed steps in the `init` container
+| Container | Role | Port |
+|---|---|---|
+| `postgres` | PostgreSQL 16 database | 5432 |
+| `temporal` | Temporal workflow server | 7233 |
+| `temporal-ui` | Temporal web console | 8080 |
+| `init` | Runs migrations and seeds, then exits | — |
+| `web` | Next.js application | 3000 |
+| `worker` | Temporal workflow worker | — |
 
-When LDAP is not configured, the development seed creates these local credentials:
+Open [http://localhost:3000](http://localhost:3000) when the `web` container is healthy.
 
-- Username `admin`, password `admin`, email `admin@bauhaus.de`
-- Username `approver`, password `approver`, email `approver@bauhaus.de`
-- Username `submitter`, password `submitter`, email `submitter@bauhaus.de`
+### 3. Sign in
 
-For LDAP sign-in, configure the directory in `.env`:
+When LDAP is not configured, the seed creates three local accounts:
 
-```bash
-LDAP_URLS="ldap://141.54.170.18:389,ldap://141.54.29.3:389"
-LDAP_BASE_DNS="o=uni-we|o=uni"
-LDAP_ADMIN_UIDS="sowa2176"
-LDAP_APPROVER_UIDS=""
-LDAP_COMPLIANCE_UIDS=""
-LDAP_ROLE_ATTRIBUTE=""
-LDAP_ROLE_ATTRIBUTE_MAP=""
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin` | admin |
+| `approver` | `approver` | approver |
+| `submitter` | `submitter` | submitter |
+
+## Architecture Overview
+
+```
+Browser
+  │
+  ▼
+Next.js app (src/app/)
+  ├─ Pages & UI  ([lang]/ routes, Bauhaus design system)
+  ├─ API routes  (/api/*)
+  └─ Middleware  (src/middleware.ts)
+        │
+        ├─ PostgreSQL  (Prisma ORM)
+        │    └─ Users, Forms, Workflows, Submissions,
+        │       ApprovalTasks, Notifications, AuditLog
+        │
+        ├─ Temporal  (workflow engine)
+        │    └─ Approval workflow, LDAP org-sync workflow
+        │
+        └─ LDAP  (authentication + org sync)
+             └─ Bauhaus-Universität directory
 ```
 
-The app searches for a unique `uid`, binds as that DN with the submitted password,
-then upserts the LDAP user into FormFlow. Every LDAP user receives `submitter`;
-additional roles come from the UID allowlists above or from
-`LDAP_ROLE_ATTRIBUTE_MAP` entries like `formflow-admin=admin`.
+See [docs/architecture.md](docs/architecture.md) for a full breakdown.
 
-If you need multiple search bases, `LDAP_BASE_DNS` uses `|` to separate them because commas are part of DN syntax.
+## LDAP Configuration
 
-Open `http://localhost:3000` in your browser.
+Add the following to `.env` to enable LDAP sign-in and org sync:
+
+```bash
+LDAP_URLS="ldap://141.54.29.3:389"
+LDAP_BASE_DNS="o=uni"
+LDAP_ADMIN_UIDS=""          # Comma-separated UIDs that get the admin role
+LDAP_APPROVER_UIDS=""               # Comma-separated UIDs that get the approver role
+LDAP_COMPLIANCE_UIDS=""             # Comma-separated UIDs that get the compliance role
+LDAP_ROLE_ATTRIBUTE="eduPersonAffiliation"  # Optional: LDAP attr for role mapping
+LDAP_ROLE_ATTRIBUTE_MAP=""          # e.g. "Mitarbeiter=approver,Student=submitter"
+```
+
+`LDAP_BASE_DNS` uses `|` as separator because commas are part of DN syntax. Every LDAP user gets the `submitter` role by default; elevated roles come from the UID allowlists or attribute map above.
+
+## Running Tests
+
+```bash
+# Start the full stack first
+docker compose up -d --build
+
+# Install Playwright browsers (first time only)
+npm run test:e2e:install
+
+# Run the full verification suite (waits for the stack to be ready)
+npm run verify:stack
+
+# Individual suites
+npm run test:integration   # Vitest integration tests
+npm run test:e2e           # Playwright browser tests
+npm run verify:smoke       # Smoke check against the running app
+```
+
+## Key Features
+
+- **Bilingual UI** — German and English, locale-aware routing under `/de/` and `/en/`
+- **LDAP authentication** — bind-and-search against the university directory, with local password fallback
+- **Role-based access control** — four roles: `admin`, `compliance`, `approver`, `submitter`
+- **Form.io form builder** — drag-and-drop form designer with sensitive-field marking
+- **Multi-stage approval workflows** — sequential, conditional, and parallel routing via Temporal
+- **Break-glass access** — sensitive submissions require a logged justification before access
+- **Field-level encryption** — AES-256-GCM encryption for PII and sensitive form fields
+- **Approval delegation** — approvers can delegate to a colleague for a defined time window
+- **Full audit trail** — every access and state change is logged; CSV export available
+- **In-app and email notifications** — task assignments, deadlines, and outcomes
 
 ## Docker Notes
 
-- The `web` and `worker` containers read from `.env`, but their internal service URLs are overridden to use Docker service names like `postgres` and `temporal`.
-- The single Postgres service and shared credentials are a deliberate local-development shortcut for this stack. For production, split the app database from Temporal persistence and use distinct credentials.
-- The `init` container runs `npm run prisma:init`, which deploys migrations and, for local Docker only, repairs a drifted schema with `prisma db push` if required tables are missing before seeding.
-- If you change dependencies or Docker config, rerun `docker compose up --build`.
-- To stop everything, run `docker compose down`.
+- `docker-compose.yml` shares one PostgreSQL instance between the app and Temporal. This is intentional for development convenience.
+- For production, use `docker-compose.production.yml.example` as a starting point. It separates databases and uses environment-driven credentials.
+- If you change dependencies or Dockerfile, re-run `docker compose up --build`.
+- To stop: `docker compose down`. To also remove the database volume: `docker compose down -v`.
 
-## Prisma 7 Note
+## Prisma 7
 
-This project uses Prisma 7. Connection URLs for Prisma Migrate live in `prisma.config.ts`, not in `prisma/schema.prisma`.
-## Verification
-
-The repo now includes a hybrid verification stack:
-
-- `vitest` integration tests for routes, DB behavior, notifications, and workflow progression
-- `playwright` browser tests for the multi-role admin -> submitter -> approver journey
-
-Recommended flow against the Dockerized stack:
-
-```bash
-docker compose up -d --build
-npm run test:e2e:install
-npm run verify:stack
-```
-
-Useful commands:
-
-```bash
-npm run test:integration
-npm run test:e2e
-npm run verify
-npm run verify:smoke
-```
-
-`verify:stack` waits for the web app, PostgreSQL, and Temporal before running the suite.
+This project uses Prisma 7. Database connection URLs live in `prisma.config.js`, not in `prisma/schema.prisma`. Migration commands use `npx prisma migrate dev` as normal; the `prisma:init` script handles migration and seed automatically on container start.

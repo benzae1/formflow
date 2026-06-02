@@ -3,23 +3,23 @@ import { getTemporalClient } from "@/lib/temporal";
 
 export async function GET() {
   const checks = {
-    database: { ok: false as boolean, error: null as string | null },
-    temporal: { ok: false as boolean, error: null as string | null },
+    database: { ok: false as boolean },
+    temporal: { ok: false as boolean },
   };
 
   try {
     await db.$queryRaw`SELECT 1`;
     checks.database.ok = true;
-  } catch (error) {
-    checks.database.error = error instanceof Error ? error.message : "Database check failed.";
+  } catch {
+    checks.database.ok = false;
   }
 
   try {
     const temporal = await getTemporalClient();
     await temporal.workflow.count('ExecutionStatus = "Running"');
     checks.temporal.ok = true;
-  } catch (error) {
-    checks.temporal.error = error instanceof Error ? error.message : "Temporal check failed.";
+  } catch {
+    checks.temporal.ok = false;
   }
 
   const ok = checks.database.ok && checks.temporal.ok;

@@ -4,6 +4,30 @@ const algorithm = "aes-256-gcm";
 
 type KeyMap = Map<string, Buffer>;
 
+function parseMultiKeyEntry(entry: string) {
+  const trimmed = entry.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const eqIdx = trimmed.indexOf("=");
+  if (eqIdx === -1) {
+    throw new Error(
+      'FIELD_ENCRYPTION_KEYS entries must use the "id=hexkey" format.',
+    );
+  }
+
+  const id = trimmed.slice(0, eqIdx).trim();
+  const hex = trimmed.slice(eqIdx + 1).trim();
+  if (!id || !hex) {
+    throw new Error(
+      'FIELD_ENCRYPTION_KEYS entries must use the "id=hexkey" format.',
+    );
+  }
+
+  return { id, hex };
+}
+
 function parseKeyMap(): KeyMap {
   const keyMap: KeyMap = new Map();
 
@@ -11,10 +35,12 @@ function parseKeyMap(): KeyMap {
   const multi = process.env.FIELD_ENCRYPTION_KEYS;
   if (multi) {
     for (const entry of multi.split(",")) {
-      const eqIdx = entry.indexOf("=");
-      if (eqIdx === -1) continue;
-      const id = entry.slice(0, eqIdx).trim();
-      const hex = entry.slice(eqIdx + 1).trim();
+      const parsed = parseMultiKeyEntry(entry);
+      if (!parsed) {
+        continue;
+      }
+
+      const { id, hex } = parsed;
       if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
         throw new Error(`FIELD_ENCRYPTION_KEYS: key "${id}" must be 64 hex chars.`);
       }
@@ -44,9 +70,12 @@ function getActiveKeyId(): string {
   const active = process.env.FIELD_ENCRYPTION_KEY_ID;
   if (active) return active;
   if (process.env.FIELD_ENCRYPTION_KEYS) {
-    const first = process.env.FIELD_ENCRYPTION_KEYS.split(",")[0];
-    const eqIdx = first.indexOf("=");
-    if (eqIdx !== -1) return first.slice(0, eqIdx).trim();
+    const first = process.env.FIELD_ENCRYPTION_KEYS.split(",")
+      .map((entry) => parseMultiKeyEntry(entry))
+      .find((entry) => entry !== null);
+    if (first) {
+      return first.id;
+    }
   }
   return "default";
 }
