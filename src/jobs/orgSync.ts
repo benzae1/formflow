@@ -1,6 +1,5 @@
 import { OrgAdapter } from "@/domain/org";
 import { db } from "@/lib/db";
-import { sendNotification } from "@/temporal/activities/notificationActivities";
 
 export async function syncOrg(adapter: OrgAdapter) {
   const [externalUsers, externalUnits, externalMemberships] =
@@ -224,6 +223,7 @@ async function flagTasksForDeactivatedUsers(userIds: string[]) {
     select: { id: true },
   });
 
+  const { sendNotification } = await import("@/temporal/activities/notificationActivities");
   for (const admin of admins) {
     await sendNotification({
       userId: admin.id,
