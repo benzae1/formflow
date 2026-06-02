@@ -161,7 +161,6 @@ export default function FormsManagerClient({
     });
     setSlugTouched(false);
     router.push(localizePath(locale, `/admin/forms/${json.form.id}/builder`));
-    router.refresh();
   }
 
   async function updateStatus(id: string, nextStatus: "published" | "archived" | "draft") {
