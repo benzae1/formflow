@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { db } from "@/lib/db";
 import { getLocaleContextOrDefault } from "@/lib/i18n/server";
 import { requirePageRole } from "@/lib/page-auth";
+import { sortRoles, toRoleResponse } from "@/lib/roles";
 import AdminUsersClient from "./AdminUsersClient";
 
 export default async function AdminUsersPage({
@@ -14,7 +15,7 @@ export default async function AdminUsersPage({
   );
   await requirePageRole(["admin"], locale);
 
-  const [users, roles, delegations] = await Promise.all([
+  const [users, rawRoles, delegations] = await Promise.all([
     db.user.findMany({
       include: {
         roles: true,
@@ -28,11 +29,7 @@ export default async function AdminUsersPage({
         updatedAt: "desc",
       },
     }),
-    db.role.findMany({
-      orderBy: {
-        name: "asc",
-      },
-    }),
+    db.role.findMany(),
     db.delegation.findMany({
       include: {
         delegate: {
@@ -47,6 +44,7 @@ export default async function AdminUsersPage({
       },
     }),
   ]);
+  const roles = sortRoles(rawRoles);
 
   const delegateOptions = users
     .filter(
@@ -71,17 +69,11 @@ export default async function AdminUsersPage({
       <AdminUsersClient
         users={users.map((user) => ({
           ...user,
-          roles: user.roles.map((role) => ({
-            name: role.name,
-            label: role.label,
-          })),
+          roles: user.roles.map((role) => toRoleResponse(role)),
           updatedAt: user.updatedAt.toISOString(),
           deactivatedAt: user.deactivatedAt?.toISOString() ?? null,
         }))}
-        availableRoles={roles.map((role) => ({
-          name: role.name,
-          label: role.label,
-        }))}
+        availableRoles={roles.map((role) => toRoleResponse(role))}
         delegations={delegations.map((delegation) => ({
           id: delegation.id,
           approverId: delegation.approverId,

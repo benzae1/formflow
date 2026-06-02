@@ -258,6 +258,7 @@ export type Dictionary = {
     pageTitle: string;
     pageDescription: string;
     saveError: string;
+    roleError: string;
     searchPlaceholder: string;
     allRoles: string;
     allStatuses: string;
@@ -272,6 +273,28 @@ export type Dictionary = {
     member: string;
     manager: string;
     delegationDescription: string;
+    rolePanelEyebrow: string;
+    rolePanelTitle: string;
+    rolePanelDescription: string;
+    newRoleTitle: string;
+    roleSlug: string;
+    roleLabel: string;
+    createRole: string;
+    creatingRole: string;
+    existingRoles: string;
+    protectedRole: string;
+    customRole: string;
+    builtinRoleHint: string;
+    customRoleHint: string;
+    renameRole: string;
+    deleteRole: string;
+    deletingRole: string;
+    savingRole: string;
+    noRoles: string;
+    slugHelp: string;
+    roleSlugHint: string;
+    roleLabelHint: string;
+    roleAssignmentsRefresh: string;
   };
   adminWorkflows: {
     pageEyebrow: string;
@@ -596,6 +619,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Benutzer und Routing-Kontext",
       pageDescription: "Prüfen Sie aktive Konten, passen Sie Rollenabdeckung an und legen Sie Vertretungszeiträume fest, damit das Routing verlässlich bleibt.",
       saveError: "Rollenänderungen konnten nicht gespeichert werden.",
+      roleError: "Die Rollenverwaltung konnte nicht gespeichert werden.",
       searchPlaceholder: "Nach Name oder E-Mail suchen",
       allRoles: "Alle Rollen",
       allStatuses: "Alle Status",
@@ -610,6 +634,28 @@ const dictionaries: Record<Locale, Dictionary> = {
       member: "Mitglied",
       manager: "Leitung",
       delegationDescription: "Administrierende können zeitlich begrenzte Vertretungen für Freigaben festlegen.",
+      rolePanelEyebrow: "Rollenregister",
+      rolePanelTitle: "Benutzerrollen verwalten",
+      rolePanelDescription: "Pflegen Sie benutzerdefinierte Rollen direkt hier und weisen Sie sie danach sofort im Verzeichnis zu.",
+      newRoleTitle: "Neue Rolle anlegen",
+      roleSlug: "Slug",
+      roleLabel: "Anzeigename",
+      createRole: "Rolle anlegen",
+      creatingRole: "Wird angelegt...",
+      existingRoles: "Verfügbare Rollen",
+      protectedRole: "Geschützt",
+      customRole: "Benutzerdefiniert",
+      builtinRoleHint: "Systemrolle. Kann zugewiesen, aber nicht umbenannt oder gelöscht werden.",
+      customRoleHint: "Freie Anwendungsrolle. Kann umbenannt oder entfernt werden, solange keine Referenzen blockieren.",
+      renameRole: "Rolle speichern",
+      deleteRole: "Rolle löschen",
+      deletingRole: "Wird gelöscht...",
+      savingRole: "Wird gespeichert...",
+      noRoles: "Noch keine Rollen vorhanden.",
+      slugHelp: "Verwenden Sie stabile Kleinbuchstaben-Slugs mit Bindestrichen, z. B. review-board.",
+      roleSlugHint: "review-board",
+      roleLabelHint: "Review Board",
+      roleAssignmentsRefresh: "Neue oder geänderte Rollen erscheinen nach dem Speichern sofort in den Zuweisungs-Checkboxen unten.",
     },
     adminWorkflows: {
       pageEyebrow: "Admin-Workflows",
@@ -932,6 +978,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       pageTitle: "Users and routing context",
       pageDescription: "Review who is active, adjust role coverage, and set delegation windows so routing stays reliable.",
       saveError: "Could not save role changes.",
+      roleError: "Could not update the role registry.",
       searchPlaceholder: "Search by name or email",
       allRoles: "All roles",
       allStatuses: "All statuses",
@@ -946,6 +993,28 @@ const dictionaries: Record<Locale, Dictionary> = {
       member: "member",
       manager: "manager",
       delegationDescription: "Admins can set backup approvers for date-bound coverage.",
+      rolePanelEyebrow: "Role registry",
+      rolePanelTitle: "Manage user roles",
+      rolePanelDescription: "Create and maintain custom roles here, then assign them immediately in the directory below.",
+      newRoleTitle: "Create a new role",
+      roleSlug: "Slug",
+      roleLabel: "Display label",
+      createRole: "Create role",
+      creatingRole: "Creating...",
+      existingRoles: "Available roles",
+      protectedRole: "Protected",
+      customRole: "Custom",
+      builtinRoleHint: "Built-in system role. It can be assigned, but not renamed or deleted.",
+      customRoleHint: "Custom application role. It can be renamed or removed while no protected references block it.",
+      renameRole: "Save role",
+      deleteRole: "Delete role",
+      deletingRole: "Deleting...",
+      savingRole: "Saving...",
+      noRoles: "No roles found.",
+      slugHelp: "Use stable lowercase slugs with hyphens, for example review-board.",
+      roleSlugHint: "review-board",
+      roleLabelHint: "Review Board",
+      roleAssignmentsRefresh: "Saved role changes appear in the assignment checkboxes below right away.",
     },
     adminWorkflows: {
       pageEyebrow: "Admin workflows",
