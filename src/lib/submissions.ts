@@ -127,11 +127,12 @@ export function getSubmissionSchema<
 export async function getVisibleSubmissionById(input: {
   submissionId: string;
   user: VisibleSubmissionUser;
+  includeSensitive?: boolean;
 }): Promise<VisibleSubmissionRecord | null> {
   const submission = await db.submission.findFirst({
     where: {
       id: input.submissionId,
-      ...submissionVisibilityWhere(input.user),
+      ...submissionVisibilityWhere(input.user, { includeSensitive: input.includeSensitive }),
     },
     include: {
       form: {

@@ -42,6 +42,7 @@ export async function GET(
     const submission = await getVisibleSubmissionById({
       submissionId: id,
       user,
+      includeSensitive: true,
     });
 
     if (!submission) {
