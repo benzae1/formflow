@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import type { FormBuilderSchema } from "@/components/form-builder/FormBuilder";
+import { AllowedRolesField } from "@/app/admin/forms/AllowedRolesField";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { localizePath } from "@/lib/i18n/routing";
@@ -40,6 +41,11 @@ type BuilderForm = {
   status: "draft" | "published" | "archived";
   sensitivity: "standard" | "pii" | "sensitive";
   workflowId?: string | null;
+  allowedRoles: Array<{
+    id: string;
+    name: string;
+    label: string | null;
+  }>;
   schema: FormBuilderSchema;
 };
 
@@ -48,15 +54,23 @@ type WorkflowOption = {
   name: string;
 };
 
+type RoleOption = {
+  id: string;
+  name: string;
+  label: string | null;
+};
+
 export default function BuilderClient({
   form,
   workflows,
+  availableRoles,
   locale,
   dictionary,
   translationAvailable,
 }: {
   form: BuilderForm;
   workflows: WorkflowOption[];
+  availableRoles: RoleOption[];
   locale: Locale;
   dictionary: Dictionary;
   translationAvailable: boolean;
@@ -67,6 +81,9 @@ export default function BuilderClient({
   const [slug, setSlug] = useState(form.slug);
   const [sensitivity, setSensitivity] = useState(form.sensitivity);
   const [workflowId, setWorkflowId] = useState(form.workflowId ?? "");
+  const [allowedRoleNames, setAllowedRoleNames] = useState(
+    form.allowedRoles.map((role) => role.name),
+  );
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
   const [editingLocale, setEditingLocale] = useState<Locale>("de");
@@ -93,6 +110,7 @@ export default function BuilderClient({
         slug,
         sensitivity,
         workflowId: workflowId || null,
+        allowedRoleNames,
         schema,
         translations: {
           ...translations,
@@ -195,6 +213,14 @@ export default function BuilderClient({
         reviewStatus: nextStatus,
       },
     }));
+  }
+
+  function toggleAllowedRole(roleName: string) {
+    setAllowedRoleNames((current) =>
+      current.includes(roleName)
+        ? current.filter((name) => name !== roleName)
+        : [...current, roleName],
+    );
   }
 
   return (
@@ -306,6 +332,17 @@ export default function BuilderClient({
               </option>
             ))}
           </select>
+          <div className="xl:col-span-4">
+            <AllowedRolesField
+              roles={availableRoles}
+              selectedRoleNames={allowedRoleNames}
+              onToggleRole={toggleAllowedRole}
+              title={dictionary.adminForms.allowedRoles}
+              description={dictionary.adminForms.allowedRolesHelp}
+              allUsersLabel={dictionary.adminForms.allUsers}
+              noRolesLabel={dictionary.adminForms.noRolesAvailable}
+            />
+          </div>
           {editingLocale === "en" ? (
             <select
               value={reviewStatus}

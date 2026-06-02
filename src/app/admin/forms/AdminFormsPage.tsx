@@ -3,13 +3,14 @@ import { requirePageRole } from "@/lib/page-auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { defaultLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { sortRoles, toRoleResponse } from "@/lib/roles";
 import FormsManagerClient from "./FormsManagerClient";
 
 export default async function AdminFormsPage() {
   const dictionary = await getDictionary(defaultLocale);
   await requirePageRole(["admin"], defaultLocale);
 
-  const [forms, workflows, parentForms] = await Promise.all([
+  const [forms, workflows, parentForms, rawRoles] = await Promise.all([
     db.form.findMany({
       include: {
         workflow: true,
@@ -37,7 +38,9 @@ export default async function AdminFormsPage() {
         title: "asc",
       },
     }),
+    db.role.findMany(),
   ]);
+  const availableRoles = sortRoles(rawRoles).map((role) => toRoleResponse(role));
 
   return (
     <div className="space-y-6">
@@ -52,6 +55,7 @@ export default async function AdminFormsPage() {
         forms={forms as never}
         workflows={workflows}
         parentForms={parentForms}
+        availableRoles={availableRoles}
       />
     </div>
   );

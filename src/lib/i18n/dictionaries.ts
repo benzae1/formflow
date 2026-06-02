@@ -175,6 +175,10 @@ export type Dictionary = {
     formTitle: string;
     noWorkflowYet: string;
     noParentForm: string;
+    allowedRoles: string;
+    allowedRolesHelp: string;
+    allUsers: string;
+    noRolesAvailable: string;
     slugHelp: string;
     createAndOpenBuilder: string;
     creating: string;
@@ -536,6 +540,10 @@ const dictionaries: Record<Locale, Dictionary> = {
       formTitle: "Formulartitel",
       noWorkflowYet: "Noch kein Workflow",
       noParentForm: "Kein Elternformular",
+      allowedRoles: "Erlaubte Rollen",
+      allowedRolesHelp: "Leer bedeutet: Alle authentifizierten Benutzerinnen und Benutzer können das veröffentlichte Formular sehen und absenden.",
+      allUsers: "Alle Benutzer",
+      noRolesAvailable: "Keine Rollen verfügbar.",
       slugHelp: "Slugs verwenden Kleinbuchstaben, Zahlen und Bindestriche. Der Workflow kann später hinzugefügt werden.",
       createAndOpenBuilder: "Erstellen und Builder öffnen",
       creating: "Wird erstellt...",
@@ -895,6 +903,10 @@ const dictionaries: Record<Locale, Dictionary> = {
       formTitle: "Form title",
       noWorkflowYet: "No workflow yet",
       noParentForm: "No parent form",
+      allowedRoles: "Allowed roles",
+      allowedRolesHelp: "Leave this empty to keep the published form visible and submittable for all authenticated users.",
+      allUsers: "All users",
+      noRolesAvailable: "No roles available.",
       slugHelp: "Slugs use lowercase letters, numbers, and hyphens. Leave the workflow blank to attach one later.",
       createAndOpenBuilder: "Create and open builder",
       creating: "Creating...",

@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import {
+  AllowedRolesField,
+  getAllowedRolesSummary,
+} from "@/app/admin/forms/AllowedRolesField";
 import { getMutationHeaders } from "@/lib/mutation-headers";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -21,6 +25,12 @@ type ParentOption = {
   title: string;
 };
 
+type RoleOption = {
+  id: string;
+  name: string;
+  label: string | null;
+};
+
 type FormRecord = {
   id: string;
   slug: string;
@@ -31,18 +41,21 @@ type FormRecord = {
   sensitivity: string;
   updatedAt: string;
   workflow?: WorkflowOption | null;
+  allowedRoles: RoleOption[];
 };
 
 export default function FormsManagerClient({
   forms,
   workflows,
   parentForms,
+  availableRoles,
   locale,
   dictionary,
 }: {
   forms: FormRecord[];
   workflows: WorkflowOption[];
   parentForms: ParentOption[];
+  availableRoles: RoleOption[];
   locale: Locale;
   dictionary: Dictionary;
 }) {
@@ -58,6 +71,7 @@ export default function FormsManagerClient({
     sensitivity: "standard",
     workflowId: "",
     parentFormId: "",
+    allowedRoleNames: [] as string[],
   });
   const router = useRouter();
 
@@ -106,6 +120,7 @@ export default function FormsManagerClient({
         sensitivity: formState.sensitivity,
         workflowId: formState.workflowId || null,
         parentFormId: formState.parentFormId || null,
+        allowedRoleNames: formState.allowedRoleNames,
         schema: {
           display: "form",
           components: [
@@ -142,6 +157,7 @@ export default function FormsManagerClient({
       sensitivity: "standard",
       workflowId: "",
       parentFormId: "",
+      allowedRoleNames: [],
     });
     setSlugTouched(false);
     router.push(localizePath(locale, `/admin/forms/${json.form.id}/builder`));
@@ -158,6 +174,15 @@ export default function FormsManagerClient({
     });
     setPending(false);
     router.refresh();
+  }
+
+  function toggleAllowedRole(roleName: string) {
+    setFormState((current) => ({
+      ...current,
+      allowedRoleNames: current.allowedRoleNames.includes(roleName)
+        ? current.allowedRoleNames.filter((name) => name !== roleName)
+        : [...current.allowedRoleNames, roleName],
+    }));
   }
 
   return (
@@ -202,6 +227,10 @@ export default function FormsManagerClient({
                 </div>
                 <p className="bf-copy">
                   {dictionary.adminForms.version} {form.version} | {dictionary.adminForms.workflow} {form.workflow?.name ?? dictionary.adminForms.unassigned}
+                </p>
+                <p className="bf-copy">
+                  {dictionary.adminForms.allowedRoles}{" "}
+                  {getAllowedRolesSummary(form.allowedRoles, dictionary.adminForms.allUsers)}
                 </p>
               </div>
 
@@ -304,6 +333,17 @@ export default function FormsManagerClient({
                   </option>
                 ))}
               </select>
+              <div className="md:col-span-2">
+                <AllowedRolesField
+                  roles={availableRoles}
+                  selectedRoleNames={formState.allowedRoleNames}
+                  onToggleRole={toggleAllowedRole}
+                  title={dictionary.adminForms.allowedRoles}
+                  description={dictionary.adminForms.allowedRolesHelp}
+                  allUsersLabel={dictionary.adminForms.allUsers}
+                  noRolesLabel={dictionary.adminForms.noRolesAvailable}
+                />
+              </div>
             </div>
 
             <p className="mt-3 text-xs text-[var(--muted-strong)]">

@@ -4,6 +4,7 @@ import BuilderClient from "@/app/admin/forms/[id]/builder/BuilderClient";
 import type { FormBuilderSchema } from "@/components/form-builder/FormBuilder";
 import { getLocaleContext } from "@/lib/i18n/server";
 import { isDraftTranslationAvailable } from "@/lib/form-translation-service";
+import { sortRoles, toRoleResponse } from "@/lib/roles";
 
 export default async function LocalizedFormBuilderPage({
   params,
@@ -14,9 +15,16 @@ export default async function LocalizedFormBuilderPage({
   const { locale, dictionary } = await getLocaleContext(lang);
   await requirePageRole(["admin"], locale);
 
-  const [form, workflows] = await Promise.all([
+  const [form, workflows, rawRoles] = await Promise.all([
     db.form.findUnique({
       where: { id },
+      include: {
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
     }),
     db.workflow.findMany({
       orderBy: {
@@ -27,7 +35,9 @@ export default async function LocalizedFormBuilderPage({
         name: true,
       },
     }),
+    db.role.findMany(),
   ]);
+  const availableRoles = sortRoles(rawRoles).map((role) => toRoleResponse(role));
 
   if (!form) {
     return <div>{dictionary.common.notAvailable}</div>;
@@ -43,6 +53,7 @@ export default async function LocalizedFormBuilderPage({
         schema: (form.schema ?? { components: [] }) as FormBuilderSchema,
       }}
       workflows={workflows}
+      availableRoles={availableRoles}
     />
   );
 }
