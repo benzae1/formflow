@@ -255,110 +255,112 @@ export default function FormsManagerClient({
       </section>
 
       {createOpen ? (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-4">
-          <div className="bf-panel w-full max-w-xl p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="bf-eyebrow">{dictionary.adminForms.newForm}</p>
-                <div className="bf-rule-sm mt-3" />
-                <h2 className="mt-4 text-[32px] font-extrabold leading-none">{dictionary.adminForms.freshShell}</h2>
+        <div className="fixed inset-0 z-30 overflow-y-auto bg-black/40 px-4 py-6">
+          <div className="flex min-h-full items-start justify-center sm:items-center">
+            <div className="bf-panel max-h-[calc(100vh-3rem)] w-full max-w-xl overflow-y-auto p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="bf-eyebrow">{dictionary.adminForms.newForm}</p>
+                  <div className="bf-rule-sm mt-3" />
+                  <h2 className="mt-4 text-[32px] font-extrabold leading-none">{dictionary.adminForms.freshShell}</h2>
+                </div>
+                <button type="button" onClick={() => setCreateOpen(false)} className="bf-btn">
+                  {dictionary.common.close}
+                </button>
               </div>
-              <button type="button" onClick={() => setCreateOpen(false)} className="bf-btn">
-                {dictionary.common.close}
-              </button>
-            </div>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <input
-                value={formState.title}
-                onChange={(event) => {
-                  const nextTitle = event.target.value;
-                  setFormState((current) => ({
-                    ...current,
-                    title: nextTitle,
-                    slug: slugTouched ? current.slug : slugify(nextTitle),
-                  }));
-                }}
-                placeholder={dictionary.adminForms.formTitle}
-                className="bf-input"
-              />
-              <input
-                value={formState.slug}
-                onChange={(event) => {
-                  setSlugTouched(true);
-                  setFormState((current) => ({
-                    ...current,
-                    slug: slugify(event.target.value),
-                  }));
-                }}
-                placeholder="form-slug"
-                className="bf-input"
-              />
-              <select
-                value={formState.sensitivity}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, sensitivity: event.target.value }))
-                }
-                className="bf-select"
-              >
-                <option value="standard">{dictionary.adminForms.standard}</option>
-                <option value="pii">{dictionary.adminForms.pii}</option>
-                <option value="sensitive">{dictionary.adminForms.sensitive}</option>
-              </select>
-              <select
-                value={formState.workflowId}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, workflowId: event.target.value }))
-                }
-                className="bf-select"
-              >
-                <option value="">{dictionary.adminForms.noWorkflowYet}</option>
-                {workflows.map((workflow) => (
-                  <option key={workflow.id} value={workflow.id}>
-                    {workflow.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={formState.parentFormId}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, parentFormId: event.target.value }))
-                }
-                className="bf-select md:col-span-2"
-              >
-                <option value="">{dictionary.adminForms.noParentForm}</option>
-                {parentForms.map((form) => (
-                  <option key={form.id} value={form.id}>
-                    {form.title}
-                  </option>
-                ))}
-              </select>
-              <div className="md:col-span-2">
-                <AllowedRolesField
-                  roles={availableRoles}
-                  selectedRoleNames={formState.allowedRoleNames}
-                  onToggleRole={toggleAllowedRole}
-                  title={dictionary.adminForms.allowedRoles}
-                  description={dictionary.adminForms.allowedRolesHelp}
-                  allUsersLabel={dictionary.adminForms.allUsers}
-                  noRolesLabel={dictionary.adminForms.noRolesAvailable}
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <input
+                  value={formState.title}
+                  onChange={(event) => {
+                    const nextTitle = event.target.value;
+                    setFormState((current) => ({
+                      ...current,
+                      title: nextTitle,
+                      slug: slugTouched ? current.slug : slugify(nextTitle),
+                    }));
+                  }}
+                  placeholder={dictionary.adminForms.formTitle}
+                  className="bf-input"
                 />
+                <input
+                  value={formState.slug}
+                  onChange={(event) => {
+                    setSlugTouched(true);
+                    setFormState((current) => ({
+                      ...current,
+                      slug: slugify(event.target.value),
+                    }));
+                  }}
+                  placeholder="form-slug"
+                  className="bf-input"
+                />
+                <select
+                  value={formState.sensitivity}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, sensitivity: event.target.value }))
+                  }
+                  className="bf-select"
+                >
+                  <option value="standard">{dictionary.adminForms.standard}</option>
+                  <option value="pii">{dictionary.adminForms.pii}</option>
+                  <option value="sensitive">{dictionary.adminForms.sensitive}</option>
+                </select>
+                <select
+                  value={formState.workflowId}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, workflowId: event.target.value }))
+                  }
+                  className="bf-select"
+                >
+                  <option value="">{dictionary.adminForms.noWorkflowYet}</option>
+                  {workflows.map((workflow) => (
+                    <option key={workflow.id} value={workflow.id}>
+                      {workflow.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={formState.parentFormId}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, parentFormId: event.target.value }))
+                  }
+                  className="bf-select md:col-span-2"
+                >
+                  <option value="">{dictionary.adminForms.noParentForm}</option>
+                  {parentForms.map((form) => (
+                    <option key={form.id} value={form.id}>
+                      {form.title}
+                    </option>
+                  ))}
+                </select>
+                <div className="md:col-span-2">
+                  <AllowedRolesField
+                    roles={availableRoles}
+                    selectedRoleNames={formState.allowedRoleNames}
+                    onToggleRole={toggleAllowedRole}
+                    title={dictionary.adminForms.allowedRoles}
+                    description={dictionary.adminForms.allowedRolesHelp}
+                    allUsersLabel={dictionary.adminForms.allUsers}
+                    noRolesLabel={dictionary.adminForms.noRolesAvailable}
+                  />
+                </div>
               </div>
-            </div>
 
-            <p className="mt-3 text-xs text-[var(--muted-strong)]">
-              {dictionary.adminForms.slugHelp}
-            </p>
+              <p className="mt-3 text-xs text-[var(--muted-strong)]">
+                {dictionary.adminForms.slugHelp}
+              </p>
 
-            <div className="mt-6 bf-action-row">
-              <button
-                type="button"
-                onClick={createForm}
-                disabled={pending}
-                className="bf-btn bf-btn-primary disabled:opacity-60"
-              >
-                {pending ? dictionary.adminForms.creating : dictionary.adminForms.createAndOpenBuilder}
-              </button>
+              <div className="mt-6 bf-action-row">
+                <button
+                  type="button"
+                  onClick={createForm}
+                  disabled={pending}
+                  className="bf-btn bf-btn-primary disabled:opacity-60"
+                >
+                  {pending ? dictionary.adminForms.creating : dictionary.adminForms.createAndOpenBuilder}
+                </button>
+              </div>
             </div>
           </div>
         </div>
