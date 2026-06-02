@@ -323,6 +323,8 @@ export type Dictionary = {
     addStage: string;
     noStages: string;
     role: string;
+    selectRole: string;
+    missingRole: string;
     orgHierarchy: string;
     user: string;
     group: string;
@@ -688,6 +690,8 @@ const dictionaries: Record<Locale, Dictionary> = {
       addStage: "Stufe hinzufügen",
       noStages: "Noch keine Stufen. Fügen Sie eine hinzu.",
       role: "Rolle",
+      selectRole: "Rolle wählen...",
+      missingRole: "Nicht vorhandene Rolle",
       orgHierarchy: "Org-Hierarchie",
       user: "Benutzer",
       group: "Gruppe",
@@ -1051,6 +1055,8 @@ const dictionaries: Record<Locale, Dictionary> = {
       addStage: "Add stage",
       noStages: "No stages yet. Add one below.",
       role: "Role",
+      selectRole: "Select a role...",
+      missingRole: "Missing role",
       orgHierarchy: "Org hierarchy",
       user: "User",
       group: "Group",

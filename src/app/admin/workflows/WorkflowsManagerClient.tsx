@@ -99,20 +99,23 @@ function getOrgOptions(copy: WorkflowCopy) {
   ];
 }
 
+function getRoleDisplayName(role: RoleOption) {
+  return role.label?.trim() ? `${role.label} (${role.name})` : role.name;
+}
+
 function RoutingTargetEditor({
-  id: editorId,
   targets,
   onChange,
   roles,
   copy,
 }: {
-  id: string;
   targets: RoutingTarget[];
   onChange: (targets: RoutingTarget[]) => void;
   roles: RoleOption[];
   copy: WorkflowCopy;
 }) {
   const orgOptions = getOrgOptions(copy);
+  const knownRoleNames = new Set(roles.map((role) => role.name));
 
   function update(index: number, target: RoutingTarget) {
     const next = [...targets];
@@ -155,22 +158,23 @@ function RoutingTargetEditor({
           </select>
 
           {target.type === "role" && (
-            <>
-              <datalist id={`${editorId}-dl-${index}`}>
-                {roles.map((r) => (
-                  <option key={r.name} value={r.name}>
-                    {r.label ?? r.name}
-                  </option>
-                ))}
-              </datalist>
-              <input
-                className="bf-input"
-                list={`${editorId}-dl-${index}`}
-                value={target.value}
-                placeholder={copy.roleName}
-                onChange={(e) => update(index, { type: "role", value: e.target.value })}
-              />
-            </>
+            <select
+              className="bf-select"
+              value={target.value}
+              onChange={(e) => update(index, { type: "role", value: e.target.value })}
+            >
+              <option value="">{copy.selectRole}</option>
+              {!knownRoleNames.has(target.value) && target.value ? (
+                <option value={target.value}>
+                  {copy.missingRole}: {target.value}
+                </option>
+              ) : null}
+              {roles.map((role) => (
+                <option key={role.name} value={role.name}>
+                  {getRoleDisplayName(role)}
+                </option>
+              ))}
+            </select>
           )}
 
           {target.type === "org" && (
@@ -427,7 +431,6 @@ function StageCard({
           <div>
             <FieldLabel>{copy.assignTo}</FieldLabel>
             <RoutingTargetEditor
-              id={`rt-${stage._key}`}
               targets={targets}
               onChange={setAssignTo}
               roles={roles}

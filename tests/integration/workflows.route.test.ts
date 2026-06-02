@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { db } from "../../src/lib/db";
 import { POST } from "../../src/app/api/workflows/route";
+import { PUT } from "../../src/app/api/workflows/[id]/route";
 import {
+  createWorkflowFixture,
   resetDatabase,
   seedBaseUsers,
 } from "../support/fixtures";
@@ -77,5 +79,72 @@ describe("workflows route", () => {
 
     expect(response.status).toBe(422);
     expect(payload.error.code).toBe("USER_DEACTIVATED");
+  });
+
+  test("workflow creation rejects missing role targets", async () => {
+    const { admin } = await seedBaseUsers();
+    setMockSession(admin);
+
+    const response = await POST(
+      new Request("http://localhost/api/workflows", {
+        method: "POST",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          name: "Missing role workflow",
+          definition: [
+            {
+              id: "approval-1",
+              name: "Approval",
+              type: "approval",
+              assignTo: { type: "role", value: "review-board" },
+              onApprove: "close",
+              onReject: "close",
+            },
+          ],
+        }),
+      }),
+    );
+
+    const payload = await parseJson<{ error: { code: string; message: string } }>(response);
+
+    expect(response.status).toBe(422);
+    expect(payload.error.code).toBe("ROLE_NOT_FOUND");
+    expect(payload.error.message).toContain("review-board");
+  });
+
+  test("workflow updates reject missing role targets", async () => {
+    const { admin, approver } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    setMockSession(admin);
+
+    const response = await PUT(
+      new Request(`http://localhost/api/workflows/${workflow.id}`, {
+        method: "PUT",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          name: "Updated workflow",
+          definition: [
+            {
+              id: "approval-1",
+              name: "Approval",
+              type: "approval",
+              assignTo: { type: "role", value: "finance-committee" },
+              onApprove: "close",
+              onReject: "close",
+            },
+          ],
+        }),
+      }),
+      { params: Promise.resolve({ id: workflow.id }) },
+    );
+
+    const payload = await parseJson<{ error: { code: string; message: string } }>(response);
+
+    expect(response.status).toBe(422);
+    expect(payload.error.code).toBe("ROLE_NOT_FOUND");
+    expect(payload.error.message).toContain("finance-committee");
   });
 });
