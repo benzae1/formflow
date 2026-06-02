@@ -92,6 +92,7 @@ jobs:
   e2e-smoke:
     name: Playwright smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -101,7 +102,18 @@ jobs:
       - run: cp .env.example .env
       - run: npm ci
       - run: npx prisma generate
-      - run: npx playwright install --with-deps chromium
+      - name: Install Playwright system dependencies
+        timeout-minutes: 10
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: npx playwright install-deps chromium
+      - name: Install Playwright Chromium
+        timeout-minutes: 10
+        env:
+          DEBUG: pw:install
+        run: npx playwright install chromium
+      - name: Inspect Playwright browser cache
+        run: ls -lah ~/.cache/ms-playwright
       - run: docker compose up -d --build
       - run: node tests/scripts/wait-for-stack.mjs
       - run: npx playwright test --grep @smoke
