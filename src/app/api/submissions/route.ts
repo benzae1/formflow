@@ -19,6 +19,7 @@ import { createSubmissionSchema } from "@/lib/validation/submissions";
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { resolveFormSchema } from "@/lib/form-translations";
 import { normalizeSubmissionData } from "@/lib/formio-data";
+import { canUserAccessForm } from "@/lib/form-access";
 import {
   createCookieStoreFromHeader,
   getSensitiveAccessGrant,
@@ -138,10 +139,21 @@ export async function POST(req: Request) {
 
     const form = await db.form.findUnique({
       where: { id: input.formId },
-      include: { workflow: true },
+      include: {
+        workflow: true,
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
     });
 
     if (!form || form.status !== "published") {
+      throw new ApiError("FORM_NOT_AVAILABLE", "Form is not available.", 404);
+    }
+
+    if (!canUserAccessForm(user.roles, form.allowedRoles)) {
       throw new ApiError("FORM_NOT_AVAILABLE", "Form is not available.", 404);
     }
 

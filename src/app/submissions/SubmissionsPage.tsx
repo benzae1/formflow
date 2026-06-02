@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
 import { formatDateTime, titleCaseStatus } from "@/lib/ui";
+import { canUserAccessForm } from "@/lib/form-access";
 
 type SearchParams = Promise<{
   status?: string;
@@ -55,12 +56,22 @@ export default async function SubmissionsPage({
       where: {
         status: "published",
       },
+      include: {
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
       orderBy: {
         updatedAt: "desc",
       },
       take: 8,
     }),
   ]);
+  const visiblePublishedForms = publishedForms.filter((form) =>
+    canUserAccessForm(user.roles, form.allowedRoles),
+  );
 
   const buckets = [
     "draft",
@@ -179,7 +190,7 @@ export default async function SubmissionsPage({
             <h2 className="mt-3 text-[32px] font-extrabold leading-none">Start something new</h2>
           </div>
 
-          {publishedForms.length === 0 ? (
+          {visiblePublishedForms.length === 0 ? (
             <div className="mt-5">
               <EmptyState
                 eyebrow="No forms published"
@@ -189,7 +200,7 @@ export default async function SubmissionsPage({
             </div>
           ) : (
             <div className="mt-5 bf-list">
-              {publishedForms.map((form) => (
+              {visiblePublishedForms.map((form) => (
                 <Link key={form.id} href={`/forms/${form.slug}`} className="bf-link-card">
                   <div className="flex items-start justify-between gap-4">
                     <div>

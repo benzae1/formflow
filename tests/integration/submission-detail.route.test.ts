@@ -112,6 +112,91 @@ describe("submission detail route", () => {
     expect(signalMock).toHaveBeenCalledWith(expect.anything());
   });
 
+  test("restricted drafts cannot be submitted after access is lost", async () => {
+    const { admin, approver, submitter } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const form = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+      allowedRoleNames: ["approver"],
+    });
+    const submission = await createSubmissionFixture({
+      formId: form.id,
+      formVersion: form.version,
+      submittedById: submitter.id,
+      status: "draft",
+    });
+
+    setMockSession(submitter);
+
+    const response = await PATCH(
+      new Request(`http://localhost/api/submissions/${submission.id}`, {
+        method: "PATCH",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          data: { requestTitle: "Blocked draft submit" },
+          submit: true,
+        }),
+      }),
+      { params: Promise.resolve({ id: submission.id }) },
+    );
+
+    const payload = await parseJson<{
+      error: { code: string; message: string; status: number };
+    }>(response);
+
+    expect(response.status).toBe(404);
+    expect(payload.error.code).toBe("FORM_NOT_AVAILABLE");
+    expect(signalMock).not.toHaveBeenCalled();
+    expect(startWorkflowMock).not.toHaveBeenCalled();
+  });
+
+  test("restricted revisions cannot be resubmitted after access is lost", async () => {
+    const { admin, approver, submitter } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const form = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+      allowedRoleNames: ["approver"],
+    });
+    const submission = await createSubmissionFixture({
+      formId: form.id,
+      formVersion: form.version,
+      submittedById: submitter.id,
+      status: "needs_revision",
+    });
+
+    setMockSession(submitter);
+
+    const response = await PATCH(
+      new Request(`http://localhost/api/submissions/${submission.id}`, {
+        method: "PATCH",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          data: { requestTitle: "Blocked revision submit" },
+          submit: true,
+        }),
+      }),
+      { params: Promise.resolve({ id: submission.id }) },
+    );
+
+    const payload = await parseJson<{
+      error: { code: string; message: string; status: number };
+    }>(response);
+
+    expect(response.status).toBe(404);
+    expect(payload.error.code).toBe("FORM_NOT_AVAILABLE");
+    expect(signalMock).not.toHaveBeenCalled();
+  });
+
   test("sensitive submission reads require a signed grant", async () => {
     const { admin, approver, submitter } = await seedBaseUsers();
     const workflow = await createWorkflowFixture({

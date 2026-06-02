@@ -9,6 +9,7 @@ import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { defaultLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { resolveFormSchema, resolveFormTitle } from "@/lib/form-translations";
+import { canUserAccessForm } from "@/lib/form-access";
 
 export default async function PublicFormPage({
   params,
@@ -25,11 +26,23 @@ export default async function PublicFormPage({
 
   const form = await db.form.findUnique({
     where: { slug },
+    include: {
+      allowedRoles: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
   });
 
   const canPreviewUnpublished = previewMode && user.roles.includes("admin");
+  const canAccessForm = form ? canUserAccessForm(user.roles, form.allowedRoles) : false;
 
-  if (!form || (form.status !== "published" && !canPreviewUnpublished)) {
+  if (
+    !form ||
+    (form.status !== "published" && !canPreviewUnpublished) ||
+    (!canPreviewUnpublished && !canAccessForm)
+  ) {
     return <div>{dictionary.forms.formNotAvailable}</div>;
   }
 

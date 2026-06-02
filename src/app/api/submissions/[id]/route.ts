@@ -24,6 +24,7 @@ import {
 } from "@/temporal/workflows/approvalWorkflow";
 import { resolveFormSchema } from "@/lib/form-translations";
 import { normalizeSubmissionData } from "@/lib/formio-data";
+import { canUserAccessForm } from "@/lib/form-access";
 import {
   createCookieStoreFromHeader,
   getSensitiveAccessGrant,
@@ -111,7 +112,15 @@ export async function PATCH(
     const submission = await db.submission.findFirst({
       where: { id },
       include: {
-        form: true,
+        form: {
+          include: {
+            allowedRoles: {
+              orderBy: {
+                name: "asc",
+              },
+            },
+          },
+        },
       },
     });
 
@@ -129,6 +138,10 @@ export async function PATCH(
         "Submission cannot be edited in its current state.",
         409,
       );
+    }
+
+    if (input.submit && !canUserAccessForm(user.roles, submission.form.allowedRoles)) {
+      throw new ApiError("FORM_NOT_AVAILABLE", "Form is not available.", 404);
     }
 
     const localizedSchema = resolveFormSchema(

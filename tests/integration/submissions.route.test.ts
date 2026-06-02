@@ -155,6 +155,43 @@ describe("submissions route", () => {
     expect(storedSubmission?.workflowRunId).toBeNull();
   });
 
+  test("restricted published forms are unavailable to users without a matching role", async () => {
+    const { admin, approver, submitter } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: approver.id,
+    });
+    const restrictedForm = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+      allowedRoleNames: ["approver"],
+    });
+
+    setMockSession(submitter);
+
+    const response = await POST(
+      new Request("http://localhost/api/submissions", {
+        method: "POST",
+        headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          formId: restrictedForm.id,
+          data: {
+            requestTitle: "Should be blocked",
+          },
+          saveAsDraft: false,
+        }),
+      }),
+    );
+
+    const payload = await parseJson<{
+      error: { code: string; message: string; status: number };
+    }>(response);
+
+    expect(response.status).toBe(404);
+    expect(payload.error.code).toBe("FORM_NOT_AVAILABLE");
+  });
+
   test("submitted forms without a workflow are rejected", async () => {
     const { admin, submitter } = await seedBaseUsers();
     const form = await createFormFixture({

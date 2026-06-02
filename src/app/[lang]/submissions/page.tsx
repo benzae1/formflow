@@ -9,6 +9,7 @@ import { formatDateTime, getStatusLabel, titleCaseStatus } from "@/lib/ui";
 import { getLocaleContext } from "@/lib/i18n/server";
 import { localizePath } from "@/lib/i18n/routing";
 import { resolveFormTitle } from "@/lib/form-translations";
+import { canUserAccessForm } from "@/lib/form-access";
 
 type SearchParams = Promise<{
   status?: string;
@@ -62,12 +63,22 @@ export default async function LocalizedSubmissionsPage({
       where: {
         status: "published",
       },
+      include: {
+        allowedRoles: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+      },
       orderBy: {
         updatedAt: "desc",
       },
       take: 8,
     }),
   ]);
+  const visiblePublishedForms = publishedForms.filter((form) =>
+    canUserAccessForm(user.roles, form.allowedRoles),
+  );
 
   const buckets = [
     "draft",
@@ -188,7 +199,7 @@ export default async function LocalizedSubmissionsPage({
             <h2 className="mt-3 text-[32px] font-extrabold leading-none">{dictionary.submissions.startSomethingNew}</h2>
           </div>
 
-          {publishedForms.length === 0 ? (
+          {visiblePublishedForms.length === 0 ? (
             <div className="mt-5">
               <EmptyState
                 eyebrow={dictionary.submissions.nothingPublishedEyebrow}
@@ -198,7 +209,7 @@ export default async function LocalizedSubmissionsPage({
             </div>
           ) : (
             <div className="mt-5 bf-list">
-              {publishedForms.map((form) => (
+              {visiblePublishedForms.map((form) => (
                 <Link key={form.id} href={localizePath(locale, `/forms/${form.slug}`)} className="bf-link-card">
                   <div className="flex items-start justify-between gap-4">
                     <div>

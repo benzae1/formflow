@@ -8,6 +8,7 @@ import type { RenderableFormSchema } from "@/components/form-renderer/FormRender
 import type { FormioSchema } from "@/lib/formio-sensitive-fields";
 import { resolveFormSchema, resolveFormTitle } from "@/lib/form-translations";
 import { getLocaleContext } from "@/lib/i18n/server";
+import { canUserAccessForm } from "@/lib/form-access";
 
 export default async function LocalizedPublicFormPage({
   params,
@@ -24,11 +25,23 @@ export default async function LocalizedPublicFormPage({
 
   const form = await db.form.findUnique({
     where: { slug },
+    include: {
+      allowedRoles: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
   });
 
   const canPreviewUnpublished = previewMode && user.roles.includes("admin");
+  const canAccessForm = form ? canUserAccessForm(user.roles, form.allowedRoles) : false;
 
-  if (!form || (form.status !== "published" && !canPreviewUnpublished)) {
+  if (
+    !form ||
+    (form.status !== "published" && !canPreviewUnpublished) ||
+    (!canPreviewUnpublished && !canAccessForm)
+  ) {
     return <div>{dictionary.forms.formNotAvailable}</div>;
   }
 
