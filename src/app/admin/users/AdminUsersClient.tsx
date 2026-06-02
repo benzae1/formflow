@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DelegationManager from "@/components/users/DelegationManager";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -75,11 +75,9 @@ export default function AdminUsersClient({
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const prevAvailableRolesRef = useRef(availableRoles);
-  if (prevAvailableRolesRef.current !== availableRoles) {
-    prevAvailableRolesRef.current = availableRoles;
+  useEffect(() => {
     setRolesState(availableRoles);
-  }
+  }, [availableRoles]);
 
   async function refreshUsers() {
     router.refresh();
@@ -414,16 +412,10 @@ function RoleRow({
   const [name, setName] = useState(role.name);
   const [label, setLabel] = useState(role.label ?? "");
 
-  const prevRoleRef = useRef<{ id: string; name: string; label: string | null }>(role);
-  if (
-    prevRoleRef.current.id !== role.id ||
-    prevRoleRef.current.name !== role.name ||
-    prevRoleRef.current.label !== role.label
-  ) {
-    prevRoleRef.current = role;
+  useEffect(() => {
     setName(role.name);
     setLabel(role.label ?? "");
-  }
+  }, [role.id, role.label, role.name]);
 
   const dirty = name.trim() !== role.name || label.trim() !== (role.label ?? "");
   const invalid = !name.trim() || !label.trim();
@@ -517,11 +509,9 @@ function UserCard({
   const copy = dictionary.adminUsers;
   const [roles, setRoles] = useState<string[]>(user.roles.map((role) => role.name));
 
-  const prevUserRolesRef = useRef(user.roles);
-  if (prevUserRolesRef.current !== user.roles) {
-    prevUserRolesRef.current = user.roles;
+  useEffect(() => {
     setRoles(user.roles.map((role) => role.name));
-  }
+  }, [user.roles]);
 
   function toggleRole(roleName: string) {
     setRoles((current) => {
