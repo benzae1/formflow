@@ -93,6 +93,8 @@ jobs:
     name: Playwright smoke
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -102,21 +104,17 @@ jobs:
       - run: cp .env.example .env
       - run: npm ci
       - run: npx prisma generate
-      - name: Install Playwright system dependencies
-        timeout-minutes: 10
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: npx playwright install-deps chromium
-      - name: Install Playwright Chromium
-        timeout-minutes: 10
-        env:
-          DEBUG: pw:install
-        run: npx playwright install chromium
-      - name: Inspect Playwright browser cache
-        run: ls -lah ~/.cache/ms-playwright
       - run: docker compose up -d --build
       - run: node tests/scripts/wait-for-stack.mjs
-      - run: npx playwright test --grep @smoke
+      - name: Run Playwright smoke suite in official container
+        run: >-
+          docker run --rm
+          --network host
+          -e PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}
+          -v "$PWD:/work"
+          -w /work
+          mcr.microsoft.com/playwright:v1.59.1-noble
+          npx playwright test --grep @smoke
       - if: always()
         uses: actions/upload-artifact@v4
         with:
