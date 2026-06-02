@@ -18,21 +18,10 @@ test.describe("FormFlow end-to-end", () => {
   test("@smoke admin can publish a form, a submitter can submit it, and an approver can approve it", async ({
     page,
   }) => {
-    await seedFreshWorkflow();
-    const title = "Smoke workflow form";
+    const { form, title } = await seedDraftFormScenario("Smoke workflow form");
 
     await signInAs(page, "admin@example.com");
-    await page.goto("/en/admin/forms");
-
-    await page.getByRole("button", { name: "Create form" }).click();
-    await page.getByPlaceholder("Form title").fill(title);
-    await page
-      .locator(".fixed.inset-0 select")
-      .nth(1)
-      .selectOption({ label: "Basic approval" });
-    await page.getByRole("button", { name: "Create and open builder" }).click();
-
-    await expect(page).toHaveURL(/\/admin\/forms\/.+\/builder/);
+    await page.goto(`/en/admin/forms/${form.id}/builder`);
     await page.getByRole("button", { name: "Publish" }).click();
     await expect(page.getByText("Form published.")).toBeVisible();
 
@@ -189,6 +178,27 @@ async function seedPublishedFormScenario(prefix: string) {
 
   return {
     users,
+    title: form.title,
+    slug: form.slug,
+  };
+}
+
+async function seedDraftFormScenario(prefix: string) {
+  const users = await seedFreshWorkflow();
+  const form = await createFormFixture({
+    createdById: users.admin.id,
+    workflowId: (
+      await db.workflow.findFirstOrThrow({
+        where: { name: "Basic approval" },
+      })
+    ).id,
+    status: "draft",
+    title: `${prefix} ${Date.now()}`,
+  });
+
+  return {
+    users,
+    form,
     title: form.title,
     slug: form.slug,
   };
