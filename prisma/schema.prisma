@@ -73,6 +73,7 @@ model Role {
   label     String?
   createdAt DateTime @default(now())
   users     User[]   @relation("UserRoles")
+  forms     Form[]   @relation("FormAllowedRoles")
 }
 
 model Form {
@@ -94,6 +95,8 @@ model Form {
 
   createdById   String
   createdBy     User            @relation("FormCreatedBy", fields: [createdById], references: [id])
+  // Empty allowedRoles means any authenticated user may see and submit the published form.
+  allowedRoles  Role[]          @relation("FormAllowedRoles")
 
   versions      FormVersion[]
   submissions   Submission[]

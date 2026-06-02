@@ -189,6 +189,7 @@ export async function createFormFixture(input: {
   status?: "draft" | "published" | "archived";
   sensitivity?: "standard" | "pii" | "sensitive";
   schema?: FormioSchema;
+  allowedRoleNames?: string[];
 }) {
   const schema = input.schema ?? baseSchema;
 
@@ -201,6 +202,13 @@ export async function createFormFixture(input: {
       sensitivity: input.sensitivity ?? "standard",
       workflowId: input.workflowId ?? null,
       createdById: input.createdById,
+      ...(input.allowedRoleNames && input.allowedRoleNames.length > 0
+        ? {
+            allowedRoles: {
+              connect: input.allowedRoleNames.map((name) => ({ name })),
+            },
+          }
+        : {}),
     },
   });
 
@@ -221,6 +229,7 @@ export async function createSensitiveFormFixture(input: {
   status?: "draft" | "published" | "archived";
   slug?: string;
   title?: string;
+  allowedRoleNames?: string[];
 }) {
   return createFormFixture({
     ...input,
