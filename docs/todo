@@ -1,0 +1,1 @@
+1. Fix issue where upon updating your own roles causes you to get signed out, and not update your roles.
