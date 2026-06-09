@@ -10,8 +10,7 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY scripts ./scripts
 
-RUN npm ci
-RUN npx prisma generate
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 COPY . .
 
