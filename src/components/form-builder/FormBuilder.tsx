@@ -23,19 +23,38 @@ function serializeSchema(schema: FormBuilderSchema) {
 export function FormBuilder({ locale, schema, onChange }: Props) {
   const [initialBuilderSchema, setInitialBuilderSchema] = useState(schema);
   const lastBuilderSchemaRef = useRef(serializeSchema(schema));
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const nextSchema = serializeSchema(schema);
-
-    if (nextSchema === lastBuilderSchemaRef.current) {
-      return;
-    }
-
+    if (nextSchema === lastBuilderSchemaRef.current) return;
     setInitialBuilderSchema(schema);
   }, [schema]);
 
+  // Bootstrap 5 collapse data-API never auto-initialises on dynamically rendered
+  // formio DOM nodes. Wire up a delegated listener on the container instead.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    function handleCollapseClick(event: MouseEvent) {
+      const btn = (event.target as Element).closest<HTMLElement>('[data-bs-toggle="collapse"]');
+      if (!btn) return;
+      const targetSelector = btn.getAttribute("data-bs-target");
+      if (!targetSelector) return;
+      const panel = container!.querySelector<HTMLElement>(targetSelector);
+      if (!panel) return;
+      const isOpen = panel.classList.contains("show");
+      panel.classList.toggle("show", !isOpen);
+      btn.setAttribute("aria-expanded", String(!isOpen));
+    }
+
+    container.addEventListener("click", handleCollapseClick);
+    return () => container.removeEventListener("click", handleCollapseClick);
+  }, []);
+
   return (
-    <div className="form-builder-frame bf-panel p-3 md:p-5">
+    <div ref={containerRef} className="form-builder-frame bf-panel p-3 md:p-5">
       <div className="overflow-x-auto">
         <FormioBuilder
           initialForm={initialBuilderSchema}

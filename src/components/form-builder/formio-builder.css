@@ -2314,10 +2314,15 @@ span[role=link] {
   color: var(--ink, #000);
 }
 
-.form-builder-frame .builder-sidebar,
-.form-builder-frame .builder-sidebar_scroll {
-  max-height: none;
+.form-builder-frame .builder-sidebar {
   min-width: 7.5rem;
+}
+
+.form-builder-frame .builder-sidebar_scroll {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
 }
 
 .form-builder-frame .builder-sidebar_search,
