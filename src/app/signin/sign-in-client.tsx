@@ -90,7 +90,7 @@ const STYLES = `
   }
   .bu-rule {
     height: 2px;
-    background: var(--t-text);
+    background: var(--t-picked, #D22630);
     margin: 14px 0 24px;
     width: 72px;
     border: none;
@@ -333,7 +333,7 @@ export default function SignInClient({
               <hr className="bu-rule" />
               <p className="bu-display">
                 <span>{dictionary.auth.title}</span>
-                <span className="accent" style={{ color: accentColor }}>
+                <span className="accent" style={{ color: "var(--t-picked)" }}>
                   {dictionary.auth.accentTitle}
                 </span>
               </p>
