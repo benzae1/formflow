@@ -1,0 +1,31 @@
+# Override for Linux hosts running Cisco AnyConnect (Cisco Secure Client).
+#
+# AnyConnect injects an iptables FORWARD chain (ciscovpn) with a catch-all
+# DROP rule that fires before Docker's MASQUERADE rule rewrites container
+# source IPs. This silently blocks all outbound traffic from bridge-networked
+# containers to VPN-accessible hosts (e.g. the university LDAP server).
+#
+# network_mode: host bypasses the FORWARD chain entirely — the container
+# uses the host's network stack directly, so packets go through OUTPUT
+# where AnyConnect has no blocking rules.
+#
+# This override is Linux-only. Docker Desktop on Windows/Mac does not
+# support host networking in the same way and does not have this iptables
+# issue, so the base docker-compose.yml works there without modification.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.linux-vpn.yml up -d
+
+services:
+  web:
+    network_mode: "host"
+    environment:
+      DATABASE_URL: postgresql://formflow:formflow@localhost:5432/formflow
+      TEMPORAL_ADDRESS: localhost:7233
+    ports: []
+
+  worker:
+    network_mode: "host"
+    environment:
+      DATABASE_URL: postgresql://formflow:formflow@localhost:5432/formflow
+      TEMPORAL_ADDRESS: localhost:7233
