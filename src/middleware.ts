@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 import { defaultLocale, isLocale } from "@/lib/i18n/config";
 
 const PUBLIC_FILE = /\.(.*)$/;
-function getContentSecurityPolicy() {
-  const scriptSrc = process.env.NODE_ENV === "development"
+function getContentSecurityPolicy(pathname: string) {
+  // @formio/js uses Function() for template interpolation — requires unsafe-eval on the builder route.
+  const needsEval =
+    process.env.NODE_ENV === "development" ||
+    /\/admin\/forms\/[^/]+\/builder/.test(pathname);
+  const scriptSrc = needsEval
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline'";
 
@@ -22,8 +26,8 @@ function getContentSecurityPolicy() {
   ].join("; ");
 }
 
-function withSecurityHeaders(response: NextResponse) {
-  response.headers.set("Content-Security-Policy", getContentSecurityPolicy());
+function withSecurityHeaders(response: NextResponse, pathname: string) {
+  response.headers.set("Content-Security-Policy", getContentSecurityPolicy(pathname));
   response.headers.set("Referrer-Policy", "same-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -55,6 +59,7 @@ export default function middleware(request: NextRequest) {
           headers: requestHeaders,
         },
       }),
+      pathname,
     );
   }
 
@@ -65,12 +70,13 @@ export default function middleware(request: NextRequest) {
           headers: requestHeaders,
         },
       }),
+      pathname,
     );
   }
 
   const nextUrl = request.nextUrl.clone();
   nextUrl.pathname = `/${defaultLocale}${pathname === "/" ? "" : pathname}`;
-  return withSecurityHeaders(NextResponse.redirect(nextUrl));
+  return withSecurityHeaders(NextResponse.redirect(nextUrl), pathname);
 }
 
 export const config = {

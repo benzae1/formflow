@@ -19,13 +19,25 @@
 services:
   web:
     network_mode: "host"
+    build:
+      network: host
     environment:
       DATABASE_URL: postgresql://formflow:formflow@localhost:5432/formflow
       TEMPORAL_ADDRESS: localhost:7233
     ports: []
 
+  init:
+    network_mode: "host"
+    build:
+      network: host
+    environment:
+      DATABASE_URL: postgresql://formflow:formflow@localhost:5432/formflow
+      TEMPORAL_ADDRESS: localhost:7233
+
   worker:
     network_mode: "host"
+    build:
+      network: host
     environment:
       DATABASE_URL: postgresql://formflow:formflow@localhost:5432/formflow
       TEMPORAL_ADDRESS: localhost:7233
