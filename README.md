@@ -139,6 +139,18 @@ npm run verify:smoke       # Smoke check against the running app
 - If you change dependencies or Dockerfile, re-run `docker compose up --build`.
 - To stop: `docker compose down`. To also remove the database volume: `docker compose down -v`.
 
+### Linux with Cisco AnyConnect (Cisco Secure Client)
+
+On Linux, Cisco AnyConnect injects iptables rules into the FORWARD chain that block outbound traffic from bridge-networked containers before Docker's NAT rules can rewrite the source IP. This prevents containers from reaching VPN-accessible hosts such as the university LDAP server.
+
+Use the provided override file when running on Linux with the VPN active:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.linux-vpn.yml up --build
+```
+
+This switches `web` and `worker` to host networking, which routes traffic through the host's network stack and bypasses the VPN's firewall chain entirely. This override is Linux-only and not needed on Windows or macOS.
+
 ## Prisma 7
 
 This project uses Prisma 7. Database connection URLs live in `prisma.config.js`, not in `prisma/schema.prisma`. Migration commands use `npx prisma migrate dev` as normal; the `prisma:init` script handles migration and seed automatically on container start.

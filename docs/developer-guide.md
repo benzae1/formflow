@@ -37,6 +37,14 @@ Wait for all containers to report healthy. The first run takes 2–4 minutes bec
 
 The app is available at [http://localhost:3000](http://localhost:3000).
 
+**Linux with Cisco AnyConnect (Cisco Secure Client):** Cisco AnyConnect injects iptables rules into the FORWARD chain with a catch-all DROP that blocks outbound traffic from Docker bridge-networked containers before NAT runs. This prevents containers from reaching VPN-accessible hosts such as the university LDAP server. Use the override file instead:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.linux-vpn.yml up --build
+```
+
+This is only needed on Linux when the VPN is active. Windows and macOS are not affected.
+
 ### 4. Sign in
 
 Default seed accounts (local only — only created when `ALLOW_DEMO_USERS` is set or when the database is empty during `npm run prisma:init`):
