@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -160,7 +159,11 @@ export default function FormsManagerClient({
       allowedRoleNames: [],
     });
     setSlugTouched(false);
-    router.push(localizePath(locale, `/admin/forms/${json.form.id}/builder`));
+    // Hard navigation (not router.push): the builder needs `unsafe-eval` in its CSP,
+    // which is bound to the document and not refetched on SPA navigation. Loading the
+    // builder as a fresh document guarantees it runs under the admin (eval-enabled) CSP
+    // regardless of which page the user entered the app on. See formio-builder-csp-eval.
+    window.location.assign(localizePath(locale, `/admin/forms/${json.form.id}/builder`));
   }
 
   async function updateStatus(id: string, nextStatus: "published" | "archived" | "draft") {
@@ -234,9 +237,11 @@ export default function FormsManagerClient({
               </div>
 
               <div className="bf-action-row">
-                <Link href={localizePath(locale, `/admin/forms/${form.id}/builder`)} className="bf-btn bf-btn-primary bf-btn-segment">
+                {/* Plain <a> forces a full document load so the builder gets the admin
+                    (eval-enabled) CSP — see the window.location.assign note in createForm. */}
+                <a href={localizePath(locale, `/admin/forms/${form.id}/builder`)} className="bf-btn bf-btn-primary bf-btn-segment">
                   {dictionary.adminForms.openBuilder}
-                </Link>
+                </a>
                 <button
                   type="button"
                   disabled={pending}
