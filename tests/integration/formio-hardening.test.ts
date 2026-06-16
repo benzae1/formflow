@@ -4,6 +4,7 @@ import {
   decryptSubmissionData,
   encryptSensitiveSubmissionData,
   filterSubmissionDataForUser,
+  normalizeSubmissionData,
 } from "../../src/lib/formio-data";
 import type { FormioSchema } from "../../src/lib/formio-schema";
 import { getSubmissionWorkflowContext } from "../../src/temporal/activities/approvalActivities";
@@ -266,5 +267,41 @@ describe("formio hardening", () => {
     const context = await getSubmissionWorkflowContext(submission.id);
 
     expect(context.data).toEqual(nestedSubmissionData);
+  });
+
+  test("submit button state is dropped instead of rejected", () => {
+    const schema: FormioSchema = {
+      display: "form",
+      components: [
+        { type: "textfield", key: "name", label: "Name", input: true },
+        { type: "button", key: "submit", action: "submit", label: "Submit" },
+      ],
+    };
+
+    const normalized = normalizeSubmissionData(schema, {
+      name: "Avery",
+      submit: true,
+    });
+
+    expect(normalized).toEqual({ name: "Avery" });
+  });
+
+  test("radio accepts string, numeric, and boolean option values", () => {
+    const schema: FormioSchema = {
+      display: "form",
+      components: [
+        { type: "radio", key: "color", label: "Color", input: true },
+        { type: "radio", key: "rating", label: "Rating", input: true },
+        { type: "radio", key: "agree", label: "Agree", input: true },
+      ],
+    };
+
+    const normalized = normalizeSubmissionData(schema, {
+      color: "red",
+      rating: 5,
+      agree: true,
+    });
+
+    expect(normalized).toEqual({ color: "red", rating: 5, agree: true });
   });
 });

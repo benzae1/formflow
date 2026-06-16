@@ -218,6 +218,14 @@ function validateComponentValue(
 ) {
   const key = typeof component.key === "string" ? component.key : undefined;
 
+  if (key && component.type === "button") {
+    // Form.io records button state in submission data (e.g. `submit: true` from the
+    // submit button). Buttons are not data fields, so consume the key to drop it
+    // from the stored payload rather than rejecting it as an unknown field.
+    consumedKeys.add(key);
+    return;
+  }
+
   if (key && shouldTreatAsField(component)) {
     consumedKeys.add(key);
     const value = input[key];
@@ -318,6 +326,20 @@ function normalizeValueForComponent(
 
   if (type === "day") {
     return normalizeDayValue(value, path);
+  }
+
+  if (type === "radio") {
+    // Radio option values default to strings but Form.io allows numeric and
+    // boolean values when the option dataType is set accordingly.
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value;
+    }
+
+    throw new Error(`Field "${formatPath(path)}" must be a string, number, or boolean.`);
   }
 
   if (STRING_FIELD_TYPES.has(type)) {
