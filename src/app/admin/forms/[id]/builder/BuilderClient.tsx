@@ -88,6 +88,7 @@ export default function BuilderClient({
   const [preview, setPreview] = useState(false);
   const [editingLocale, setEditingLocale] = useState<Locale>("de");
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<"error" | "success">("success");
   const router = useRouter();
   const englishTranslation = translations.en ?? {};
   const englishTitle = englishTranslation.title ?? title;
@@ -96,6 +97,20 @@ export default function BuilderClient({
   const activeTitle = editingLocale === "de" ? title : englishTitle;
   const activeSchema = editingLocale === "de" ? schema : englishSchema;
   const fieldSettings = collectFormFieldSettings(activeSchema as FormioSchema);
+
+  function showMessage(text: string, tone: "error" | "success") {
+    setMessage(text);
+    setMessageTone(tone);
+  }
+
+  async function getApiErrorMessage(response: Response, fallback: string) {
+    try {
+      const payload = (await response.json()) as { error?: { message?: string } };
+      return payload.error?.message?.trim() || fallback;
+    } catch {
+      return fallback;
+    }
+  }
 
   async function save(status?: "draft" | "published" | "archived") {
     setSaving(true);
@@ -128,11 +143,14 @@ export default function BuilderClient({
     setSaving(false);
 
     if (!response.ok) {
-      setMessage(dictionary.builder.saveFailed);
+      showMessage(await getApiErrorMessage(response, dictionary.builder.saveFailed), "error");
       return;
     }
 
-    setMessage(status === "published" ? dictionary.builder.formPublished : dictionary.builder.draftSaved);
+    showMessage(
+      status === "published" ? dictionary.builder.formPublished : dictionary.builder.draftSaved,
+      "success",
+    );
     router.refresh();
   }
 
@@ -150,7 +168,7 @@ export default function BuilderClient({
     setSaving(false);
 
     if (!response.ok) {
-      setMessage(dictionary.forms.translationUnavailable);
+      showMessage(dictionary.forms.translationUnavailable, "error");
       return;
     }
 
@@ -172,7 +190,7 @@ export default function BuilderClient({
       },
     }));
     setEditingLocale("en");
-    setMessage(dictionary.forms.translationGenerated);
+    showMessage(dictionary.forms.translationGenerated, "success");
   }
 
   function updateActiveSchema(nextSchema: FormBuilderSchema) {
@@ -281,7 +299,7 @@ export default function BuilderClient({
         </div>
 
         {message ? (
-          <div className={`mt-4 bf-alert ${message.includes("could not") ? "bf-alert-error" : "bf-alert-success"}`}>
+          <div className={`mt-4 bf-alert ${messageTone === "error" ? "bf-alert-error" : "bf-alert-success"}`}>
             {message}
           </div>
         ) : null}
