@@ -4,24 +4,28 @@ import { defaultLocale, isLocale } from "@/lib/i18n/config";
 
 const PUBLIC_FILE = /\.(.*)$/;
 function getContentSecurityPolicy(pathname: string) {
-  // @formio/js renders the builder UI via Function()-compiled templates, which needs unsafe-eval.
-  // The builder is reached through client-side navigation, so the CSP of the originating admin
-  // page governs eval — scope unsafe-eval to the whole (authenticated, role-gated) admin area
-  // rather than just the builder route. Public/submission routes stay locked down.
+  // Form.io uses Function()-compiled templates in both the admin builder and the
+  // public/authenticated form renderer, so those route families need unsafe-eval.
+  // Keep the exception scoped to pages that actually mount Form.io rather than
+  // enabling it application-wide.
   const needsEval =
-    process.env.NODE_ENV === "development" || /\/admin(?:\/|$)/.test(pathname);
+    process.env.NODE_ENV === "development" ||
+    /(?:^|\/)admin(?:\/|$)/.test(pathname) ||
+    /(?:^|\/)forms(?:\/|$)/.test(pathname);
   // The builder loads the ACE code editor (used by JSON/custom-code panels) from
   // cdn.form.io, which then fetches its mode/worker files at runtime. Allow that
-  // origin for the same authenticated admin/dev scope as unsafe-eval; public and
-  // submission routes stay locked to 'self'.
+  // origin for the same admin/dev scope as unsafe-eval; renderer routes only need
+  // the eval allowance and can stay locked to self for remote script/connect.
   const aceCdn = "https://cdn.form.io";
+  const needsAceCdn =
+    process.env.NODE_ENV === "development" || /(?:^|\/)admin(?:\/|$)/.test(pathname);
   const scriptSrc = needsEval
-    ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${aceCdn}`
+    ? `script-src 'self' 'unsafe-inline' 'unsafe-eval'${needsAceCdn ? ` ${aceCdn}` : ""}`
     : "script-src 'self' 'unsafe-inline'";
-  const connectSrc = needsEval ? `connect-src 'self' ${aceCdn}` : "connect-src 'self'";
+  const connectSrc = needsAceCdn ? `connect-src 'self' ${aceCdn}` : "connect-src 'self'";
   // ACE spawns its syntax-check worker from a blob: URL. worker-src falls back to
   // script-src (which forbids blob:), so set it explicitly for the admin/dev scope.
-  const workerSrc = needsEval ? "worker-src 'self' blob:" : "worker-src 'self'";
+  const workerSrc = needsAceCdn ? "worker-src 'self' blob:" : "worker-src 'self'";
 
   return [
     "default-src 'self'",

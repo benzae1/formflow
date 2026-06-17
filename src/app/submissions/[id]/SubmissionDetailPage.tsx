@@ -81,7 +81,7 @@ export default async function SubmissionDetailPage({
   const pendingTask = submission.approvalTasks.find(
     (task) => task.status === "pending" && task.assignedToId === user.id,
   );
-  const canAct = user.roles.includes("admin") || user.roles.includes("approver");
+  const canAct = Boolean(pendingTask);
   const workflowSummary = submission.workflowDefinition
     ? summarizeWorkflow(submission.workflowDefinition as never)
     : submission.form.workflow

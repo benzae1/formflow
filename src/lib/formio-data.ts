@@ -218,11 +218,16 @@ function validateComponentValue(
 ) {
   const key = typeof component.key === "string" ? component.key : undefined;
 
-  if (key && component.type === "button") {
-    // Form.io records button state in submission data (e.g. `submit: true` from the
-    // submit button). Buttons are not data fields, so consume the key to drop it
-    // from the stored payload rather than rejecting it as an unknown field.
-    consumedKeys.add(key);
+  if (component.type === "button") {
+    // Form.io records button state in submission data. Explicit button keys are
+    // echoed back directly, and submit-action buttons also emit a synthetic
+    // `submit: true` flag even when the schema omits a key.
+    if (key) {
+      consumedKeys.add(key);
+    }
+    if (component.action === "submit") {
+      consumedKeys.add("submit");
+    }
     return;
   }
 

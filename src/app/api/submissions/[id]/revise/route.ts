@@ -1,7 +1,7 @@
 import { requirePendingApprovalTask } from "@/lib/approval-decisions";
 import { writeAuditLog } from "@/lib/audit";
 import { apiErrorResponse } from "@/lib/errors";
-import { requireRole } from "@/lib/permissions";
+import { requireUser } from "@/lib/permissions";
 import { assertMutationRequest } from "@/lib/request-guard";
 import { getTemporalClient } from "@/lib/temporal";
 import { decisionSchema } from "@/lib/validation/submissions";
@@ -13,7 +13,7 @@ export async function POST(
 ) {
   try {
     assertMutationRequest(req);
-    const user = await requireRole(["admin", "approver"]);
+    const user = await requireUser();
 
     const { id } = await context.params;
     const body = await req.json();
@@ -22,7 +22,6 @@ export async function POST(
       submissionId: id,
       taskId: input.taskId,
       actorId: user.id,
-      actorRoles: user.roles,
     });
 
     const temporal = await getTemporalClient();

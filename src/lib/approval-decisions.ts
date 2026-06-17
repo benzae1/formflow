@@ -5,7 +5,6 @@ export async function requirePendingApprovalTask(input: {
   submissionId: string;
   taskId: string;
   actorId: string;
-  actorRoles: string[];
 }) {
   const task = await db.approvalTask.findFirst({
     where: {
@@ -20,14 +19,6 @@ export async function requirePendingApprovalTask(input: {
       "APPROVAL_TASK_NOT_FOUND",
       "The approval task no longer exists or is no longer pending.",
       404,
-    );
-  }
-
-  if (!input.actorRoles.includes("admin") && !input.actorRoles.includes("approver")) {
-    throw new ApiError(
-      "FORBIDDEN",
-      "You do not have permission to act on approval tasks.",
-      403,
     );
   }
 

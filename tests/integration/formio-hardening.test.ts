@@ -286,6 +286,23 @@ describe("formio hardening", () => {
     expect(normalized).toEqual({ name: "Avery" });
   });
 
+  test("submit button state is dropped when the submit button has no explicit key", () => {
+    const schema: FormioSchema = {
+      display: "form",
+      components: [
+        { type: "textfield", key: "name", label: "Name", input: true },
+        { type: "button", action: "submit", label: "Submit" },
+      ],
+    };
+
+    const normalized = normalizeSubmissionData(schema, {
+      name: "Avery",
+      submit: true,
+    });
+
+    expect(normalized).toEqual({ name: "Avery" });
+  });
+
   test("radio accepts string, numeric, and boolean option values", () => {
     const schema: FormioSchema = {
       display: "form",

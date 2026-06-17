@@ -37,23 +37,48 @@ describe("approval signal routes", () => {
     signalMock.mockReset();
   });
 
-  test("non-approvers cannot signal decisions", async () => {
-    const { submitter } = await seedBaseUsers();
+  test("assigned users can signal decisions even without approver role", async () => {
+    const { admin, submitter } = await seedBaseUsers();
+    const workflow = await createWorkflowFixture({
+      createdById: admin.id,
+      approverId: submitter.id,
+    });
+    const form = await createFormFixture({
+      createdById: admin.id,
+      workflowId: workflow.id,
+      status: "published",
+    });
+    const submission = await createSubmissionFixture({
+      formId: form.id,
+      formVersion: form.version,
+      submittedById: submitter.id,
+      status: "in_review",
+      workflowRunId: crypto.randomUUID(),
+    });
+    const task = await createApprovalTaskFixture({
+      submissionId: submission.id,
+      assignedToId: submitter.id,
+    });
+
     setMockSession(submitter);
 
     const response = await approveRoute(
-      new Request("http://localhost/api/submissions/submission-1/approve", {
+      new Request(`http://localhost/api/submissions/${submission.id}/approve`, {
         method: "POST",
         headers: createMutationRequestHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
-          taskId: crypto.randomUUID(),
+          taskId: task.id,
         }),
       }),
-      { params: Promise.resolve({ id: "submission-1" }) },
+      { params: Promise.resolve({ id: submission.id }) },
     );
 
-    expect(response.status).toBe(403);
-    expect(signalMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(signalMock).toHaveBeenCalledWith(approvalDecisionSignal, {
+      taskId: task.id,
+      decision: "approve",
+      note: undefined,
+    });
   });
 
   test.each([
