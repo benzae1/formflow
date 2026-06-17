@@ -21,6 +21,12 @@ type WorkflowRecord = {
 
 type RoleOption = { name: string; label: string | null };
 type FormOption = { id: string; title: string };
+type UserOption = {
+  id: string;
+  name: string | null;
+  email: string;
+  externalId: string | null;
+};
 type WorkflowCopy = Dictionary["adminWorkflows"];
 
 // ─── internal stage row (adds stable React key) ───────────────────────────────
@@ -103,19 +109,28 @@ function getRoleDisplayName(role: RoleOption) {
   return role.label?.trim() ? `${role.label} (${role.name})` : role.name;
 }
 
+function getUserDisplayName(user: UserOption) {
+  const primary = user.name?.trim() || user.email;
+  const extras = [user.email, user.externalId].filter(Boolean);
+  return extras.length > 0 ? `${primary} (${extras.join(" | ")})` : primary;
+}
+
 function RoutingTargetEditor({
   targets,
   onChange,
   roles,
+  users,
   copy,
 }: {
   targets: RoutingTarget[];
   onChange: (targets: RoutingTarget[]) => void;
   roles: RoleOption[];
+  users: UserOption[];
   copy: WorkflowCopy;
 }) {
   const orgOptions = getOrgOptions(copy);
   const knownRoleNames = new Set(roles.map((role) => role.name));
+  const knownUserIds = new Set(users.map((user) => user.id));
 
   function update(index: number, target: RoutingTarget) {
     const next = [...targets];
@@ -196,13 +211,33 @@ function RoutingTargetEditor({
             </select>
           )}
 
-          {(target.type === "user" || target.type === "group") && (
+          {target.type === "user" && (
+            <select
+              className="bf-select"
+              value={target.value}
+              onChange={(e) => update(index, { type: "user", value: e.target.value })}
+            >
+              <option value="">{copy.selectUser}</option>
+              {!knownUserIds.has(target.value) && target.value ? (
+                <option value={target.value}>
+                  {copy.missingUser}: {target.value}
+                </option>
+              ) : null}
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {getUserDisplayName(user)}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {target.type === "group" && (
             <input
               className="bf-input"
               value={target.value}
-              placeholder={target.type === "user" ? copy.userUuid : copy.groupUuid}
+              placeholder={copy.groupUuid}
               onChange={(e) =>
-                update(index, { type: target.type as "user" | "group", value: e.target.value })
+                update(index, { type: "group", value: e.target.value })
               }
             />
           )}
@@ -259,6 +294,7 @@ function StageCard({
   onRemove,
   forms,
   roles,
+  users,
   stageIds,
   copy,
   isDragOver,
@@ -274,6 +310,7 @@ function StageCard({
   onRemove: () => void;
   forms: FormOption[];
   roles: RoleOption[];
+  users: UserOption[];
   stageIds: string[];
   copy: WorkflowCopy;
   isDragOver: boolean;
@@ -434,6 +471,7 @@ function StageCard({
               targets={targets}
               onChange={setAssignTo}
               roles={roles}
+              users={users}
               copy={copy}
             />
           </div>
@@ -609,11 +647,13 @@ export default function WorkflowsManagerClient({
   workflows,
   roles = [],
   forms = [],
+  users = [],
   dictionary,
 }: {
   workflows: WorkflowRecord[];
   roles?: RoleOption[];
   forms?: FormOption[];
+  users?: UserOption[];
   dictionary: Dictionary;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(workflows[0]?.id ?? null);
@@ -828,6 +868,7 @@ export default function WorkflowsManagerClient({
                 onRemove={() => removeStage(index)}
                 forms={forms}
                 roles={roles}
+                users={users}
                 stageIds={stageIds}
                 copy={copy}
                 isDragOver={dragOverIndex === index}

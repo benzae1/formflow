@@ -14,7 +14,7 @@ export default async function AdminWorkflowsPage({
   );
   await requirePageRole(["admin"], locale);
 
-  const [workflows, roles, forms] = await Promise.all([
+  const [workflows, roles, forms, users] = await Promise.all([
     db.workflow.findMany({
       include: {
         forms: {
@@ -31,6 +31,16 @@ export default async function AdminWorkflowsPage({
       select: { id: true, title: true },
       orderBy: { title: "asc" },
     }),
+    db.user.findMany({
+      where: { deactivatedAt: null },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        externalId: true,
+      },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
+    }),
   ]);
 
   return (
@@ -44,6 +54,7 @@ export default async function AdminWorkflowsPage({
         workflows={workflows as never}
         roles={roles}
         forms={forms}
+        users={users}
         dictionary={dictionary}
       />
     </div>

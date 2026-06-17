@@ -325,6 +325,8 @@ export type Dictionary = {
     role: string;
     selectRole: string;
     missingRole: string;
+    selectUser: string;
+    missingUser: string;
     orgHierarchy: string;
     user: string;
     group: string;
@@ -692,6 +694,8 @@ const dictionaries: Record<Locale, Dictionary> = {
       role: "Rolle",
       selectRole: "Rolle wählen...",
       missingRole: "Nicht vorhandene Rolle",
+      selectUser: "Benutzer wählen...",
+      missingUser: "Nicht vorhandener Benutzer",
       orgHierarchy: "Org-Hierarchie",
       user: "Benutzer",
       group: "Gruppe",
@@ -1057,6 +1061,8 @@ const dictionaries: Record<Locale, Dictionary> = {
       role: "Role",
       selectRole: "Select a role...",
       missingRole: "Missing role",
+      selectUser: "Select a user...",
+      missingUser: "Missing user",
       orgHierarchy: "Org hierarchy",
       user: "User",
       group: "Group",
