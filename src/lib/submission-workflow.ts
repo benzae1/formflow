@@ -18,7 +18,11 @@ export async function startSubmissionApprovalWorkflow(
   const temporal = await getTemporalClient();
 
   try {
-    await temporal.workflow.start(approvalWorkflow, {
+    // Start by the stable string workflow type rather than the function
+    // reference: the Next.js production build minifies `approvalWorkflow.name`
+    // (to e.g. "a"), which the worker bundle does not export, causing every
+    // activation to fail. The generic keeps argument type-safety.
+    await temporal.workflow.start<typeof approvalWorkflow>("approvalWorkflow", {
       taskQueue: "formflow-approval",
       workflowId: input.submissionId,
       args: [input],
