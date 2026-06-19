@@ -167,7 +167,7 @@ export async function approvalWorkflow(input: {
       if (falseBranch === "close") {
         await activities.setSubmissionStatus({
           submissionId: input.submissionId,
-          status: "rejected",
+          status: "closed",
         });
         await activities.notifySubmitterOfOutcome({
           submissionId: input.submissionId,
@@ -273,7 +273,7 @@ export async function approvalWorkflow(input: {
       if (stage.onApprove === "close" || stageIndex === stages.length - 1) {
         await activities.setSubmissionStatus({
           submissionId: input.submissionId,
-          status: "approved",
+          status: "closed",
         });
         await activities.notifySubmitterOfOutcome({
           submissionId: input.submissionId,
@@ -324,7 +324,7 @@ export async function approvalWorkflow(input: {
 
       await activities.setSubmissionStatus({
         submissionId: input.submissionId,
-        status: "rejected",
+        status: "closed",
       });
       await activities.notifySubmitterOfOutcome({
         submissionId: input.submissionId,
@@ -371,7 +371,7 @@ export async function approvalWorkflow(input: {
 
   await activities.setSubmissionStatus({
     submissionId: input.submissionId,
-    status: "approved",
+    status: "closed",
   });
   await activities.notifySubmitterOfOutcome({
     submissionId: input.submissionId,
