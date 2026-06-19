@@ -67,7 +67,7 @@ export async function signInAs(
 
 export async function signOut(page: Page) {
   await page.getByRole("button", { name: "Sign out" }).click();
-  await page.waitForURL("**/");
+  await page.waitForURL("**/signin");
 }
 
 export async function seedPublishedWorkflowForm() {
