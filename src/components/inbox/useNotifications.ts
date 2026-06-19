@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getMutationHeaders } from "@/lib/mutation-headers";
 
 type NotificationItem = {
   id: string;
@@ -45,5 +46,18 @@ export function useNotifications() {
     };
   }, []);
 
-  return { count, items };
+  async function markAllRead() {
+    if (count === 0) return;
+    const mutationHeaders = await getMutationHeaders();
+    await fetch("/api/notifications/read-all", {
+      method: "POST",
+      headers: mutationHeaders,
+    });
+    setCount(0);
+    setItems((current) =>
+      current.map((item) => (item.readAt ? item : { ...item, readAt: new Date().toISOString() })),
+    );
+  }
+
+  return { count, items, markAllRead };
 }

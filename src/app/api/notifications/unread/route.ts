@@ -16,12 +16,11 @@ export async function GET() {
       db.notification.findMany({
         where: {
           userId: user.id,
-          readAt: null,
         },
         orderBy: {
           createdAt: "desc",
         },
-        take: 10,
+        take: 20,
       }),
     ]);
 

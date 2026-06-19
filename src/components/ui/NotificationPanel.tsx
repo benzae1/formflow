@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/components/inbox/useNotifications";
-import { getMutationHeaders } from "@/lib/mutation-headers";
 import type { Locale } from "@/lib/i18n/config";
 import { maybeLocalizeHref } from "@/lib/i18n/routing";
 
@@ -20,14 +19,17 @@ export function NotificationPanel({
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { count, items } = useNotifications();
+  const { count, items, markAllRead } = useNotifications();
+
+  async function togglePanel() {
+    const opening = !open;
+    setOpen(opening);
+    if (opening) {
+      await markAllRead();
+    }
+  }
 
   async function openNotification(id: string, href?: string | null) {
-    const mutationHeaders = await getMutationHeaders();
-    await fetch(`/api/notifications/${id}/read`, {
-      method: "POST",
-      headers: mutationHeaders,
-    });
     setOpen(false);
     router.refresh();
     if (href) router.push(maybeLocalizeHref(locale, href) ?? href);
@@ -37,7 +39,7 @@ export function NotificationPanel({
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={togglePanel}
         className="bf-btn"
         style={{ minHeight: "100%", borderWidth: 0, gap: 8 }}
       >
