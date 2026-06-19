@@ -34,7 +34,8 @@ export function getCsrfCookieValue(request: Request) {
 }
 
 export function buildCsrfCookie(token: string) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const appUrl = process.env.NEXTAUTH_URL?.trim() || process.env.APP_URL?.trim();
+  const secure = appUrl?.startsWith("https://") ? "; Secure" : "";
   return `${CSRF_COOKIE}=${encodeURIComponent(token)}; Path=/; SameSite=Strict${secure}`;
 }
 
