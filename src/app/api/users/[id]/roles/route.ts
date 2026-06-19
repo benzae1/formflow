@@ -49,8 +49,6 @@ export async function PATCH(
       );
     }
 
-    const isSelf = actor.id === id;
-
     const user = await db.user.update({
       where: { id },
       include: { roles: true },
@@ -58,13 +56,6 @@ export async function PATCH(
         roles: {
           set: resolvedRoles.map((role) => ({ id: role.id })),
         },
-        ...(!isSelf
-          ? {
-              sessionVersion: {
-                increment: 1,
-              },
-            }
-          : {}),
         ...(input.teamScope !== undefined ? { teamScope: input.teamScope } : {}),
       },
     });
@@ -76,7 +67,7 @@ export async function PATCH(
       resourceId: user.id,
       beforeState: { roles: existing.roles.map((role) => role.name), teamScope: existing.teamScope },
       afterState: { roles: user.roles.map((role) => role.name), teamScope: user.teamScope },
-      metadata: { email: user.email, sessionsRevoked: !isSelf },
+      metadata: { email: user.email, sessionsRevoked: false },
     });
 
     return Response.json({ user });
