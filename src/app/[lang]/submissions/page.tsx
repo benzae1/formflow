@@ -162,8 +162,9 @@ export default async function LocalizedSubmissionsPage({
                   ? `${localizePath(locale, `/forms/${submission.form.slug}`)}?submissionId=${submission.id}`
                   : localizePath(locale, `/submissions/${submission.id}`);
 
+                const CardTag = isDraft ? "a" : Link;
                 return (
-                  <Link key={submission.id} href={href} className="bf-link-card">
+                  <CardTag key={submission.id} href={href} className="bf-link-card">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <p className="bf-eyebrow">{submission.form.slug}</p>
@@ -186,7 +187,7 @@ export default async function LocalizedSubmissionsPage({
                         {dictionary.submissions.latestNote}: {submission.approvalTasks[0].note}
                       </div>
                     ) : null}
-                  </Link>
+                  </CardTag>
                 );
               })}
             </div>
@@ -210,7 +211,7 @@ export default async function LocalizedSubmissionsPage({
           ) : (
             <div className="mt-5 bf-list">
               {visiblePublishedForms.map((form) => (
-                <Link key={form.id} href={localizePath(locale, `/forms/${form.slug}`)} className="bf-link-card">
+                <a key={form.id} href={localizePath(locale, `/forms/${form.slug}`)} className="bf-link-card">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-semibold">{resolveFormTitle(form, locale)}</h3>
@@ -218,7 +219,7 @@ export default async function LocalizedSubmissionsPage({
                     </div>
                     <StatusBadge status={form.sensitivity} label={getStatusLabel(form.sensitivity, locale)} />
                   </div>
-                </Link>
+                </a>
               ))}
             </div>
           )}
