@@ -36,9 +36,10 @@ describe("forms route", () => {
       },
     ],
   };
-  const emailRequestSchema = JSON.parse(
+  const emailRequestExport = JSON.parse(
     readFileSync(new URL("../../forms/emailantrag.json", import.meta.url), "utf8"),
   ) as Record<string, unknown>;
+  const emailRequestSchema = (emailRequestExport.schema ?? emailRequestExport) as Record<string, unknown>;
 
   test("admin can create a form and initial version", async () => {
     const { admin, approver } = await seedBaseUsers();
