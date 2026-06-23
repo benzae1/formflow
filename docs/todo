@@ -1,1 +1,1 @@
-1. Fix issue where upon updating your own roles causes you to get signed out, and not update your roles.
+1. Fix issue where sending form for revision, then fixing that form and resubmitting it, doesnt actually change the status of the submission (still says revision needed, and the form doesnt reappear in the approver's inbox)
