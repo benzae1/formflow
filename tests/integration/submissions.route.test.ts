@@ -253,7 +253,9 @@ describe("submissions route", () => {
       }),
     );
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(503);
+    const payload = await parseJson<{ error: { code: string } }>(response);
+    expect(payload.error.code).toBe("WORKFLOW_UNAVAILABLE");
     expect(await db.submission.count()).toBe(0);
   });
 

@@ -149,7 +149,7 @@ function collectColumnDescriptors(
   basePath: PathToken[],
   descriptors: FieldDescriptor[],
 ) {
-  if (!columns) {
+  if (!Array.isArray(columns)) {
     return;
   }
 
@@ -163,7 +163,7 @@ function collectRowDescriptors(
   basePath: PathToken[],
   descriptors: FieldDescriptor[],
 ) {
-  if (!rows) {
+  if (!Array.isArray(rows)) {
     return;
   }
 

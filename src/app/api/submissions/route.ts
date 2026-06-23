@@ -228,7 +228,12 @@ export async function POST(req: Request) {
         await db.submission.delete({
           where: { id: submission.id },
         });
-        throw error;
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+          "WORKFLOW_UNAVAILABLE",
+          "Could not start the approval workflow. Please try again later.",
+          503,
+        );
       }
     }
 

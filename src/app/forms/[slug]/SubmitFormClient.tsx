@@ -74,7 +74,7 @@ export default function SubmitFormClient({
     } catch {
       setState("error");
       setMessage(dictionary.forms.saveError);
-      return;
+      throw new Error("Network error");
     }
 
     if (!response.ok) {
@@ -89,7 +89,7 @@ export default function SubmitFormClient({
       }
       setState("error");
       setMessage(`${dictionary.forms.saveError}${detail}`);
-      return;
+      throw new Error("Submission failed");
     }
 
     const json = (await response.json()) as {
@@ -112,7 +112,11 @@ export default function SubmitFormClient({
   }
 
   async function saveDraft() {
-    await submit(latestData, { saveAsDraft: true });
+    try {
+      await submit(latestData, { saveAsDraft: true });
+    } catch {
+      // Error already handled and displayed by submit()
+    }
   }
 
   const canSaveDraft = !submissionId || existingStatus === "draft";
