@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PrimitiveMark } from "@/components/ui/Bauhaus";
@@ -97,6 +97,40 @@ export default function BuilderClient({
   const activeTitle = editingLocale === "de" ? title : englishTitle;
   const activeSchema = editingLocale === "de" ? schema : englishSchema;
   const fieldSettings = collectFormFieldSettings(activeSchema as FormioSchema);
+
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  function exportForm() {
+    const data = { title, slug, schema };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug || "form"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = "";
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string) as { schema?: FormBuilderSchema };
+        if (!json?.schema?.components) {
+          showMessage("Invalid form JSON: missing schema.components.", "error");
+          return;
+        }
+        updateActiveSchema(json.schema);
+        showMessage("Schema imported.", "success");
+      } catch {
+        showMessage("Could not parse JSON file.", "error");
+      }
+    };
+    reader.readAsText(file);
+  }
 
   function showMessage(text: string, tone: "error" | "success") {
     setMessage(text);
@@ -274,6 +308,12 @@ export default function BuilderClient({
               <Link href={`${localizePath(locale, `/forms/${slug}`)}?preview=1`} className="bf-btn bf-btn-segment">
                 Preview
               </Link>
+              <button onClick={() => importFileRef.current?.click()} type="button" className="bf-btn bf-btn-segment">
+                Import JSON
+              </button>
+              <button onClick={exportForm} type="button" className="bf-btn bf-btn-segment">
+                Export JSON
+              </button>
               <button onClick={() => save("draft")} disabled={saving} type="button" className="bf-btn bf-btn-segment disabled:opacity-60">
                 {dictionary.common.saveDraft}
               </button>
@@ -465,6 +505,7 @@ export default function BuilderClient({
           <FormBuilder locale={editingLocale} schema={activeSchema} onChange={updateActiveSchema} />
         )}
       </section>
+      <input ref={importFileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImportFile} />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -64,6 +64,10 @@ export default function FormsManagerClient({
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  const [importedSchema, setImportedSchema] = useState<object | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importMode, setImportMode] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const [formState, setFormState] = useState({
     slug: "",
     title: "",
@@ -88,6 +92,47 @@ export default function FormsManagerClient({
       }),
     [forms, locale, query, status],
   );
+
+  function openCreateModal(withImport: boolean) {
+    setFormState({ slug: "", title: "", sensitivity: "standard", workflowId: "", parentFormId: "", allowedRoleNames: [] });
+    setSlugTouched(false);
+    setError(null);
+    setImportedSchema(null);
+    setImportError(null);
+    setImportMode(withImport);
+    setCreateOpen(true);
+  }
+
+  function handleImportFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = "";
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string) as Record<string, unknown>;
+        const schema = json.schema as { components?: unknown[] } | undefined;
+        if (!schema?.components) {
+          setImportError("Invalid form JSON: missing schema.components.");
+          return;
+        }
+        setImportedSchema(schema);
+        setImportError(null);
+        const jsonTitle = typeof json.title === "string" ? json.title : "";
+        const jsonSlug = typeof json.slug === "string" ? json.slug : "";
+        const derivedSlug = slugify(jsonSlug || jsonTitle);
+        setFormState((current) => ({
+          ...current,
+          title: jsonTitle || current.title,
+          slug: derivedSlug || current.slug,
+        }));
+        if (derivedSlug) setSlugTouched(true);
+      } catch {
+        setImportError("Could not parse the JSON file.");
+      }
+    };
+    reader.readAsText(file);
+  }
 
   async function createForm() {
     const normalizedSlug = slugify(formState.slug);
@@ -120,7 +165,7 @@ export default function FormsManagerClient({
         workflowId: formState.workflowId || null,
         parentFormId: formState.parentFormId || null,
         allowedRoleNames: formState.allowedRoleNames,
-        schema: {
+        schema: importedSchema ?? {
           display: "form",
           components: [
             {
@@ -159,6 +204,8 @@ export default function FormsManagerClient({
       allowedRoleNames: [],
     });
     setSlugTouched(false);
+    setImportedSchema(null);
+    setImportMode(false);
     // Hard navigation (not router.push): the builder needs `unsafe-eval` in its CSP,
     // which is bound to the document and not refetched on SPA navigation. Loading the
     // builder as a fresh document guarantees it runs under the admin (eval-enabled) CSP
@@ -209,9 +256,14 @@ export default function FormsManagerClient({
           </select>
         </div>
 
-        <button type="button" onClick={() => setCreateOpen(true)} className="bf-btn bf-btn-primary">
-          {dictionary.adminForms.createForm}
-        </button>
+        <div className="bf-action-row">
+          <button type="button" onClick={() => openCreateModal(true)} className="bf-btn bf-btn-segment">
+            Import JSON
+          </button>
+          <button type="button" onClick={() => openCreateModal(false)} className="bf-btn bf-btn-primary">
+            {dictionary.adminForms.createForm}
+          </button>
+        </div>
       </section>
 
       {error ? <div className="bf-alert bf-alert-error">{error}</div> : null}
@@ -264,14 +316,41 @@ export default function FormsManagerClient({
             <div className="bf-panel max-h-[calc(100vh-3rem)] w-full max-w-xl overflow-y-auto p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="bf-eyebrow">{dictionary.adminForms.newForm}</p>
+                  <p className="bf-eyebrow">{importMode ? "Import Form" : dictionary.adminForms.newForm}</p>
                   <div className="bf-rule-sm mt-3" />
-                  <h2 className="mt-4 text-[32px] font-extrabold leading-none">{dictionary.adminForms.freshShell}</h2>
+                  <h2 className="mt-4 text-[32px] font-extrabold leading-none">
+                    {importMode ? "From JSON" : dictionary.adminForms.freshShell}
+                  </h2>
                 </div>
-                <button type="button" onClick={() => setCreateOpen(false)} className="bf-btn">
+                <button type="button" onClick={() => { setCreateOpen(false); setImportMode(false); }} className="bf-btn">
                   {dictionary.common.close}
                 </button>
               </div>
+
+              {importMode ? (
+                <div className="mt-4 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => importFileRef.current?.click()}
+                    className="bf-btn bf-btn-segment w-full"
+                  >
+                    {importedSchema ? "Replace JSON file" : "Upload JSON file"}
+                  </button>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept=".json,application/json"
+                    className="hidden"
+                    onChange={handleImportFile}
+                  />
+                  {importedSchema ? (
+                    <p className="text-sm text-[var(--muted-strong)]">Schema loaded — edit the metadata below.</p>
+                  ) : null}
+                  {importError ? (
+                    <p className="text-sm text-red-600">{importError}</p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <input
@@ -359,7 +438,7 @@ export default function FormsManagerClient({
                 <button
                   type="button"
                   onClick={createForm}
-                  disabled={pending}
+                  disabled={pending || (importMode && !importedSchema)}
                   className="bf-btn bf-btn-primary disabled:opacity-60"
                 >
                   {pending ? dictionary.adminForms.creating : dictionary.adminForms.createAndOpenBuilder}
