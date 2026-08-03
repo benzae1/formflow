@@ -2297,6 +2297,7 @@ span[role=link] {
 }
 
 .form-builder-frame {
+  min-height: 74vh;
   background: #fff;
 }
 
@@ -2312,6 +2313,11 @@ span[role=link] {
 
 .form-builder-frame .formbuilder {
   color: var(--ink, #000);
+}
+
+.form-builder-frame .collapse,
+.form-builder-frame .collapse.show {
+  visibility: visible;
 }
 
 .form-builder-frame .builder-sidebar {

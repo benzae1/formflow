@@ -327,6 +327,9 @@ export type Dictionary = {
     missingRole: string;
     selectUser: string;
     missingUser: string;
+    searchUser: string;
+    noMatchingUsers: string;
+    refineUserSearch: string;
     orgHierarchy: string;
     user: string;
     group: string;
@@ -696,6 +699,9 @@ const dictionaries: Record<Locale, Dictionary> = {
       missingRole: "Nicht vorhandene Rolle",
       selectUser: "Benutzer wählen...",
       missingUser: "Nicht vorhandener Benutzer",
+      searchUser: "Benutzer nach Name oder E-Mail suchen...",
+      noMatchingUsers: "Keine passenden Benutzer gefunden.",
+      refineUserSearch: "Zu viele Treffer - bitte Suche weiter eingrenzen.",
       orgHierarchy: "Org-Hierarchie",
       user: "Benutzer",
       group: "Gruppe",
@@ -1063,6 +1069,9 @@ const dictionaries: Record<Locale, Dictionary> = {
       missingRole: "Missing role",
       selectUser: "Select a user...",
       missingUser: "Missing user",
+      searchUser: "Search users by name or email...",
+      noMatchingUsers: "No matching users found.",
+      refineUserSearch: "Too many matches - refine the search to narrow the list.",
       orgHierarchy: "Org hierarchy",
       user: "User",
       group: "Group",

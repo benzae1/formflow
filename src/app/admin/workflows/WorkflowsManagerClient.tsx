@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ZodIssue } from "zod";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -28,6 +28,7 @@ type UserOption = {
   externalId: string | null;
 };
 type WorkflowCopy = Dictionary["adminWorkflows"];
+const MAX_FILTERED_USERS = 100;
 
 // ─── internal stage row (adds stable React key) ───────────────────────────────
 
@@ -113,6 +114,113 @@ function getUserDisplayName(user: UserOption) {
   const primary = user.name?.trim() || user.email;
   const extras = [user.email, user.externalId].filter(Boolean);
   return extras.length > 0 ? `${primary} (${extras.join(" | ")})` : primary;
+}
+
+function UserTargetPicker({
+  target,
+  users,
+  knownUserIds,
+  copy,
+  onChange,
+}: {
+  target: Extract<RoutingTarget, { type: "user" }>;
+  users: UserOption[];
+  knownUserIds: Set<string>;
+  copy: WorkflowCopy;
+  onChange: (target: Extract<RoutingTarget, { type: "user" }>) => void;
+}) {
+  const listboxId = useId();
+  const selectedUser = users.find((user) => user.id === target.value) ?? null;
+  const [query, setQuery] = useState(selectedUser ? getUserDisplayName(selectedUser) : "");
+  const [open, setOpen] = useState(false);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredUsers = users
+    .filter((user) => {
+      if (!normalizedQuery) return true;
+      return [user.name, user.email, user.externalId]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(normalizedQuery));
+    })
+    .slice(0, MAX_FILTERED_USERS);
+
+  return (
+    <div style={{ position: "relative", minWidth: 0, flex: 1 }}>
+      <input
+        className="bf-input"
+        value={query}
+        placeholder={copy.searchUser}
+        autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls={listboxId}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          window.setTimeout(() => setOpen(false), 120);
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+          if (target.value) {
+            onChange({ type: "user", value: "" });
+          }
+        }}
+      />
+      {open ? (
+        <div
+          id={listboxId}
+          role="listbox"
+          className="bf-panel"
+          style={{
+            position: "absolute",
+            zIndex: 20,
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            maxHeight: 280,
+            overflowY: "auto",
+            padding: 6,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          {!knownUserIds.has(target.value) && target.value ? (
+            <div className="px-3 py-2 text-sm text-[var(--muted-strong)]">
+              {copy.missingUser}: {target.value}
+            </div>
+          ) : null}
+          {filteredUsers.map((user) => (
+            <button
+              key={user.id}
+              type="button"
+              className="w-full rounded-md px-3 py-2 text-left text-sm"
+              style={{
+                background: target.value === user.id ? "var(--canvas-soft)" : "transparent",
+                border: "1px solid var(--line)",
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setQuery(getUserDisplayName(user));
+                setOpen(false);
+                onChange({ type: "user", value: user.id });
+              }}
+            >
+              {getUserDisplayName(user)}
+            </button>
+          ))}
+          {normalizedQuery && filteredUsers.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-[var(--muted-strong)]">{copy.noMatchingUsers}</p>
+          ) : null}
+          {filteredUsers.length === MAX_FILTERED_USERS ? (
+            <p className="px-3 py-2 text-sm text-[var(--muted-strong)]">{copy.refineUserSearch}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function RoutingTargetEditor({
@@ -212,23 +320,13 @@ function RoutingTargetEditor({
           )}
 
           {target.type === "user" && (
-            <select
-              className="bf-select"
-              value={target.value}
-              onChange={(e) => update(index, { type: "user", value: e.target.value })}
-            >
-              <option value="">{copy.selectUser}</option>
-              {!knownUserIds.has(target.value) && target.value ? (
-                <option value={target.value}>
-                  {copy.missingUser}: {target.value}
-                </option>
-              ) : null}
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {getUserDisplayName(user)}
-                </option>
-              ))}
-            </select>
+            <UserTargetPicker
+              target={target}
+              users={users}
+              knownUserIds={knownUserIds}
+              copy={copy}
+              onChange={(nextTarget) => update(index, nextTarget)}
+            />
           )}
 
           {target.type === "group" && (
