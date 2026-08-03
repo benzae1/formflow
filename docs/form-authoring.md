@@ -1,6 +1,6 @@
 # Form authoring guide
 
-FormFlow uses a hardened subset of Form.io. Administrators create metadata under `/<locale>/admin/forms` and edit the schema at `/<locale>/admin/forms/<id>/builder`. There is no JSON-import action or form-delete endpoint in the current UI/API; example JSON must be recreated through the builder or posted through an authenticated, CSRF-protected admin API client after validation.
+FormFlow uses a hardened subset of Form.io. Administrators create metadata under `/<locale>/admin/forms` and edit the schema at `/<locale>/admin/forms/<id>/builder`. The UI supports basic JSON import/export; there is still no form-delete endpoint.
 
 ## Authoring lifecycle
 
@@ -14,6 +14,12 @@ FormFlow uses a hardened subset of Form.io. Administrators create metadata under
 8. publish.
 
 Published user URLs are `/de/forms/<slug>` and `/en/forms/<slug>`. Unlocalized `/forms/<slug>` is redirected to German by the current middleware.
+
+## JSON import and export
+
+The forms list can create a form from an uploaded object shaped as `{ "title", "slug", "schema" }`. The builder can replace the currently edited locale's schema from the same shape and export the German/base `title`, `slug`, and `schema`.
+
+This is schema interchange, not a complete backup or deployment format. It omits translations, sensitivity, workflow and parent links, allowed roles, field-governance metadata outside the schema, versions, ownership, retention, and approvals. Browser code initially checks only `schema.components`; the normal create/update API performs the authoritative hardened schema validation. Imported forms must be reviewed, configured, saved, and tested before publication. The import/export controls and messages are currently hard-coded English even on German pages.
 
 ## Form-level access and sensitivity
 

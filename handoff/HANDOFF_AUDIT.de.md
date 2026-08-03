@@ -2,13 +2,13 @@
 
 Auditdatum: 03.08.2026
 
-Basis-Codecommit: `68a93b0`
+Basis-Codecommit: `6af84e3` (auf Remote-Commit `6b1759b` rebasiert)
 
 Gesamturteil: **starker Prototyp/internes Beta-System; nicht produktionsreif für Hochschuldaten**
 
 ## Zusammenfassung
 
-Das Repository hat einen schlüssigen Produktkern: zweisprachige angemeldete Seiten, Admin-Formularbuilder, gehärtete Form.io-Schemas und Servervalidierung, Entwürfe/Einreichungen, Temporal-basierte Freigabe/Überarbeitung/Ablehnung, Rollen-/Formular-/Feldzugriff, LDAP, Vertretungen, Benachrichtigungen, Verschlüsselung, Sensitive-Access-Grants und Auditkonsole. Lint, TypeScript und optimierter Next.js-Build bestehen.
+Das Repository hat einen schlüssigen Produktkern: zweisprachige angemeldete Seiten, Admin-Formularbuilder mit grundlegendem JSON-Import/-Export, gehärtete Form.io-Schemas und Servervalidierung, Entwürfe/Einreichungen, Temporal-basierte Freigabe/Überarbeitung/Ablehnung, Rollen-/Formular-/Feldzugriff, LDAP, Vertretungen, Benachrichtigungen, Verschlüsselung, Sensitive-Access-Grants und Auditkonsole. Lint, TypeScript und optimierter Next.js-Build bestehen.
 
 Die Restarbeit ist nicht kosmetisch. Aktuelle Abhängigkeitsadvisories, unsichere Produktions-Bootstrap-/Org-Sync-Pfade, institutionelle Platzhalter, unvollständige Aufbewahrungs-/Auditprozesse und eine nicht nachgewiesene Produktionsplattform schließen einen Echt-Daten-Start ohne weitere Engineering-/Governancephase aus.
 
@@ -18,10 +18,11 @@ Dieser Bericht ist die maßgebliche offene Liste. Überholte Audits wurden aus d
 
 | Prüfung | Ergebnis | Hinweis |
 |---|---|---|
-| Vorhandene uncommittete Arbeit gesichert | Bestanden | Nach zwei kleinen Lint-/ARIA-Korrekturen separat als `68a93b0` committed |
+| Vorhandene uncommittete Arbeit gesichert | Bestanden | Rebasierter Commit `6af84e3`, nach zwei kleinen Lint-/ARIA-Korrekturen |
+| Remote-Historie integriert | Bestanden | 13 neuere `origin/main`-Commits vor der Push-Vorbereitung geprüft und erhalten |
 | ESLint (`--max-warnings=0`) | Bestanden | Lokales Binary, 03.08.2026 |
 | TypeScript (`tsc --noEmit`) | Bestanden | 03.08.2026 |
-| `npm run build` | Bestanden | Next.js 16.2.4, 50 Routen; Warnung zur veralteten `middleware`-Konvention |
+| `npm run build` | Bestanden | Nach Remote-Integration erneut geprüft: Next.js 16.2.4, 51 Routen; Warnung zur veralteten `middleware`-Konvention |
 | Produktionsabhängigkeiten | **Nicht bestanden** | `npm audit --omit=dev`: 29 Findings: 1 kritisch, 16 hoch, 11 mittel, 1 niedrig |
 | Integrationssuite | Nicht erneut ausgeführt | 65 Fälle vorhanden; Docker/PostgreSQL in Übergabeumgebung nicht verfügbar |
 | Browsersuite | Nicht erneut ausgeführt | 5 Laufzeitfälle vorhanden; Docker-Engine nicht verfügbar |
@@ -106,7 +107,7 @@ Abnahme: produktionsgleiches Staging besteht Deployment, Failover, Restore, Moni
 - Vertretung zum fachlich gewünschten Zeitpunkt anwenden; derzeit erst bei Überfälligkeit.
 - SLA-Erinnerungsreihenfolge validieren und Überfälligkeit/Eskalation klären.
 - Folgeformulare auf Veröffentlichung/Zugriff prüfen und optional auf Kindprozess warten/ihn starten.
-- Verwendung von `SubmissionStatus.closed` festlegen; Workflow setzt ihn nie.
+- **Semantik des Endstatus klären.** Der Workflow setzt jetzt für erfolgreiche und abgelehnte Endpfade gleichermaßen `closed`. Freigabe/Ablehnung bleibt nur in Tasks und Ergebnisnachrichten erhalten; Filter auf Einreichungsstatus können das Ergebnis nicht unterscheiden. Gewünschtes Modell festlegen und Migration, Verträge und UI testen.
 
 ### Identität und LDAP
 
@@ -114,6 +115,7 @@ Abnahme: produktionsgleiches Staging besteht Deployment, Failover, Restore, Moni
 - Reale Annahmen (`ou`, `manager`, Slug, flaches Departmentmodell) gegen Hochschulverzeichnis testen.
 - Unmapped LDAP-Attributwerte nicht unbeabsichtigt als Rollen anlegen.
 - Vorrang von Adminrollen vs. LDAP-Ersetzung definieren.
+- Semantik von Rollenänderung und Sitzung definieren/testen. Die Adminroute erhöht `sessionVersion` nicht mehr; bestehende Sitzungen bleiben gültig, während der JWT-Callback Rollen aus PostgreSQL neu lädt. Nachweisen, dass Rechteentzug beim vorgesehenen nächsten Request wirkt, und einen expliziten auditierten Widerruf aller Sitzungen anbieten.
 - Aktivierung/Deaktivierung, Notfalladmin-Passwortrotation, Lockoutreset und Taskneuzuweisung mit Audit ergänzen.
 
 ### Tests und Qualitätsgates
@@ -128,10 +130,10 @@ Abnahme: produktionsgleiches Staging besteht Deployment, Failover, Restore, Moni
 ### Produkt und Betrieb
 
 - E-Mail-Zustellstatus, Retry/Dead Letter, Bounce-/Status-UI. Aktuell werden Fehler geloggt und geschluckt.
-- Versionen vergleichen/wiederherstellen, duplizieren, Export/Import, sichere Archiv-/Löschgovernance.
+- Lesestatus von Benachrichtigungen fehlertolerant machen. Das Panel setzt seine lokale Anzahl nach `POST /api/notifications/read-all` zurück, ohne `response.ok` zu prüfen; Fehler-/Retrybehandlung und Tests mit mehreren Tabs ergänzen.
+- Formularaustausch und Lifecycle härten. Der grundlegende browserseitige JSON-Import/-Export umfasst nur `title`, `slug` und das deutsche/Basisschema; Übersetzungen, Sensitivität, Workflow, Rollen, Ownership, Retention, Freigaben und Versionshistorie fehlen. Versioniertes, lokalisiertes, servervalidiertes Paketformat sowie Vergleich/Restore, Duplikation und sichere Archiv-/Löschgovernance ergänzen.
 - Formularowner, Bereich, Retentionpolicy, Publikationsfreigabe, letzte Prüfung, Kontaktmetadaten.
 - Suche/Paginierung für Benutzer, Formulare, Einreichungen, Nachrichten, Audit. Audit-CSV exportiert nur aktuelle 50 Zeilen.
-- Warnung/UX für Selbstrollenänderung und sicheren Identitätslebenszyklus.
 - Temporal-Nachrichten und restliche fest codierte Texte lokalisieren; deutsche Platzhalterdiakritik korrigieren.
 - Supportdiagnostik ohne Offenlegung sensibler Daten.
 

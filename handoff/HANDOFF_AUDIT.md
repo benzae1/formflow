@@ -2,13 +2,13 @@
 
 Audit date: 2026-08-03
 
-Baseline code commit: `68a93b0`
+Baseline code commit: `6af84e3` (rebased onto remote commit `6b1759b`)
 
 Overall assessment: **strong prototype/internal beta; not production-ready for university data**
 
 ## Executive handoff
 
-The repository has a coherent product core: bilingual authenticated pages, an admin form builder, hardened Form.io schemas and server-side data validation, draft/submission journeys, Temporal-backed approval/revision/rejection, role/form/field access, LDAP integration, delegations, notifications, encryption, sensitive-access grants, and an audit console. Lint, TypeScript, and the optimized Next.js build pass.
+The repository has a coherent product core: bilingual authenticated pages, an admin form builder with basic JSON import/export, hardened Form.io schemas and server-side data validation, draft/submission journeys, Temporal-backed approval/revision/rejection, role/form/field access, LDAP integration, delegations, notifications, encryption, sensitive-access grants, and an audit console. Lint, TypeScript, and the optimized Next.js build pass.
 
 The remaining work is not cosmetic. Current dependency advisories, unsafe production/bootstrap and org-sync paths, placeholder institutional content, incomplete retention/audit operations, and an unproven production platform make a real-data launch unacceptable without another engineering and governance phase.
 
@@ -18,10 +18,11 @@ This report is the current open-item authority. Superseded audits were removed f
 
 | Check | Result | Notes |
 |---|---|---|
-| Existing dirty-work preservation | Pass | Committed separately as `68a93b0` after two small lint/accessibility corrections |
+| Existing dirty-work preservation | Pass | Rebased commit `6af84e3`, after two small lint/accessibility corrections |
+| Remote history integration | Pass | 13 newer `origin/main` commits reviewed and retained before final push preparation |
 | ESLint (`--max-warnings=0`) | Pass | Direct local binary, 2026-08-03 |
 | TypeScript (`tsc --noEmit`) | Pass | 2026-08-03 |
-| `npm run build` | Pass | Next.js 16.2.4, 50 routes; warns `middleware` convention is deprecated |
+| `npm run build` | Pass | Rechecked after remote integration: Next.js 16.2.4, 51 routes; warns `middleware` convention is deprecated |
 | Production dependency audit | **Fail** | `npm audit --omit=dev`: 29 findings: 1 critical, 16 high, 11 moderate, 1 low |
 | Integration suite | Not rerun | 65 cases present; Docker/PostgreSQL unavailable in this handoff environment |
 | Browser suite | Not rerun | 5 runtime cases present; Docker Desktop engine unavailable |
@@ -106,7 +107,7 @@ Exit criterion: staging mirrors production and passes deployment, failover, rest
 - Apply delegation at the intended time; current code only consults it when a task becomes overdue.
 - Validate SLA reminder ordering and clarify/escalate overdue behavior.
 - Make child-form stages verify publication/access and optionally wait for/launch child processes when the business case requires it.
-- Decide how/when `SubmissionStatus.closed` is used; current workflow never sets it.
+- **Clarify terminal outcome semantics.** The workflow now writes `closed` for both successful and rejected terminal paths. Approval/rejection survives only in task records and outcome notifications, so top-level status filters cannot distinguish the result. Decide whether this collapse is intended and add migration/contract/UI tests.
 
 ### Identity and LDAP
 
@@ -114,6 +115,7 @@ Exit criterion: staging mirrors production and passes deployment, failover, rest
 - Validate real schema assumptions (`ou`, `manager`, derived slug, flattened department model) against the university directory; current adapter does not construct a rich hierarchy from LDAP entries.
 - Prevent arbitrary/unmapped LDAP attribute values from creating role records unless explicitly intended.
 - Define precedence between admin-assigned roles and login-time LDAP replacement.
+- Define and test role-change session semantics. The admin role route no longer increments `sessionVersion`; existing sessions remain valid while the JWT callback reloads roles from PostgreSQL. Prove that privilege removal takes effect on the intended next request and provide an explicit audited revoke-all control.
 - Add user activation/deactivation, local emergency-admin credential rotation, lockout reset, and task-reassignment administration with audit trails.
 
 ### Testing and quality gates
@@ -128,10 +130,10 @@ Exit criterion: staging mirrors production and passes deployment, failover, rest
 ### Product and operations
 
 - Add reliable delivery status/retry/dead-letter behavior for email. Current send failures are logged and swallowed; there is no bounce/status UI.
-- Add form/workflow version comparison/restore, duplication/export/import, and safe archive/delete governance.
+- Make notification read-state updates failure-aware. The panel currently clears its local unread count after `POST /api/notifications/read-all` without checking `response.ok`; add error/retry handling and concurrent-tab tests.
+- Harden form interchange and lifecycle tooling. Basic browser-side JSON import/export now covers only `title`, `slug`, and the German/base `schema`; it omits translations, sensitivity, workflow, roles, ownership, retention, approvals, and version history. Add a versioned, localized, server-validated package format plus comparison/restore, duplication, and safe archive/delete governance.
 - Add form ownership, department, retention policy, publication approval, last review, and contact metadata.
 - Add searchable/paginated user, form, submission, notification, and audit workflows suitable for thousands of users. Audit CSV currently exports only the current 50 rows.
-- Add administrator warnings for self-role changes (session revocation) and safer role/identity lifecycle UX.
 - Localize Temporal-generated notifications and remaining hard-coded shared/legacy UI text; correct placeholder German diacritics before content approval.
 - Define support diagnostics without exposing personal/sensitive data.
 

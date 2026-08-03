@@ -36,7 +36,7 @@ IDs sollten nicht leer, stabil, eindeutig und slugartig sein, auch wenn Zod dies
 
 Der Worker erzeugt pro aufgelöster Person eine offene Aufgabe. Bei mehreren Aufgaben gewinnt die erste gültige Freigabe/Ablehnung/Überarbeitungsanforderung; alle übrigen werden abgebrochen. Das ist eine **One-of-many-Freigabe**, keine Einstimmigkeit.
 
-`onApprove: "close"` endet erfolgreich mit `approved`. Ohne Wert wird fortgefahren; auch die letzte Stufe endet als `approved`. `onReject` führt standardmäßig praktisch zu Ablehnung/Ende.
+`onApprove: "close"` endet erfolgreich mit Einreichungsstatus `closed`. Ohne Wert wird fortgefahren; auch die letzte Stufe endet als `closed`. `onReject` führt standardmäßig zu Ablehnung/Ende und speichert ebenfalls `closed`.
 
 Überarbeitung schließt aktuelle Aufgaben, setzt `needs_revision`, wartet auf explizite Wiedereinreichung und wiederholt dieselbe Stufe mit neuen Aufgaben.
 
@@ -71,7 +71,7 @@ Alle Ausdrücke sind per UND verknüpft. Sind alle wahr, folgt die nächste Arra
 
 - `return-to-submitter`: Korrektur abwarten und erneut prüfen;
 - `{ "goTo": "stage-id" }`: zur Zielstufe springen;
-- `close`: `rejected` setzen und enden;
+- `close`: `closed` setzen, eine Ablehnungsmeldung senden und enden;
 - fehlt der Wert: mit nächster Stufe fortfahren.
 
 Keine JavaScript-Syntax/Funktionen wie `===` oder `Number(...)` verwenden. Repräsentative und fehlende Werte testen.
@@ -114,13 +114,13 @@ Bei Entscheidung wird der Timer-Scope abgebrochen. Bei Überfälligkeit kann akt
 
 | Wert | Ergebnis |
 |---|---|
-| `close` oder leer | Task abgelehnt, Einreichung `rejected`, Ende |
+| `close` oder leer | Task abgelehnt, Einreichung `closed`, Ablehnungsmeldung, Ende |
 | `return-to-submitter` | Überarbeitungsschleife derselben Stufe |
 | `{ "goTo": "id" }` | An Zielstufe fortsetzen |
 
 `goTo`-Referenzen werden geprüft. Rückwärtsschleifen ohne fachliche Abbruchbedingung vermeiden.
 
-Das Schema kennt Status `closed`, der aktuelle Approval-Workflow setzt ihn aber nicht. Endzustände sind `approved`/`rejected`.
+Der Workflow speichert `closed` sowohl bei erfolgreichem als auch bei abgelehntem Ende. Taskstatus und Ergebnisnachricht unterscheiden das Resultat weiterhin, der Einreichungsstatus selbst jedoch nicht. Diese Reporting-/Datenmodellentscheidung muss vor Produktion bestätigt werden; spätere Änderung kann Migrationen und API-/UI-Anpassungen erfordern.
 
 ## Validierung und Versionierung
 

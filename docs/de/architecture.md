@@ -1,6 +1,6 @@
 # FormFlow-Architektur
 
-Dieses Dokument beschreibt den Stand des Repositorys ab Commit `68a93b0` einschließlich der anschließenden Dokumentationsübergabe. FormFlow ist eine Next.js-16-App-Router-Anwendung mit PostgreSQL und einem separaten Temporal-Worker.
+Dieses Dokument beschreibt den Repository-Stand ab Codecommit `6af84e3`, rebasiert auf Remote-Commit `6b1759b`, einschließlich der anschließenden Dokumentationsübergabe. FormFlow ist eine Next.js-16-App-Router-Anwendung mit PostgreSQL und einem separaten Temporal-Worker.
 
 ## Laufzeitübersicht
 
@@ -53,7 +53,7 @@ NextAuth verwendet einen Credentials-Provider:
 
 - Mit konfigurierten `LDAP_URLS` und `LDAP_BASE_DNS` werden Zugangsdaten gegen LDAP geprüft und der Datenbankbenutzer aktualisiert.
 - Andernfalls werden lokale bcrypt-Passwörter verwendet.
-- JWT-Sitzungen gelten maximal acht Stunden. Rollen werden aus PostgreSQL aktualisiert und `sessionVersion` wird geprüft; Rollenänderung oder Deaktivierung widerrufen vorhandene Sitzungen.
+- JWT-Sitzungen gelten maximal acht Stunden. Bei Sitzungsverarbeitung werden effektive Rollen aus PostgreSQL neu geladen und `sessionVersion` geprüft. Administrative Rollenänderungen erhöhen diese Version aktuell nicht; sie ändern die Autorisierung ohne gezielten Sitzungswiderruf. Deaktivierung und explizite Versionsänderungen widerrufen weiterhin.
 - Anmelde-Drosselung liegt in `LoginRateLimitBucket`, Kontosperren auf `User`.
 
 Seiten verwenden `requirePageUser`/`requirePageRole`, APIs `requireUser`/`requireRole`. Für Einreichungen gelten zusätzliche Datensatzregeln für Eigentümer, zugewiesene Prüfende, optionalen Teamzugriff, Administration und Compliance. Formulare können zusätzlich über erlaubte Rollen eingeschränkt werden.
@@ -86,6 +86,8 @@ Beim Absenden startet Temporal den Workflow-Typ `approvalWorkflow` in der Task Q
 - `trigger-form`: Entwurf einer Kind-Einreichung erzeugen und ursprüngliche Person benachrichtigen.
 
 Freigabestufen unterstützen Erinnerungen, Überfälligkeit, Vertretung bei Überfälligkeit, Überarbeitung/Wiedereinreichung, Abschluss und `goTo`-Routing bei Ablehnung. Definition und Referenzen werden beim Speichern und bei der Formularzuordnung validiert.
+
+Erfolgreiche und abgelehnte Endpfade speichern derzeit beide den Einreichungsstatus `closed`; das unterschiedliche Ergebnis bleibt in Taskstatus und Ergebnisnachricht erhalten. Vor Reporting auf Basis des Einreichungsstatus muss dies als Produkt-/Datenmodellentscheidung geklärt werden.
 
 Wegen Aktivitätswiederholungen sind externe Seiteneffekte besonders wichtig. Einige Aktivitäten legen Datenbankzeilen und Benachrichtigungen ohne explizite Idempotenzschlüssel an; dies ist im Übergabe-Audit als Härtungspunkt erfasst.
 

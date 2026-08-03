@@ -1,6 +1,6 @@
 # FormFlow-API-Referenz
 
-Alle Anwendungsendpunkte liegen unter `/api`. JSON-Fehler haben die Form `{ "code": "...", "message": "..." }`. NextAuth verwaltet `/api/auth/*` mit eigenen Antwortkonventionen.
+Alle Anwendungsendpunkte liegen unter `/api`. JSON-Fehler haben die Form `{ "error": { "code": "...", "message": "...", "status": 400 } }`. NextAuth verwaltet `/api/auth/*` mit eigenen Antwortkonventionen.
 
 ## Anmeldung und Mutationsvertrag
 
@@ -37,7 +37,7 @@ Im Webclient `getMutationHeaders()` verwenden. `GET /api/csrf` ist öffentlich u
 | `POST /api/roles` | Admin | Custom-Rolle anlegen |
 | `PUT /api/roles/:id` | Admin | Umbenennen/Label ändern, wenn sicher |
 | `DELETE /api/roles/:id` | Admin | Nicht referenzierte Custom-Rolle löschen |
-| `PATCH /api/users/:id/roles` | Admin | Rollen/Teamzugriff ersetzen; Sitzungen widerrufen |
+| `PATCH /api/users/:id/roles` | Admin | Rollen/Teamzugriff ohne Sitzungswiderruf ersetzen |
 | `GET /api/submissions` | Angemeldet | Sichtbare Einreichungen listen |
 | `POST /api/submissions` | Angemeldet + Formularzugriff | Entwurf speichern oder sofort absenden |
 | `GET /api/submissions/:id` | Sichtbare Person | Gefilterte/entschlüsselte Details; ggf. Sensitive Grant |
@@ -48,8 +48,9 @@ Im Webclient `getMutationHeaders()` verwenden. `GET /api/csrf` ist öffentlich u
 | `POST /api/sensitive-access` | Angemeldet | Signierte Zehn-Minuten-Freigabe |
 | `POST /api/delegations` | Admin/Approver | Vertretungszeitraum anlegen |
 | `DELETE /api/delegations/:id` | Admin/eigener Approver | Vertretung löschen |
-| `GET /api/notifications/unread` | Angemeldet | Ungelesene Anzahl und zehn neueste |
+| `GET /api/notifications/unread` | Angemeldet | Ungelesene Anzahl und 20 neueste, einschließlich gelesener |
 | `POST /api/notifications/:id/read` | Eigentümer | Eigene Nachricht gelesen markieren |
+| `POST /api/notifications/read-all` | Angemeldet | Alle eigenen ungelesenen Nachrichten gelesen markieren |
 | `GET /api/audit-log` | Admin/Compliance | Cursor-Seite oder CSV |
 | `POST /api/org/sync` | Admin | Organisationsabgleich synchron ausführen |
 
@@ -110,7 +111,7 @@ Custom-Rollennamen sind kleingeschriebene Slugs. `admin`, `approver`, `complianc
 { "roles": ["approver", "submitter"], "teamScope": false }
 ```
 
-Der Request ersetzt die komplette Rollenmenge und erhöht `sessionVersion`, auch bei Selbständerung eines Admins. Die Antwort kann noch eintreffen, die aktuelle Sitzung ist bei der nächsten Prüfung widerrufen.
+Der Request ersetzt die komplette Rollenmenge, erhöht `sessionVersion` aber nicht. Bestehende Sitzungen bleiben gültig; der JWT-Callback lädt effektive Rollen bei der Sitzungsverarbeitung aus PostgreSQL neu. Der Zeitpunkt eines Rechteentzugs muss getestet werden; für sofortige Invalidierung ist ein separater Sitzungswiderruf nötig.
 
 ## Einreichungen
 
@@ -136,7 +137,7 @@ Jeder Listenaufruf erzeugt einen Auditdatensatz. Felddaten werden nach Schema-Le
 }
 ```
 
-Das Formular muss veröffentlicht und für die Rollen erlaubt sein. Unbekannte Felder/Typen werden gemäß lokalisiertem Schema abgewiesen, sensible Felder verschlüsselt. Standardmäßig startet `saveAsDraft: false` sofort Temporal. Mit `true` bleibt der Status `draft` und ein Workflow ist nicht erforderlich.
+Das Formular muss veröffentlicht und für die Rollen erlaubt sein. Unbekannte Felder/Typen werden gemäß lokalisiertem Schema abgewiesen, sensible Felder verschlüsselt. Standardmäßig startet `saveAsDraft: false` sofort Temporal. Mit `true` bleibt der Status `draft` und ein Workflow ist nicht erforderlich. Schlägt der initiale Temporal-Start fehl, wird die neu angelegte Einreichung gelöscht und die API antwortet mit 503 `WORKFLOW_UNAVAILABLE`; die Oberfläche behält die eingegebenen Feldwerte für einen erneuten Versuch.
 
 ### Lesen/Ändern
 
@@ -146,7 +147,7 @@ Detailzugriff folgt den Sichtbarkeitsregeln. Nur Sensitivität `sensitive` verla
 { "data": { "field": "new value" }, "submit": true }
 ```
 
-Nur `draft` und `needs_revision` sind editierbar. `submit` startet beim Entwurf den gesnapshotteten Workflow oder signalisiert `resubmitted`. Speichern ohne `submit: true` setzt den Workflow nicht fort.
+Nur `draft` und `needs_revision` sind editierbar. `submit` startet beim Entwurf den gesnapshotteten Workflow oder signalisiert `resubmitted`. Speichern ohne `submit: true` setzt den Workflow nicht fort. Ein gemeldeter Fall, bei dem die Wiedereinreichung in `needs_revision` bleibt und keinen neuen Approvertask erzeugt, bleibt trotz vorhandenem Happy-Path-Browsertest als P1-Defekt im Übergabe-Audit erhalten.
 
 ### Entscheidungen
 
@@ -178,7 +179,11 @@ Scopes: `submission:<id>` oder `admin-submissions`. Begründung mindestens zehn 
 }
 ```
 
-Nichtadministrative Approver handeln nur für sich. Beide Personen müssen aktiv und `approver` oder `admin` sein; Selbstvertretung und Überschneidung werden abgewiesen. Vertretung wird bei Taskanlage und Überfälligkeit berücksichtigt.
+Nichtadministrative Approver handeln nur für sich. Beide Personen müssen aktiv und `approver` oder `admin` sein; Selbstvertretung und Überschneidung werden abgewiesen. Vertretung wird derzeit erst bei Überfälligkeit eines offenen Tasks berücksichtigt, nicht bei der initialen Taskanlage.
+
+## Benachrichtigungen
+
+Trotz des Namens liefert `GET /api/notifications/unread` die Anzahl ungelesener sowie die 20 neuesten Nachrichten unabhängig vom Lesestatus. Beim Öffnen des Panels ruft die Oberfläche `POST /api/notifications/read-all` auf, setzt die Anzahl zurück und zeigt die letzten Einträge weiter an. Der Einzelendpunkt zum Gelesen-Markieren bleibt vorhanden, wird vom aktuellen Panel aber nicht mehr verwendet.
 
 ## Auditlog
 

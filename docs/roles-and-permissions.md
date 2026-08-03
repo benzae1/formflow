@@ -72,7 +72,7 @@ An admin can set `teamScope` on an approver. Visibility is based on shared `OrgM
 
 The admin users page lists directory/local users, edits complete role sets and team scope, manages custom roles, and shows delegation controls. It does not create local users, set passwords, deactivate/reactivate accounts, or reassign open tasks.
 
-Role updates increment `sessionVersion`, revoking all existing sessions. Editing one's own roles therefore signs out the current admin on the next session validation; this is expected security behavior but the UI should warn/handle it more clearly.
+Role updates do not increment `sessionVersion`, so existing sessions are not deliberately revoked. The JWT callback reloads current database roles during session processing. Verify the exact privilege-removal timing in the deployment and use an explicit session-revocation operation when immediate invalidation is required.
 
 LDAP login can replace the user's roles based on allowlists/attribute mapping. Manual assignments to LDAP users may therefore be overwritten on their next login. Define one authoritative role-governance policy.
 

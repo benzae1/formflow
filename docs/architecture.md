@@ -1,6 +1,6 @@
 # FormFlow architecture
 
-This document describes the repository at commit `68a93b0` and the documentation handoff that follows it. FormFlow is a Next.js 16 App Router application backed by PostgreSQL and a separate Temporal worker.
+This document describes the repository at code commit `6af84e3`, rebased onto remote commit `6b1759b`, and the documentation handoff that follows it. FormFlow is a Next.js 16 App Router application backed by PostgreSQL and a separate Temporal worker.
 
 ## Runtime view
 
@@ -53,7 +53,7 @@ NextAuth uses one credentials provider:
 
 - With `LDAP_URLS` and `LDAP_BASE_DNS` configured, credentials are verified with LDAP and the database user is upserted.
 - Otherwise, credentials are verified against local bcrypt hashes.
-- JWT sessions last up to eight hours. The application refreshes the effective role list from PostgreSQL and checks `sessionVersion`; role changes and deactivation revoke existing sessions.
+- JWT sessions last up to eight hours. On session processing, the application reloads effective roles from PostgreSQL and checks `sessionVersion`. Administrative role edits currently do not increment that version, so they update authorization without deliberately revoking the session; deactivation and explicit version changes still revoke it.
 - Login throttling is stored in `LoginRateLimitBucket`; account lockout fields live on `User`.
 
 Page access uses `requirePageUser`/`requirePageRole`. API access uses `requireUser`/`requireRole`. Submission visibility adds record-level rules for owners, assigned approvers, optional approver team scope, admins, and compliance users. Form visibility can additionally be restricted by allowed roles.
@@ -86,6 +86,8 @@ Submitting starts Temporal workflow type `approvalWorkflow` on task queue `formf
 - `trigger-form`: create a draft child submission and notify the original submitter.
 
 Approval stages support reminders, an overdue timer, delegation on overdue, revision/resubmission, close, and `goTo` rejection routing. Workflow definitions and references are validated when workflows are saved and again when attached forms are saved/published.
+
+Terminal approval and rejection paths currently both store submission status `closed`; the differing outcome remains in approval-task status and the generated outcome notification. Treat this as an explicit product/data-model decision before relying on submission status for reporting.
 
 Activity retries make external side effects an important design concern. Some activities create database rows and notifications without explicit idempotency keys; this is listed in the handoff audit for hardening.
 

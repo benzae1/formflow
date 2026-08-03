@@ -1,6 +1,6 @@
 # Leitfaden zur Formularerstellung
 
-FormFlow verwendet eine gehärtete Teilmenge von Form.io. Administration legt Metadaten unter `/<locale>/admin/forms` an und bearbeitet das Schema unter `/<locale>/admin/forms/<id>/builder`. Aktuell gibt es weder JSON-Importaktion noch Formular-Delete-Endpunkt. Beispiel-JSON muss im Builder nachgebaut oder über einen angemeldeten, CSRF-geschützten Admin-API-Client validiert gesendet werden.
+FormFlow verwendet eine gehärtete Teilmenge von Form.io. Administration legt Metadaten unter `/<locale>/admin/forms` an und bearbeitet das Schema unter `/<locale>/admin/forms/<id>/builder`. Die Oberfläche unterstützt grundlegenden JSON-Import/-Export; ein Formular-Delete-Endpunkt fehlt weiterhin.
 
 ## Ablauf
 
@@ -14,6 +14,12 @@ FormFlow verwendet eine gehärtete Teilmenge von Form.io. Administration legt Me
 8. Veröffentlichen.
 
 Veröffentlichte URLs sind `/de/forms/<slug>` und `/en/forms/<slug>`. `/forms/<slug>` wird von der aktuellen Middleware nach Deutsch umgeleitet.
+
+## JSON-Import und -Export
+
+Die Formularliste kann aus einem hochgeladenen Objekt der Form `{ "title", "slug", "schema" }` ein Formular anlegen. Im Builder lässt sich das Schema der gerade bearbeiteten Sprache aus demselben Format ersetzen; der Export enthält deutschen/Basistitel, Slug und Basisschema.
+
+Dies ist ein Schemaaustausch, kein vollständiges Backup- oder Deploymentformat. Übersetzungen, Sensitivität, Workflow-/Elternbezüge, erlaubte Rollen, Governance-Metadaten außerhalb des Schemas, Versionen, Ownership, Retention und Freigaben fehlen. Der Browser prüft zunächst nur `schema.components`; die verbindliche gehärtete Schemavalidierung erfolgt beim normalen Create-/Update-API-Aufruf. Importierte Formulare müssen vor Veröffentlichung geprüft, konfiguriert, gespeichert und getestet werden. Steuerelemente und Meldungen für Import/Export sind auch auf deutschen Seiten derzeit fest englisch.
 
 ## Formularzugriff und Sensitivität
 

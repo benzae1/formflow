@@ -72,7 +72,7 @@ Admin kann `teamScope` bei Approvern setzen. Sichtbarkeit basiert auf gleicher `
 
 Die Adminseite listet Benutzer, ändert komplette Rollenmengen und Teamzugriff, verwaltet Custom-Rollen und zeigt Vertretungen. Sie legt keine lokalen Benutzer/Passwörter an, deaktiviert/reaktiviert nicht und weist offene Tasks nicht neu zu.
 
-Rollenupdates erhöhen `sessionVersion` und widerrufen alle Sitzungen. Eigene Rollenänderung meldet den Admin bei der nächsten Prüfung ab; sicherheitstechnisch erwartet, aber UX-seitig klarer zu warnen/behandeln.
+Rollenupdates erhöhen `sessionVersion` nicht; bestehende Sitzungen werden nicht gezielt widerrufen. Der JWT-Callback lädt aktuelle Datenbankrollen bei der Sitzungsverarbeitung neu. Der genaue Zeitpunkt eines Rechteentzugs muss in der Zielumgebung geprüft werden; bei sofortiger Invalidierung ist ein expliziter Sitzungswiderruf nötig.
 
 LDAP-Login kann Rollen aus Allowlisten/Attributmapping ersetzen. Manuelle Rollen von LDAP-Benutzern können beim nächsten Login überschrieben werden. Eine verbindliche Rollenquelle festlegen.
 

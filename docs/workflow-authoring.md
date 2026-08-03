@@ -36,7 +36,7 @@ IDs should be non-empty, stable, unique slugs even though the current Zod schema
 
 The worker creates one pending task per resolved assignee. If several tasks exist, the first valid approve/reject/revision decision wins and the others are cancelled. This is **one-of-many approval**, not unanimous approval.
 
-`onApprove: "close"` ends successfully with submission status `approved`. If omitted, approval continues; the final stage also ends as `approved`. `onReject` defaults effectively to rejection/termination.
+`onApprove: "close"` ends successfully with submission status `closed`. If omitted, approval continues; the final stage also ends as `closed`. `onReject` defaults effectively to rejection/termination and also stores `closed`.
 
 A revision decision completes/cancels current tasks, changes status to `needs_revision`, waits for explicit resubmission, then repeats the same stage with new tasks.
 
@@ -71,7 +71,7 @@ All expressions are combined with logical AND. If all evaluate truthy, execution
 
 - `return-to-submitter`: wait for correction, then evaluate the condition again;
 - `{ "goTo": "stage-id" }`: jump to that stage;
-- `close`: set `rejected` and end;
+- `close`: set `closed`, send a rejected-outcome notification, and end;
 - omitted: continue to the next stage.
 
 Avoid JavaScript syntax/functions such as `===` or `Number(...)`. Test each expression with representative and missing values.
@@ -114,13 +114,13 @@ When the stage resolves, its timer scope is cancelled. At the overdue point, an 
 
 | Setting | Result |
 |---|---|
-| `close` or omitted | Current task rejected; submission `rejected`; workflow ends |
+| `close` or omitted | Current task rejected; submission `closed`; rejected-outcome notification; workflow ends |
 | `return-to-submitter` | Revision loop at the same stage |
 | `{ "goTo": "id" }` | Continue at referenced stage |
 
 `goTo` references are checked. Avoid backward cycles without an explicit business escape condition; Temporal can otherwise keep the case alive indefinitely.
 
-The schema contains a `closed` submission status, but the current approval workflow does not set it. Terminal successful/unsuccessful outcomes are `approved`/`rejected`.
+The workflow stores `closed` for both terminal success and rejection. The outcome remains distinguishable in approval-task status and submitter notifications, but not in the top-level submission status. Confirm this reporting/data-model choice before production; changing it later may require migration and API/UI updates.
 
 ## Validation and versioning
 

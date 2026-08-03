@@ -1,6 +1,6 @@
 # FormFlow API reference
 
-All application endpoints are under `/api`. JSON errors have the shape `{ "code": "...", "message": "..." }`. NextAuth owns `/api/auth/*` and may use its own response conventions.
+All application endpoints are under `/api`. JSON errors have the shape `{ "error": { "code": "...", "message": "...", "status": 400 } }`. NextAuth owns `/api/auth/*` and may use its own response conventions.
 
 ## Authentication and mutation contract
 
@@ -37,7 +37,7 @@ Use `getMutationHeaders()` in the web client. `GET /api/csrf` is public and sets
 | `POST /api/roles` | Admin | Creates custom role |
 | `PUT /api/roles/:id` | Admin | Renames/relabels when references permit |
 | `DELETE /api/roles/:id` | Admin | Deletes safe, unreferenced custom role |
-| `PATCH /api/users/:id/roles` | Admin | Replaces roles/team scope; revokes sessions |
+| `PATCH /api/users/:id/roles` | Admin | Replaces roles/team scope without revoking sessions |
 | `GET /api/submissions` | Authenticated | Lists records visible to current user |
 | `POST /api/submissions` | Authenticated + form access | Saves draft or submits immediately |
 | `GET /api/submissions/:id` | Visible user | Returns filtered/decrypted detail; sensitive grant when required |
@@ -48,8 +48,9 @@ Use `getMutationHeaders()` in the web client. `GET /api/csrf` is public and sets
 | `POST /api/sensitive-access` | Authenticated | Creates signed ten-minute access grant |
 | `POST /api/delegations` | Admin/approver | Creates validated delegation window |
 | `DELETE /api/delegations/:id` | Admin/owning approver | Deletes delegation |
-| `GET /api/notifications/unread` | Authenticated | Unread count and ten newest items |
+| `GET /api/notifications/unread` | Authenticated | Unread count and 20 newest items, including read items |
 | `POST /api/notifications/:id/read` | Owner | Marks own notification read |
+| `POST /api/notifications/read-all` | Authenticated | Marks all own unread notifications read |
 | `GET /api/audit-log` | Admin/compliance | Cursor page or CSV of audit events |
 | `POST /api/org/sync` | Admin | Runs org reconciliation synchronously |
 
@@ -114,7 +115,7 @@ User role update body:
 { "roles": ["approver", "submitter"], "teamScope": false }
 ```
 
-It replaces the complete role set and increments `sessionVersion`, including when an admin edits their own account. The response may arrive, but the current browser session becomes revoked on its next session check.
+It replaces the complete role set but does not increment `sessionVersion`. Existing sessions remain valid; the JWT callback reloads effective roles from PostgreSQL during session processing. Consumers must test the timing of privilege removal and use a separate session-revocation mechanism when immediate invalidation is required.
 
 ## Submissions
 
@@ -140,7 +141,7 @@ Every list call creates a list-access audit row. Returned field data is filtered
 }
 ```
 
-The form must be published and allowed for the user's roles. Unknown keys/types are rejected according to the localized schema. Sensitive fields are encrypted. The default `saveAsDraft: false` starts the Temporal workflow immediately; `true` leaves status `draft` and allows a form without a workflow.
+The form must be published and allowed for the user's roles. Unknown keys/types are rejected according to the localized schema. Sensitive fields are encrypted. The default `saveAsDraft: false` starts the Temporal workflow immediately; `true` leaves status `draft` and allows a form without a workflow. If the initial Temporal start fails, the newly created submission is deleted and the API returns 503 `WORKFLOW_UNAVAILABLE`; the browser keeps the entered field values available for retry.
 
 ### Read/update
 
@@ -152,7 +153,7 @@ Owner update body:
 { "data": { "field": "new value" }, "submit": true }
 ```
 
-Only `draft` and `needs_revision` are editable. `submit` starts a draft's snapshotted workflow or signals `resubmitted` for a revision. Saving a revision with `submit` omitted/false does not advance the workflow.
+Only `draft` and `needs_revision` are editable. `submit` starts a draft's snapshotted workflow or signals `resubmitted` for a revision. Saving a revision with `submit` omitted/false does not advance the workflow. A reported case where resubmission remains in `needs_revision` and fails to restore the approver task is retained as a P1 defect in the handoff audit despite the existing happy-path browser case.
 
 ### Decisions
 
@@ -184,7 +185,11 @@ Scopes are `submission:<id>` or `admin-submissions`. The trimmed reason must hav
 }
 ```
 
-Non-admin approvers can act only for themselves. Both sides must be active and have `approver` or `admin`; self-delegation and overlapping windows are rejected. Delegation is consulted when a task is created and again for overdue reassignment.
+Non-admin approvers can act only for themselves. Both sides must be active and have `approver` or `admin`; self-delegation and overlapping windows are rejected. Delegation is currently consulted only when a pending task becomes overdue, not at initial task creation.
+
+## Notifications
+
+Despite its name, `GET /api/notifications/unread` returns the unread count plus the 20 newest notifications whether read or unread. Opening the notification panel calls `POST /api/notifications/read-all`, clears the count, and keeps those recent items visible. The single-item read route remains available but the current panel no longer uses it.
 
 ## Audit log
 
