@@ -1,12 +1,5 @@
-# Audit history
+# Audit location moved
 
-The dated codebase audits in this directory are historical snapshots. Findings may have been fixed or superseded by later changes.
+The maintained audit and operational handoff material now lives in the bilingual [`handoff/`](../handoff/README.md) package.
 
-For the current handoff state, use:
-
-- [Final handoff audit (English)](../HANDOFF_AUDIT.md)
-- [Final handoff audit (German)](../HANDOFF_AUDIT.de.md)
-- [Interim privacy operations (English)](PRIVACY_OPERATIONS.md)
-- [Vorläufiger Datenschutzbetrieb (Deutsch)](PRIVACY_OPERATIONS.de.md)
-
-Do not delete the dated audits; they document how earlier decisions and fixes evolved. Do not use their open-item lists as the current launch checklist.
+Superseded codebase audits were removed from the working tree during the final handoff organization. They remain available in Git history if historical context is needed. Do not add new current-state reports here; update the handoff package instead.

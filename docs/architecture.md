@@ -113,4 +113,4 @@ Some shared/legacy pages and Temporal-generated notification text still contain 
 
 ## Known architectural debt
 
-See [the handoff audit](../HANDOFF_AUDIT.md) for priorities. The main architectural themes are production bootstrap separation, safe org sync, dependency remediation, reliable retention/audit operations, idempotent activities, a tested encryption-key lifecycle, route/i18n consolidation, and production observability.
+See [the handoff audit](../handoff/HANDOFF_AUDIT.md) for priorities. The main architectural themes are production bootstrap separation, safe org sync, dependency remediation, reliable retention/audit operations, idempotent activities, a tested encryption-key lifecycle, route/i18n consolidation, and production observability.

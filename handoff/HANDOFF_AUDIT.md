@@ -12,7 +12,7 @@ The repository has a coherent product core: bilingual authenticated pages, an ad
 
 The remaining work is not cosmetic. Current dependency advisories, unsafe production/bootstrap and org-sync paths, placeholder institutional content, incomplete retention/audit operations, and an unproven production platform make a real-data launch unacceptable without another engineering and governance phase.
 
-This report is the current open-item authority. Dated files under `audits/` describe earlier states and should remain historical.
+This report is the current open-item authority. Superseded audits were removed from the working tree and remain available through Git history.
 
 ## Verification performed
 

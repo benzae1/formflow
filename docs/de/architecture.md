@@ -113,4 +113,4 @@ Einige gemeinsame/ältere Seiten und von Temporal erzeugte Benachrichtigungen en
 
 ## Bekannte Architekturschulden
 
-Prioritäten stehen im [Übergabe-Audit](../../HANDOFF_AUDIT.de.md): getrenntes Produktiv-Bootstrap, sicherer Organisationssync, Abhängigkeitsupdates, verlässliche Aufbewahrungs-/Auditprozesse, idempotente Aktivitäten, getesteter Schlüsselzyklus, Konsolidierung von Routen/i18n und Produktionsobservability.
+Prioritäten stehen im [Übergabe-Audit](../../handoff/HANDOFF_AUDIT.de.md): getrenntes Produktiv-Bootstrap, sicherer Organisationssync, Abhängigkeitsupdates, verlässliche Aufbewahrungs-/Auditprozesse, idempotente Aktivitäten, getesteter Schlüsselzyklus, Konsolidierung von Routen/i18n und Produktionsobservability.

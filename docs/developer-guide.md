@@ -170,4 +170,4 @@ Application strings live in `src/lib/i18n/dictionaries.ts`; both locales must sa
 - Keep `.env`, Playwright artifacts, `.next`, and generated Prisma output out of commits.
 - `test-results/.last-run.json` is currently tracked; consider untracking all generated test results.
 - `@formio/react` is used by the renderer and `@formio/js` by the builder. The separate legacy `formiojs` dependency appears unused and should be verified/removed during dependency remediation.
-- Dated documents in `audits/` are historical; add new findings to the current handoff audit or a new dated audit rather than editing history.
+- Keep current ownership, risk, and launch-readiness findings in the [`handoff/`](../handoff/README.md) package. Use Git history for superseded audit snapshots.

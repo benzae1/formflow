@@ -1,3 +1,0 @@
-Legacy pointer: the maintained backlog is ../HANDOFF_AUDIT.md (German: ../HANDOFF_AUDIT.de.md).
-
-Known workflow defect to retain during handoff: after a submission is returned for revision, editing and resubmitting it may leave the submission in `revision_needed` and may not restore the approver task. Track this in the current handoff audit.

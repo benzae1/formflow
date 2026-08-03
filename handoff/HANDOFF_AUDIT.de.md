@@ -12,7 +12,7 @@ Das Repository hat einen schlüssigen Produktkern: zweisprachige angemeldete Sei
 
 Die Restarbeit ist nicht kosmetisch. Aktuelle Abhängigkeitsadvisories, unsichere Produktions-Bootstrap-/Org-Sync-Pfade, institutionelle Platzhalter, unvollständige Aufbewahrungs-/Auditprozesse und eine nicht nachgewiesene Produktionsplattform schließen einen Echt-Daten-Start ohne weitere Engineering-/Governancephase aus.
 
-Dieser Bericht ist die maßgebliche offene Liste. Datierte Dateien unter `audits/` bleiben historische Momentaufnahmen.
+Dieser Bericht ist die maßgebliche offene Liste. Überholte Audits wurden aus dem Arbeitsstand entfernt und bleiben über den Git-Verlauf verfügbar.
 
 ## Durchgeführte Prüfung
 

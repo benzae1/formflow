@@ -2,9 +2,9 @@
 
 FormFlow is a German/English workflow application for university forms and human approval processes. It provides role-restricted Form.io forms, drafts and submissions, Temporal-backed approval workflows, LDAP or local authentication, field-level encryption, delegations, notifications, and an administrative audit view.
 
-This repository is a mature prototype/internal beta, not a turnkey production service. Start with the [final handoff audit](HANDOFF_AUDIT.md) before planning a rollout. It records the confirmed launch blockers, verification status, and recommended work order. The German edition is [HANDOFF_AUDIT.de.md](HANDOFF_AUDIT.de.md).
+This repository is a mature prototype/internal beta, not a turnkey production service. New maintainers should start with the [handoff package](handoff/README.md) before planning a rollout. It maps the confirmed launch blockers, institutional decisions, operational runbooks, and technical documentation. The German entry point is [handoff/README.de.md](handoff/README.de.md).
 
-## Documentation
+## Documentation map
 
 | English | Deutsch | Scope |
 |---|---|---|
@@ -16,10 +16,13 @@ This repository is a mature prototype/internal beta, not a turnkey production se
 | [Workflow authoring](docs/workflow-authoring.md) | [Workflow-Erstellung](docs/de/workflow-authoring.md) | Stages, routing, conditions, SLAs |
 | [Roles and permissions](docs/roles-and-permissions.md) | [Rollen und Rechte](docs/de/roles-and-permissions.md) | Built-in/custom roles and permission matrix |
 | [Example forms](forms/README.md) | [Beispielformulare](forms/README.de.md) | Status and safe reuse of repository form schemas |
-| [Institutional decisions](DECISIONS_REQUIRED.md) | [Institutionelle Entscheidungen](DECISIONS_REQUIRED.de.md) | Decisions that engineering cannot make alone |
-| [Privacy operations](audits/PRIVACY_OPERATIONS.md) | [Datenschutzbetrieb](audits/PRIVACY_OPERATIONS.de.md) | Current manual retention/DSAR runbook |
+| [Handoff overview](handoff/README.md) | [Übergabeübersicht](handoff/README.de.md) | Reading order and location of every current handoff file |
+| [Final handoff audit](handoff/HANDOFF_AUDIT.md) | [Finaler Übergabe-Audit](handoff/HANDOFF_AUDIT.de.md) | Current state, launch blockers, improvements, and prioritized work |
+| [Institutional decisions](handoff/DECISIONS_REQUIRED.md) | [Institutionelle Entscheidungen](handoff/DECISIONS_REQUIRED.de.md) | Decisions that engineering cannot make alone |
+| [Privacy operations](handoff/runbooks/PRIVACY_OPERATIONS.md) | [Datenschutzbetrieb](handoff/runbooks/PRIVACY_OPERATIONS.de.md) | Current manual retention/DSAR runbook |
+| [Technical documentation index](docs/README.md) | [Technischer Dokumentationsindex](docs/de/README.md) | Navigation for architecture, setup, operation, and authoring |
 
-Earlier files under [`audits/`](audits/) are dated historical snapshots. They are useful for provenance, but the handoff audit supersedes their open-item lists.
+Superseded codebase audits were removed from the working tree. Earlier snapshots remain available through Git history; only the material under [`handoff/`](handoff/) is current.
 
 ## Current stack
 

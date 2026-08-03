@@ -2,9 +2,9 @@
 
 FormFlow ist eine deutsch/englische Workflow-Anwendung für Hochschulformulare und menschliche Freigabeprozesse. Sie bietet rollenbeschränkte Form.io-Formulare, Entwürfe und Einreichungen, Temporal-basierte Freigabeworkflows, LDAP- oder lokale Anmeldung, Feldverschlüsselung, Vertretungen, Benachrichtigungen und eine administrative Audit-Ansicht.
 
-Dieses Repository ist ein weit entwickelter Prototyp beziehungsweise internes Beta-System, aber noch kein unmittelbar produktionsreifer Dienst. Vor einer Einführung sollte zuerst der [deutsche Übergabe-Audit](HANDOFF_AUDIT.de.md) gelesen werden. Er enthält bestätigte Produktivblocker, den Prüfstand und die empfohlene Reihenfolge der Folgearbeiten. Die englische Fassung steht in [HANDOFF_AUDIT.md](HANDOFF_AUDIT.md).
+Dieses Repository ist ein weit entwickelter Prototyp beziehungsweise internes Beta-System, aber noch kein unmittelbar produktionsreifer Dienst. Neue Verantwortliche sollten vor einer Einführung mit dem [Übergabepaket](handoff/README.de.md) beginnen. Es ordnet bestätigte Produktivblocker, institutionelle Entscheidungen, Betriebsanleitungen und die technische Dokumentation. Der englische Einstieg steht unter [handoff/README.md](handoff/README.md).
 
-## Dokumentation
+## Dokumentationsübersicht
 
 | Deutsch | English | Inhalt |
 |---|---|---|
@@ -16,10 +16,13 @@ Dieses Repository ist ein weit entwickelter Prototyp beziehungsweise internes Be
 | [Workflow-Erstellung](docs/de/workflow-authoring.md) | [Workflow authoring](docs/workflow-authoring.md) | Stufen, Routing, Bedingungen, SLAs |
 | [Rollen und Rechte](docs/de/roles-and-permissions.md) | [Roles and permissions](docs/roles-and-permissions.md) | Systemrollen, benutzerdefinierte Rollen, Rechtematrix |
 | [Beispielformulare](forms/README.de.md) | [Example forms](forms/README.md) | Status und sichere Wiederverwendung der Formularschemas |
-| [Institutionelle Entscheidungen](DECISIONS_REQUIRED.de.md) | [Institutional decisions](DECISIONS_REQUIRED.md) | Entscheidungen außerhalb der Softwareentwicklung |
-| [Datenschutzbetrieb](audits/PRIVACY_OPERATIONS.de.md) | [Privacy operations](audits/PRIVACY_OPERATIONS.md) | Aktueller manueller Aufbewahrungs-/DSAR-Ablauf |
+| [Übergabeübersicht](handoff/README.de.md) | [Handoff overview](handoff/README.md) | Lesereihenfolge und Ablageort aller aktuellen Übergabedateien |
+| [Finaler Übergabe-Audit](handoff/HANDOFF_AUDIT.de.md) | [Final handoff audit](handoff/HANDOFF_AUDIT.md) | Aktueller Stand, Produktivblocker, Verbesserungen und priorisierte Arbeiten |
+| [Institutionelle Entscheidungen](handoff/DECISIONS_REQUIRED.de.md) | [Institutional decisions](handoff/DECISIONS_REQUIRED.md) | Entscheidungen außerhalb der Softwareentwicklung |
+| [Datenschutzbetrieb](handoff/runbooks/PRIVACY_OPERATIONS.de.md) | [Privacy operations](handoff/runbooks/PRIVACY_OPERATIONS.md) | Aktueller manueller Aufbewahrungs-/DSAR-Ablauf |
+| [Technischer Dokumentationsindex](docs/de/README.md) | [Technical documentation index](docs/README.md) | Navigation für Architektur, Einrichtung, Betrieb und Erstellung |
 
-Ältere Dateien unter [`audits/`](audits/) sind datierte historische Momentaufnahmen. Für offene Punkte ist der aktuelle Übergabe-Audit maßgeblich.
+Überholte Codebase-Audits wurden aus dem Arbeitsstand entfernt. Frühere Momentaufnahmen bleiben im Git-Verlauf verfügbar; aktuell sind ausschließlich die Inhalte unter [`handoff/`](handoff/).
 
 ## Aktueller Stack
 

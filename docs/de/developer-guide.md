@@ -170,4 +170,4 @@ UI-Texte liegen in `src/lib/i18n/dictionaries.ts`; beide Locales müssen den `Di
 - `.env`, Playwright-Artefakte, `.next` und generierte Prisma-Ausgaben nicht committen.
 - `test-results/.last-run.json` ist derzeit versioniert; alle generierten Testergebnisse sollten künftig entkoppelt werden.
 - `@formio/react` wird im Renderer, `@formio/js` im Builder verwendet. Die separate ältere Abhängigkeit `formiojs` scheint ungenutzt und sollte bei der Abhängigkeitsbereinigung geprüft/entfernt werden.
-- Datierte Audits bleiben historische Nachweise; neue Punkte gehören in den aktuellen Übergabe-Audit oder einen neuen datierten Audit.
+- Aktuelle Erkenntnisse zu Zuständigkeiten, Risiken und Produktivreife gehören in das [`handoff/`](../../handoff/README.de.md)-Paket. Überholte Auditstände bleiben über den Git-Verlauf verfügbar.
