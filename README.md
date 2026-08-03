@@ -1,156 +1,98 @@
 # FormFlow
 
-FormFlow is a secure, bilingual (German/English) workflow platform for managing administrative forms and approval processes at Bauhaus-Universität Weimar. It handles form authoring, submission routing, multi-stage approvals, compliance-grade audit logging, and LDAP-backed authentication.
+FormFlow is a German/English workflow application for university forms and human approval processes. It provides role-restricted Form.io forms, drafts and submissions, Temporal-backed approval workflows, LDAP or local authentication, field-level encryption, delegations, notifications, and an administrative audit view.
+
+This repository is a mature prototype/internal beta, not a turnkey production service. Start with the [final handoff audit](HANDOFF_AUDIT.md) before planning a rollout. It records the confirmed launch blockers, verification status, and recommended work order. The German edition is [HANDOFF_AUDIT.de.md](HANDOFF_AUDIT.de.md).
 
 ## Documentation
 
-| Document | Description |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | System architecture, data flow, and component overview |
-| [docs/api-reference.md](docs/api-reference.md) | Full REST API reference |
-| [docs/developer-guide.md](docs/developer-guide.md) | Local setup, environment variables, and testing |
-| [docs/workflow-authoring.md](docs/workflow-authoring.md) | How to build approval workflows |
-| [docs/form-authoring.md](docs/form-authoring.md) | How to create forms and mark sensitive fields |
-| [docs/roles-and-permissions.md](docs/roles-and-permissions.md) | Role definitions and permission matrix |
-| [docs/deployment.md](docs/deployment.md) | Production deployment guide |
-| [forms/README.md](forms/README.md) | Form library and example forms |
-| [audits/](audits/) | LLM-assisted production readiness audits |
-| [DECISIONS_REQUIRED.md](DECISIONS_REQUIRED.md) | Governance and legal items requiring sign-off |
+| English | Deutsch | Scope |
+|---|---|---|
+| [Architecture](docs/architecture.md) | [Architektur](docs/de/architecture.md) | Runtime components, data model, security boundaries |
+| [Developer guide](docs/developer-guide.md) | [Entwicklung](docs/de/developer-guide.md) | Setup, configuration, tests, common tasks |
+| [Deployment](docs/deployment.md) | [Betrieb](docs/de/deployment.md) | Current containers and a production-readiness checklist |
+| [API reference](docs/api-reference.md) | [API-Referenz](docs/de/api-reference.md) | Implemented HTTP endpoints and access rules |
+| [Form authoring](docs/form-authoring.md) | [Formularerstellung](docs/de/form-authoring.md) | Supported Form.io subset, translations, field access |
+| [Workflow authoring](docs/workflow-authoring.md) | [Workflow-Erstellung](docs/de/workflow-authoring.md) | Stages, routing, conditions, SLAs |
+| [Roles and permissions](docs/roles-and-permissions.md) | [Rollen und Rechte](docs/de/roles-and-permissions.md) | Built-in/custom roles and permission matrix |
+| [Example forms](forms/README.md) | [Beispielformulare](forms/README.de.md) | Status and safe reuse of repository form schemas |
+| [Institutional decisions](DECISIONS_REQUIRED.md) | [Institutionelle Entscheidungen](DECISIONS_REQUIRED.de.md) | Decisions that engineering cannot make alone |
+| [Privacy operations](audits/PRIVACY_OPERATIONS.md) | [Datenschutzbetrieb](audits/PRIVACY_OPERATIONS.de.md) | Current manual retention/DSAR runbook |
 
-## Quick Start
+Earlier files under [`audits/`](audits/) are dated historical snapshots. They are useful for provenance, but the handoff audit supersedes their open-item lists.
 
-### Prerequisites
+## Current stack
 
-- Docker and Docker Compose
-- Node.js 20+ (for running tests outside Docker)
+- Next.js 16.2.4, React 19, TypeScript 5
+- PostgreSQL 16 and Prisma 7
+- Temporal Server 1.25 with Temporal TypeScript SDK 1.17
+- NextAuth 4 credentials provider with LDAP or local bcrypt passwords
+- Form.io 5 builder and Form.io React renderer
+- Optional Resend email and DeepL draft translation
+- Vitest integration tests and Playwright browser tests
 
-### 1. Configure environment
+## Quick start
+
+Prerequisites: Docker with Compose v2. Host-side development and checks should use Node.js 24, matching the Dockerfile and CI.
 
 ```bash
 cp .env.example .env
-```
-
-Edit `.env` as needed. The defaults work for local development without LDAP.
-
-### 2. Start the stack
-
-```bash
 docker compose up --build
 ```
 
-This starts six containers in order:
+The development stack exposes:
 
-| Container | Role | Port |
+| Service | Address | Purpose |
 |---|---|---|
-| `postgres` | PostgreSQL 16 database | 5432 |
-| `temporal` | Temporal workflow server | 7233 |
-| `temporal-ui` | Temporal web console | 8080 |
-| `init` | Runs migrations and seeds, then exits | — |
-| `web` | Next.js application | 3000 |
-| `worker` | Temporal workflow worker | — |
+| Web | <http://localhost:3000> | Next.js application |
+| Temporal UI | <http://localhost:8080> | Workflow inspection |
+| PostgreSQL | `localhost:5432` | Shared app/Temporal database for local development only |
 
-Open [http://localhost:3000](http://localhost:3000) when the `web` container is healthy.
+The one-shot `init` container applies migrations, repairs local schema drift when enabled, and seeds development data. The long-running `worker` container executes approval and org-sync workflows.
 
-### 3. Sign in
+### Development accounts
 
-When LDAP is not configured, the seed creates three local accounts:
+With LDAP disabled, the seed provides these local logins:
 
-| Username | Password | Role |
+| Login | Password | Roles |
 |---|---|---|
-| `admin` | `admin` | admin |
-| `approver` | `approver` | approver |
-| `submitter` | `submitter` | submitter |
+| `admin` | `admin` | `admin`, `submitter` |
+| `approver` | `approver` | `approver`, `submitter` |
+| `submitter` | `submitter` | `submitter` |
 
-## Architecture Overview
+These known credentials must never be enabled in production. The current production bootstrap path needs engineering work before rollout; see the handoff audit.
 
-```
-Browser
-  │
-  ▼
-Next.js app (src/app/)
-  ├─ Pages & UI  ([lang]/ routes, Bauhaus design system)
-  ├─ API routes  (/api/*)
-  └─ Middleware  (src/middleware.ts)
-        │
-        ├─ PostgreSQL  (Prisma ORM)
-        │    └─ Users, Forms, Workflows, Submissions,
-        │       ApprovalTasks, Notifications, AuditLog
-        │
-        ├─ Temporal  (workflow engine)
-        │    └─ Approval workflow, LDAP org-sync workflow
-        │
-        └─ LDAP  (authentication + org sync)
-             └─ Bauhaus-Universität directory
-```
-
-See [docs/architecture.md](docs/architecture.md) for a full breakdown.
-
-## LDAP Configuration
-
-Add the following to `.env` to enable LDAP sign-in and org sync:
+## Verification
 
 ```bash
-LDAP_URLS="ldap://141.54.29.3:389"
-LDAP_BASE_DNS="o=uni"
-LDAP_ADMIN_UIDS=""          # Comma-separated UIDs that get the admin role
-LDAP_APPROVER_UIDS=""               # Comma-separated UIDs that get the approver role
-LDAP_COMPLIANCE_UIDS=""             # Comma-separated UIDs that get the compliance role
-LDAP_ROLE_ATTRIBUTE="eduPersonAffiliation"  # Optional: LDAP attr for role mapping
-LDAP_ROLE_ATTRIBUTE_MAP=""          # e.g. "Mitarbeiter=approver,Student=submitter"
-```
+npm run lint
+npx tsc --noEmit
+npm run build
 
-`LDAP_BASE_DNS` uses `|` as separator because commas are part of DN syntax. Every LDAP user gets the `submitter` role by default; elevated roles come from the UID allowlists or attribute map above.
+# Requires PostgreSQL plus the migrated test database
+npm run test:integration
 
-## Running Tests
-
-```bash
-# Start the full stack first
-docker compose up -d --build
-
-# Install Playwright browsers (first time only)
-npm run test:e2e:install
-
-# Run the full verification suite (waits for the stack to be ready)
+# Requires the complete running stack
+npm run test:e2e
 npm run verify:stack
-
-# Individual suites
-npm run test:integration   # Vitest integration tests
-npm run test:e2e           # Playwright browser tests
-npm run verify:smoke       # Smoke check against the running app
 ```
 
-## Key Features
+`verify:smoke` runs lint, build, integration tests, and the Playwright test tagged `@smoke`. CI currently runs 65 integration cases and only that smoke browser journey; the remaining browser cases are local/full-suite coverage.
 
-- **Bilingual UI** — German and English, locale-aware routing under `/de/` and `/en/`
-- **LDAP authentication** — bind-and-search against the university directory, with local password fallback
-- **Role-based access control** — four roles: `admin`, `compliance`, `approver`, `submitter`
-- **Form.io form builder** — drag-and-drop form designer with sensitive-field marking
-- **Multi-stage approval workflows** — sequential, conditional, and parallel routing via Temporal
-- **Break-glass access** — sensitive submissions require a logged justification before access
-- **Field-level encryption** — AES-256-GCM encryption for PII and sensitive form fields
-- **Approval delegation** — approvers can delegate to a colleague for a defined time window
-- **Full audit trail** — every access and state change is logged; CSV export available
-- **In-app and email notifications** — task assignments, deadlines, and outcomes
+## Important operating boundaries
 
-## Docker Notes
+- `docker-compose.yml` is a development configuration. It shares one database service and contains development credentials.
+- `docker-compose.production.yml.example` is an incomplete starting point, not a deployable production manifest.
+- Do not run org sync without reviewing the LDAP and fallback behavior described in the handoff audit.
+- Do not lose an encryption key. Encrypted field values cannot be recovered without the matching key.
+- Legal, privacy, accessibility, and support text in the UI is placeholder content.
 
-- `docker-compose.yml` shares one PostgreSQL instance between the app and Temporal. This is intentional for development convenience.
-- For production, use `docker-compose.production.yml.example` as a starting point. It separates databases and uses environment-driven credentials.
-- If you change dependencies or Dockerfile, re-run `docker compose up --build`.
-- To stop: `docker compose down`. To also remove the database volume: `docker compose down -v`.
+## Linux with Cisco Secure Client
 
-### Linux with Cisco AnyConnect (Cisco Secure Client)
-
-On Linux, Cisco AnyConnect injects iptables rules into the FORWARD chain that block outbound traffic from bridge-networked containers before Docker's NAT rules can rewrite the source IP. This prevents containers from reaching VPN-accessible hosts such as the university LDAP server.
-
-Use the provided override file when running on Linux with the VPN active:
+When Cisco Secure Client blocks Docker bridge traffic to VPN-only LDAP hosts, use the Linux-only host-network override:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.linux-vpn.yml up --build
 ```
 
-This switches `web` and `worker` to host networking, which routes traffic through the host's network stack and bypasses the VPN's firewall chain entirely. This override is Linux-only and not needed on Windows or macOS.
-
-## Prisma 7
-
-This project uses Prisma 7. Database connection URLs live in `prisma.config.js`, not in `prisma/schema.prisma`. Migration commands use `npx prisma migrate dev` as normal; the `prisma:init` script handles migration and seed automatically on container start.
+Do not use this override on Windows or macOS, and review the wider host-network exposure before using it outside development.

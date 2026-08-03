@@ -1,275 +1,116 @@
-# FormFlow — Architecture
+# FormFlow architecture
 
-## System Overview
+This document describes the repository at commit `68a93b0` and the documentation handoff that follows it. FormFlow is a Next.js 16 App Router application backed by PostgreSQL and a separate Temporal worker.
 
-FormFlow is a Next.js 15 application backed by PostgreSQL, with Temporal.io managing long-running approval workflows. Authentication is handled by NextAuth.js with either LDAP (university directory) or local password credentials.
+## Runtime view
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Browser                               │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTPS
-┌──────────────────────────▼──────────────────────────────────┐
-│               Next.js Application (Port 3000)                │
-│                                                              │
-│  ┌────────────────────┐   ┌─────────────────────────────┐   │
-│  │  Pages & UI        │   │  API Routes (/api/*)        │   │
-│  │  src/app/[lang]/   │   │  src/app/api/               │   │
-│  │  Bauhaus design    │   │  REST JSON, CSRF-protected  │   │
-│  │  system, Form.io   │   │  role-gated endpoints       │   │
-│  └────────────────────┘   └─────────────────────────────┘   │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │  src/middleware.ts                                     │  │
-│  │  • Locale detection & x-formflow-locale injection      │  │
-│  │  • CSP, X-Frame-Options, HSTS, Referrer-Policy        │  │
-│  └────────────────────────────────────────────────────────┘  │
-└──────┬────────────────────────────┬───────────────────────────┘
-       │                            │
-       ▼                            ▼
-┌─────────────┐            ┌────────────────┐
-│ PostgreSQL  │            │ Temporal.io    │
-│ Port 5432   │            │ Port 7233      │
-│             │            │                │
-│ Prisma ORM  │            │ Workflow engine│
-│ 12 models   │            │ + UI :8080     │
-└─────────────┘            └───────┬────────┘
-                                   │
-                           ┌───────▼────────┐
-                           │ Temporal Worker │
-                           │ (separate       │
-                           │  container)     │
-                           └────────────────┘
+```text
+Browser
+  |
+  | HTTPS, NextAuth cookie, CSRF token on mutations
+  v
+Next.js web process (:3000)
+  |-- server-rendered localized pages under /de and /en
+  |-- JSON API under /api
+  |-- PostgreSQL through Prisma
+  |-- Temporal client (:7233)
+  |-- LDAP for authentication and directory sync (optional)
+  |-- DeepL for draft form translation (optional)
+  `-- Resend for email delivery (optional)
+
+Temporal worker
+  |-- approvalWorkflow
+  |-- orgSyncWorkflow and recurring schedule
+  |-- PostgreSQL activities
+  `-- Resend activities (optional)
+
+PostgreSQL
+  `-- application records; local Compose also gives Temporal its own DB in the same server
 ```
 
-External dependency (optional):
+The base Compose stack contains `postgres`, `temporal`, `temporal-ui`, a one-shot `init`, `web`, and `worker`. Production should use separate application and Temporal database services.
 
-```
-Next.js app ──► LDAP (Bauhaus-Universität directory)
-Next.js app ──► Resend (transactional email)
-```
+## Source layout
 
----
-
-## Application Layers
-
-### Next.js App (`src/app/`)
-
-The application uses the Next.js App Router with server components as the default. Locale-aware routing is done via the `[lang]` segment (`/de/` and `/en/`).
-
-| Path segment | Purpose |
+| Path | Responsibility |
 |---|---|
-| `app/[lang]/` | All authenticated pages (dashboard, forms, submissions, admin) |
-| `app/[lang]/admin/` | Admin-only pages: form builder, workflow builder, user management, org browser, audit log |
-| `app/[lang]/submissions/[id]/` | Submission detail, with break-glass gate for sensitive forms |
-| `app/[lang]/inbox/` | Approver inbox (pending approval tasks) |
-| `app/api/` | REST JSON API, all protected by CSRF and session checks |
-| `app/forms/[slug]/` | Public-facing form submission page (requires login, no admin required) |
-| `app/signin/` | Login page (LDAP or local credentials) |
-| `app/[lang]/imprint/` `privacy/` `accessibility/` `help/` | Legal and support pages |
+| `src/app/[lang]` | Canonical German/English pages |
+| `src/app/admin`, `src/app/submissions`, etc. | Shared page implementations and legacy unlocalized route modules |
+| `src/app/api` | Route handlers |
+| `src/components` | Form.io adapters, submission views, navigation, UI primitives |
+| `src/domain` | Workflow, role, submission, and organization types |
+| `src/lib` | Authentication, authorization, validation, encryption, i18n, audit, data access |
+| `src/temporal` | Worker, workflows, and activities |
+| `src/jobs` | LDAP/development organization adapters and reconciliation |
+| `prisma` | Schema, migrations, seed |
+| `tests` | Vitest integration and Playwright end-to-end tests |
 
-### API Routes (`src/app/api/`)
+Middleware currently lives in `src/middleware.ts`. It redirects unlocalized page requests to German, injects the locale request header, and adds security headers. Next.js 16 still builds it but warns that the convention is deprecated in favor of `proxy.ts`.
 
-Every mutating API route (`POST`, `PATCH`, `DELETE`) is protected by `assertMutationRequest()`, which validates:
-- Session cookie (NextAuth JWT)
-- CSRF token header matching CSRF cookie (HMAC-SHA256, timing-safe comparison)
-- `Origin` header matching `APP_URL` / `NEXTAUTH_URL`
-- `Referer` header present and origin matches
+## Authentication and authorization
 
-Read routes (`GET`) require a valid session via `requireUser()` or `requireRole()` but do not need CSRF tokens.
+NextAuth uses one credentials provider:
 
-See [api-reference.md](api-reference.md) for the full route listing.
+- With `LDAP_URLS` and `LDAP_BASE_DNS` configured, credentials are verified with LDAP and the database user is upserted.
+- Otherwise, credentials are verified against local bcrypt hashes.
+- JWT sessions last up to eight hours. The application refreshes the effective role list from PostgreSQL and checks `sessionVersion`; role changes and deactivation revoke existing sessions.
+- Login throttling is stored in `LoginRateLimitBucket`; account lockout fields live on `User`.
 
-### Temporal Worker (`src/temporal/`)
+Page access uses `requirePageUser`/`requirePageRole`. API access uses `requireUser`/`requireRole`. Submission visibility adds record-level rules for owners, assigned approvers, optional approver team scope, admins, and compliance users. Form visibility can additionally be restricted by allowed roles.
 
-A separate Node.js process polls Temporal for workflow tasks. It runs alongside the web app but as its own container.
+Mutating APIs require all of the following: a session, `x-formflow-intent: mutation`, the double-submit CSRF cookie/header, and matching `Origin` and `Referer` origins. `GET /api/csrf` itself is public and creates the CSRF cookie.
 
-**Registered workflows:**
-- `approvalWorkflow` — drives the full submission lifecycle from `submitted` through approval stages to `approved`, `rejected`, or `closed`
-- `orgSyncWorkflow` — periodically syncs LDAP org units and memberships into the database
+## Forms and submissions
 
-**Activities registered:**
-- `approvalActivities` — creates/updates `ApprovalTask` records, handles delegation resolution, sends SLA reminders
-- `notificationActivities` — writes `Notification` records and optionally sends email via Resend
-- `orgActivities` — upserts `OrgUnit` and `OrgMembership` records from LDAP data
+`Form` holds the German source title/schema, optional localized content, sensitivity, allowed roles, workflow, and parent-form relation. `FormVersion` snapshots are created at creation and when title/schema/translations change while a form is published.
 
-The worker also schedules a recurring `orgSync` schedule via the Temporal Schedules API (default interval: 60 minutes, configurable via `ORG_SYNC_INTERVAL_MINUTES`).
+Only a hardened Form.io subset is accepted. Executable schema features, remote select sources, unsafe HTML patterns, unsupported custom properties, duplicate/unsafe keys, unsupported components, and schemas without a submit button are rejected.
 
----
+Submissions store:
 
-## Data Model
+- the selected locale and a schema snapshot;
+- a workflow ID/version/definition snapshot;
+- encrypted response data where fields have `properties.sensitive: "true"`;
+- lifecycle status and parent/child submission links;
+- optional retention and purge markers.
 
-```
-User ──────────── Role (many-to-many)
- │
- ├── Form (createdBy)
- │    ├── FormVersion (snapshot per publish)
- │    ├── Workflow (attached workflow)
- │    └── Submission[]
- │         ├── ApprovalTask[]
- │         └── childSubmissions[]
- │
- ├── ApprovalTask (assignedTo)
- ├── Notification
- ├── OrgMembership → OrgUnit (tree)
- └── Delegation (approver ↔ delegate)
+The encryption envelope uses AES-256-GCM and hex-encoded `iv`, `tag`, and `value` fields plus `keyId`. Read filtering separately applies `properties.readRoles` and `properties.ownerCanRead`.
 
-AuditLog (standalone, indexed by actor/resource/action/time)
-```
+## Workflow execution
 
-### Key Models
+Submitting starts Temporal workflow type `approvalWorkflow` on task queue `formflow-approval`, using the submission ID as the Temporal workflow ID. The supported stages are:
 
-**Form**
-- `slug` — URL-safe identifier used in public form routes (`/forms/[slug]`)
-- `schema` — Form.io JSON schema stored as `Json`
-- `translations` — Optional JSON map of locale → translated schema
-- `sensitivity` — `standard | pii | sensitive`; controls break-glass access
-- `workflowId` — The workflow that runs when a submission is submitted
-- `version` — Incremented on each publish; captured on every submission as a snapshot
+- `approval`: resolve one or more users, create parallel tasks, wait for the first valid decision, cancel remaining tasks;
+- `notification`: notify resolved recipients and continue;
+- `condition`: evaluate all `expr-eval` expressions; continue on true and use `onReject` for the false branch;
+- `trigger-form`: create a draft child submission and notify the original submitter.
 
-**Submission**
-- `data` — Form response data as `Json`; sensitive fields are AES-256-GCM encrypted
-- `formSchemaSnapshot` — Copy of the form schema at time of submission (preserves history as forms evolve)
-- `workflowDefinition` — Copy of the workflow definition at time of submission
-- `status` — `draft → submitted → in_review → needs_revision → approved | rejected → closed`
-- `parentSubmissionId` — Links child submissions triggered by `trigger-form` workflow stages
-- `retainUntil` / `purgeAt` / `deletedAt` — retention and erasure markers used by operational cleanup scripts
+Approval stages support reminders, an overdue timer, delegation on overdue, revision/resubmission, close, and `goTo` rejection routing. Workflow definitions and references are validated when workflows are saved and again when attached forms are saved/published.
 
-**AuditLog**
-- Indexed on `(createdAt)`, `(actorId, createdAt)`, `(resourceType, resourceId, createdAt)`, `(action, createdAt)`
-- Records every state change, access event, and administrative action
-- Exported via `GET /api/audit-log?format=csv` for compliance review
-- `retainUntil` and `exportedForDsarAt` support privacy review workflows without deleting evidence ad hoc
+Activity retries make external side effects an important design concern. Some activities create database rows and notifications without explicit idempotency keys; this is listed in the handoff audit for hardening.
 
-**LoginRateLimitBucket**
-- Shared per-login and per-IP counters stored in PostgreSQL
-- Used for the short-window login throttle so counters survive restarts and scale across replicas
+## Organization sync
 
-**Delegation**
-- Allows an approver to nominate a delegate for a time window (`startsAt`–`endsAt`)
-- Resolution happens inside `approvalActivities.ts` at the point of task assignment
+The worker creates a recurring `org-sync-scheduled` Temporal schedule. Manual sync is exposed to admins at `POST /api/org/sync` and runs synchronously.
 
----
+The LDAP adapter derives department units from the `ou` values on user entries and infers managers from LDAP `manager` DNs. Reconciliation upserts users/units/memberships, removes stale memberships/units, and deactivates database users absent from a non-empty source result.
 
-## Authentication Flow
+When LDAP is absent, the code currently selects `devOrgAdapter`, which is not a no-op: it supplies two example users and one department. Because reconciliation can deactivate other users, this path must be changed before operational use.
 
-```
-POST /api/auth/callback/credentials
-  │
-  ├─ checkRateLimited()           ← PostgreSQL-backed bucket (shared across replicas)
-  ├─ isUserLoginLocked()          ← database-backed (survives restarts)
-  ├─ LDAP bind or bcrypt verify
-  ├─ recordFailedLoginAttempt()   ← writes to User table
-  └─ NextAuth issues JWT
-        ├─ accessTokenExpiry: 15 minutes
-        └─ refreshTokenExpiry: 8 hours
+## Auditing and privacy controls
 
-Subsequent requests:
-  JWT in HttpOnly cookie → getServerSession() / requireUser()
-  Session validation also checks user.sessionVersion matches JWT
-  (Role changes and deactivation increment sessionVersion, invalidating existing tokens)
-```
+`AuditLog` records authentication events, API access, sensitive-access grants, selected form/workflow/user/role/delegation mutations, and approval signals. Sensitive submissions require a signed ten-minute grant; PII/sensitive admin list filters use an `admin-submissions` grant.
 
-### LDAP Authentication
+The log is an application table, not an append-only external audit store. Temporal activity-level task/status transitions are not all written as audit events. Do not describe the current log as complete or tamper-proof.
 
-On each LDAP login:
-1. Search each base DN for `uid=<input>`
-2. Bind as the found DN with the submitted password
-3. Upsert the user record (name, email, externalId)
-4. Assign roles from UID allowlists (`LDAP_ADMIN_UIDS` etc.) and/or attribute map
-5. Strip roles not present in the allowlists (keeps the DB in sync with the config)
+Retention columns exist on submissions, tasks, notifications, and audit logs, but the application does not calculate/populate them from form policy. The operator script only reports/purges records whose markers were set manually.
 
----
+## Internationalization
 
-## Submission Lifecycle
+Application chrome is typed in `src/lib/i18n/dictionaries.ts`. German is the default URL locale. Forms store German as their base and optional localized objects containing `title`, full `schema`, `reviewStatus`, and `generatedAt`. DeepL can create an English draft; a person must review it.
 
-```
-[User] fills form → draft Submission created
-         │
-         ▼
-[User] clicks Submit
-         │
-         ├─ data encrypted (AES-256-GCM for sensitive fields)
-         ├─ schema + workflow snapshots captured
-         ├─ status → submitted
-         └─ Temporal approvalWorkflow started
-                    │
-          ┌─────────▼──────────┐
-          │  Stage loop        │
-          │  (WorkflowStage[]) │
-          └─────────┬──────────┘
-                    │
-         ┌──────────┼──────────────────┐
-         │          │                  │
-    approval   notification      condition
-         │          │                  │
-    ApprovalTask  sendNotification  evaluate
-    created       (email + in-app)  expression
-         │
-    ┌────┴─────────────────────────────────────────────┐
-    │  Approver acts                                    │
-    │                                                   │
-    │  approve → next stage / close                     │
-    │  reject  → close / return-to-submitter / goto    │
-    │  revision_requested → submitter edits → signal   │
-    └───────────────────────────────────────────────────┘
-         │
-         ▼
-   status → approved | rejected | closed
-```
+Some shared/legacy pages and Temporal-generated notification text still contain hard-coded English strings. Full language parity is therefore not complete.
 
----
+## Known architectural debt
 
-## Security Architecture
-
-### Defense-in-Depth Layers
-
-1. **Edge / middleware** — `src/middleware.ts` injects CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS, and locale header
-2. **Session** — NextAuth JWT with short access token (15 min), session version invalidation
-3. **CSRF** — HMAC-SHA256 token in cookie + header, timing-safe comparison
-4. **API guards** — `requireUser()` / `requireRole()` on every route; `assertMutationRequest()` on mutations
-5. **Row-level visibility** — `submission-visibility.ts` generates per-user Prisma WHERE clauses
-6. **Break-glass** — Sensitive submissions require a justified access grant (POST `/api/sensitive-access`, HMAC-signed cookie, 10-minute TTL, always audited)
-7. **Field encryption** — AES-256-GCM on individual sensitive form fields; key rotation supported
-8. **Audit log** — Every state change and access event recorded; CSV export for compliance
-
-### Sensitive Field Encryption
-
-Fields marked sensitive in the Form.io schema are identified by `src/lib/formio-sensitive-fields.ts`. On submission, `encryptSensitiveSubmissionData()` replaces plaintext field values with an object:
-
-```json
-{
-  "__encrypted": true,
-  "iv": "<base64>",
-  "tag": "<base64>",
-  "data": "<base64 ciphertext>",
-  "keyId": "default"
-}
-```
-
-Multi-key rotation is supported via `FIELD_ENCRYPTION_KEYS` (comma-separated `id=hexkey` pairs). The `FIELD_ENCRYPTION_KEY` variable is a shorthand for a single key named `default`, and `FIELD_ENCRYPTION_KEY_ID` selects the active key for new writes.
-
----
-
-## Internationalisation
-
-The app supports German (`de`) and English (`en`). All UI text lives in `src/lib/i18n/dictionaries.ts` as static typed objects — no external translation service.
-
-Locale is determined by:
-1. URL segment: `/de/` or `/en/`
-2. Default: `de` (applied by `src/middleware.ts` redirect logic and the root layout fallback)
-
-The root layout reads `x-formflow-locale` from the request headers (set by the middleware) to apply the correct `lang` attribute to the `<html>` element.
-
----
-
-## Org Sync
-
-`orgSyncWorkflow` runs on a schedule (default: every 60 minutes) and:
-1. Fetches all entries from LDAP matching `LDAP_SYNC_FILTER` (default: `(uid=*)`)
-2. For each user found, ensures an `OrgUnit` exists for their department
-3. Creates or updates `OrgMembership` records linking users to their org units
-
-This powers the `org`-type routing target in workflows, which can route approval tasks to `submitter.manager`, `submitter.skip-level`, or `department.head`.
-
-In development (when `LDAP_URLS` is not set), `devOrgAdapter.ts` is used as a no-op mock.
+See [the handoff audit](../HANDOFF_AUDIT.md) for priorities. The main architectural themes are production bootstrap separation, safe org sync, dependency remediation, reliable retention/audit operations, idempotent activities, a tested encryption-key lifecycle, route/i18n consolidation, and production observability.

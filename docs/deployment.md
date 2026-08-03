@@ -1,283 +1,129 @@
-# FormFlow — Deployment Guide
+# FormFlow deployment and operations
 
-## Overview
+The repository can build and run a development stack. It does not yet contain a production-ready deployment. Treat `docker-compose.production.yml.example` as topology documentation only.
 
-FormFlow is deployed as Docker containers. The recommended production setup separates the application database from the Temporal persistence database and puts all services behind a TLS-terminating reverse proxy.
+## Current images and services
 
-The file `docker-compose.production.yml.example` in the repository root is the starting point for a production deployment. Copy and adapt it — do not use `docker-compose.yml` in production.
+The single-stage `Dockerfile` uses `node:24-bookworm-slim`, installs OpenSSL, installs all dependencies, copies the entire repository, and runs `npm run build`. The final image therefore includes source and development dependencies; it is not the minimal multi-stage image described by older documentation.
 
----
+Base Compose runs six services:
 
-## Architecture
+| Service | Current behavior |
+|---|---|
+| `postgres` | PostgreSQL 16; two local databases (`formflow`, `temporal`) in one server |
+| `temporal` | `temporalio/auto-setup:1.25`, backed by the local Temporal DB |
+| `temporal-ui` | `temporalio/ui:2.37.2`, exposed on 8080 |
+| `init` | Runs `npm run prisma:init`, then exits |
+| `web` | Next.js server on 3000 with DB/Temporal health check |
+| `worker` | Temporal worker with a process-based health check |
 
-```
-Internet
-   │
-   ▼
-Reverse proxy (nginx / Traefik / Caddy)
-   ├─ TLS termination
-   ├─ HSTS enforcement
-   └─ Forwards to Next.js (port 3000)
+## Why the production example is not turnkey
 
-Next.js app (web container)
-   ├─ PostgreSQL (app-db)
-   └─ Temporal (temporal container)
-        └─ PostgreSQL (temporal-db, separate)
+Before first production use, resolve all P0 items in the handoff audit. In particular:
 
-Temporal worker (worker container)
-   ├─ PostgreSQL (app-db)
-   └─ Temporal (temporal container)
-```
+- `prisma:init` always runs the demo seed. With `NODE_ENV=production` it fails unless `ALLOW_DEMO_USERS=true`; that flag creates known-password demo accounts.
+- The worker always creates an org-sync schedule. Without real LDAP configuration, the development adapter can create example identities and deactivate other synchronized/local users.
+- Runtime dependencies currently have critical/high advisories.
+- Legal/support content is placeholder text.
+- Retention markers are not assigned automatically.
+- No reverse proxy, TLS automation, secret store, resource limits, centralized telemetry, alert rules, backup jobs, or restore procedure is supplied.
 
----
+## Target production topology
 
-## Pre-Deployment Checklist
+```text
+Users -> institution-managed TLS proxy/WAF -> web replicas
+                                           |-> application PostgreSQL
+                                           `-> Temporal frontend
 
-### Secrets
+worker replicas -> application PostgreSQL + Temporal
+Temporal frontend -> dedicated Temporal PostgreSQL
 
-- [ ] `NEXTAUTH_SECRET` — generate with `openssl rand -hex 32` (64-character hex string)
-- [ ] `FIELD_ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
-- [ ] Database passwords — strong random values, unique per database
-- [ ] `RESEND_API_KEY` — obtain from Resend dashboard (or configure SMTP relay)
-- [ ] `EMAIL_FROM_ADDRESS` — a real deliverable institutional address
-
-Do not store secrets in `.env` files committed to version control. Use a secrets manager (HashiCorp Vault, AWS Secrets Manager, Docker secrets, or Kubernetes secrets) and inject at runtime.
-
-### Legal pages (mandatory before go-live)
-
-- [ ] Imprint (Impressum) — real institutional details in `src/lib/legal-copy.ts`
-- [ ] Privacy notice (Datenschutzhinweis) — DSGVO-compliant content, reviewed by DPO
-- [ ] Accessibility statement (Barrierefreiheitserklärung) — based on real BITV assessment
-
-See [DECISIONS_REQUIRED.md](../DECISIONS_REQUIRED.md) for full details.
-
-### Infrastructure
-
-- [ ] TLS certificate provisioned and configured on reverse proxy
-- [ ] `NEXTAUTH_URL` and `APP_URL` set to the HTTPS production URL
-- [ ] `NODE_ENV=production` set in the environment
-- [ ] HSTS header is set automatically when `NODE_ENV=production` (via `src/middleware.ts`)
-
----
-
-## Environment Variables (Production)
-
-Copy `.env.example` and fill in production values. Key changes from development defaults:
-
-```bash
-# Production URL — must be HTTPS
-NEXTAUTH_URL=https://formflow.uni-weimar.de
-APP_URL=https://formflow.uni-weimar.de
-
-# Secrets — generate fresh values, never reuse development secrets
-NEXTAUTH_SECRET=<openssl rand -hex 32>
-FIELD_ENCRYPTION_KEY=<openssl rand -hex 32>
-
-# Database — separate host with strong credentials
-DATABASE_URL=postgresql://formflow_app:<strong-password>@app-db:5432/formflow
-
-# Temporal
-TEMPORAL_ADDRESS=temporal:7233
-TEMPORAL_NAMESPACE=default
-
-# Email — required for notifications
-RESEND_API_KEY=re_...
-DISABLE_EMAIL_DELIVERY=false
-EMAIL_FROM_ADDRESS=formflow@uni-weimar.de
-
-# LDAP
-LDAP_URLS="ldap://141.54.170.18:389,ldap://141.54.29.3:389"
-LDAP_BASE_DNS="o=uni-we|o=uni"
-LDAP_BIND_DN=""
-LDAP_BIND_PASSWORD=""
-LDAP_ADMIN_UIDS="sowa2176"
-LDAP_FALLBACK_EMAIL_DOMAIN=uni-weimar.de
-
-# Do NOT set ALLOW_DEMO_USERS in production
-ALLOW_DEMO_USERS=
+Internal-only: Temporal UI, database ports, metrics endpoints
+External controlled services: LDAP, email provider, optional DeepL
 ```
 
----
+Pin immutable image digests, restrict service networks, run as a non-root user, use a read-only root filesystem where practical, and add CPU/memory limits. Build a multi-stage production image and generate an SBOM.
 
-## Docker Compose (Production)
+## Required configuration
 
-Use `docker-compose.production.yml.example` as your base. Key differences from the development compose file:
+At minimum provide through a secret/configuration manager:
 
-- Separate PostgreSQL instances for the app and Temporal
-- All credentials via environment variables, not hardcoded
-- Temporal UI optionally excluded or restricted to internal networks
-- `restart: always` on all long-running services
-- No port exposure for internal services (only the reverse proxy reaches the web container)
+- HTTPS `NEXTAUTH_URL` and `APP_URL`;
+- strong unique `NEXTAUTH_SECRET` and encryption keys;
+- application and Temporal database credentials;
+- Temporal address/namespace;
+- reviewed LDAP URLs, base DNs, service account, role mappings, and sync filter;
+- email enable/disable state, provider secret, and institutional sender;
+- optional DeepL secret only after processor/data-flow approval;
+- explicit authentication throttle values and log level.
 
-Example service structure:
+Do not copy the university-specific UID/IP examples from old documentation. `.env.example` now demonstrates syntax without enabling LDAP, but it still contains known development secrets that must be replaced for any real environment.
 
-```yaml
-services:
-  app-db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: formflow_app
-      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
-      POSTGRES_DB: formflow
+## Database initialization
 
-  temporal-db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: temporal
-      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD}
-      POSTGRES_DB: temporal
+The desired production sequence is:
 
-  temporal:
-    image: temporalio/auto-setup:1.25
-    environment:
-      DB: postgres12
-      POSTGRES_SEEDS: temporal-db
-      POSTGRES_USER: temporal
-      POSTGRES_PWD: ${TEMPORAL_DB_PASSWORD}
+1. apply reviewed migrations with `prisma migrate deploy`;
+2. bootstrap only immutable built-in roles or other approved reference data;
+3. never create demo users/workflows;
+4. start the web process;
+5. start the worker only after LDAP/org-sync configuration is safe.
 
-  web:
-    image: your-registry/formflow:latest
-    env_file: .env.production
-    environment:
-      DATABASE_URL: postgresql://formflow_app:${APP_DB_PASSWORD}@app-db:5432/formflow
-      TEMPORAL_ADDRESS: temporal:7233
-    ports:
-      - "127.0.0.1:3000:3000"   # Only expose to localhost; reverse proxy handles TLS
+The current `npm run prisma:init` does not implement this separation. Do not set `PRISMA_AUTO_REPAIR_SCHEMA=true` in production because it invokes `prisma db push --accept-data-loss`.
 
-  worker:
-    image: your-registry/formflow:latest
-    command: ["npm", "run", "worker"]
-    env_file: .env.production
-    environment:
-      DATABASE_URL: postgresql://formflow_app:${APP_DB_PASSWORD}@app-db:5432/formflow
-      TEMPORAL_ADDRESS: temporal:7233
-```
+## Reverse proxy requirements
 
----
+- Terminate TLS and redirect HTTP to HTTPS.
+- Replace, rather than trust/append, inbound `X-Forwarded-For`, `X-Real-IP`, `Host`, and `X-Forwarded-Proto` values according to the chosen proxy.
+- Set request/body/time limits appropriate for Form.io payloads and long page responses.
+- Do not expose PostgreSQL, Temporal gRPC, or Temporal UI publicly.
+- Verify application CSP and security headers after the planned Next.js `middleware.ts` to `proxy.ts` migration.
 
-## Building the Docker Image
+The app adds CSP, frame denial, content-type, referrer, permissions, and production HSTS headers. Form/admin pages deliberately permit `unsafe-eval`; admin pages also allow the Form.io ACE CDN and blob workers. This exception needs security review and regression testing.
 
-```bash
-docker build -t formflow:latest .
-```
+## Health, readiness, and observability
 
-The Dockerfile uses a multi-stage build:
-1. **deps** — installs `node_modules` with `npm ci`
-2. **builder** — runs `npm run build` (Next.js production build)
-3. **runner** — minimal Node 24 slim image with only the built output
+`GET /api/health` is public and returns 200 only when both PostgreSQL and Temporal respond; otherwise it returns 503 without raw error details. Use it for readiness, not as the only liveness signal. A broken Temporal dependency currently makes web readiness fail even for pages that could otherwise render.
 
-The final image does not include source code, test files, or development dependencies.
+Pino logs go to stdout (`LOG_LEVEL`, default `info`). Add structured collection, retention, redaction checks, dashboards, and alerts for:
 
----
+- web/worker restarts and health failures;
+- failed/stuck Temporal workflows and schedule failures;
+- approval backlog, overdue tasks, and tasks assigned to deactivated users;
+- LDAP sync counts/errors and unexpected mass deactivation;
+- authentication failures/lockouts and rate-limit spikes;
+- email delivery failures;
+- retention backlog and audit-export activity.
 
-## Database Migrations
+## Backup and recovery
 
-Run migrations before starting the application:
+Back up both databases with encrypted, access-controlled, off-host copies. The application DB contains forms, form/workflow snapshots, encrypted submissions, approval tasks, identities, access control, notifications, and audit records. The Temporal DB is also required to resume in-flight workflows; it is not safely “recreatable” without losing process state.
 
-```bash
-docker run --rm \
-  -e DATABASE_URL=postgresql://… \
-  formflow:latest \
-  npm run prisma:init
-```
+Document and rehearse:
 
-Or as a Docker Compose init container (see `docker-compose.production.yml.example`).
+- RPO/RTO and backup schedule;
+- point-in-time recovery;
+- application and Temporal database consistency;
+- restoration into an isolated environment;
+- encryption-key escrow and recovery;
+- post-restore reconciliation and user/session handling.
 
-The `prisma:init` script:
-1. Runs `prisma migrate deploy` (safe incremental migrations)
-2. Runs `prisma db push` as a repair step only if `PRISMA_AUTO_REPAIR_SCHEMA=true` (development only)
-3. Runs the seed script
+Do not store encryption keys only beside database backups.
 
-In production, set `PRISMA_AUTO_REPAIR_SCHEMA=` (empty) and `ALLOW_DEMO_USERS=` (empty).
+## Retention and privacy operations
 
----
+`npm run retention:report` reports records with due markers. `npm run retention:purge` deletes marked notifications, approval tasks, and submissions, but never audit logs. Neither command assigns dates. Establish policy-driven marker assignment, approval, dry run, referential-integrity tests, backup interaction, and a scheduler before relying on it.
 
-## Reverse Proxy Configuration
+## Release procedure after blockers are fixed
 
-### nginx example
+1. Review dependency advisories and lockfile diff; run the full suite.
+2. Build an immutable image and scan it.
+3. Back up and verify restore readiness.
+4. Apply migrations as a dedicated job.
+5. Deploy web and worker to staging; run `verify:stack`, accessibility scans, and representative LDAP/email tests.
+6. Validate headers, proxy IP behavior, health/readiness, dashboards, alerts, and runbooks.
+7. Obtain institutional launch approvals and schedule a rollback-capable production release.
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name formflow.uni-weimar.de;
+## Rollback caution
 
-    ssl_certificate     /etc/ssl/formflow.crt;
-    ssl_certificate_key /etc/ssl/formflow.key;
-
-    # Security headers (in addition to those set by the app)
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-
-    location / {
-        proxy_pass         http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 80;
-    server_name formflow.uni-weimar.de;
-    return 301 https://$host$request_uri;
-}
-```
-
-The `X-Forwarded-For` header is used by `getRequestIpAddress()` in `auth-security.ts` to bind rate-limit buckets to the real client IP.
-
----
-
-## Health Check
-
-The health endpoint at `/api/health` returns:
-
-```json
-{ "ok": true, "checks": { "database": { "ok": true }, "temporal": { "ok": true } } }
-```
-
-Use this with your container orchestrator's health check:
-
-```yaml
-healthcheck:
-  test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
-  interval: 30s
-  timeout: 5s
-  retries: 3
-```
-
----
-
-## Monitoring
-
-FormFlow logs using [Pino](https://getpino.io/). In production (`NODE_ENV=production`), logs are emitted as newline-delimited JSON to stdout. Forward these to your log aggregation system (ELK, Loki, CloudWatch, etc.).
-
-Log level is controlled by `LOG_LEVEL` (default: `info`). Available levels: `trace`, `debug`, `info`, `warn`, `error`.
-
-Key log events to monitor:
-- `auth.login_failed` — repeated failures indicate a brute-force attempt
-- HTTP 5xx responses — indicate unexpected server errors
-- `Failed to send email notification` — indicates email delivery problems
-- Temporal worker disconnection errors — indicate workflow processing is down
-
----
-
-## Backup
-
-Back up the PostgreSQL app database regularly. Critical data that is not recoverable from other sources:
-- `Form` and `FormVersion` tables — form schemas and version history
-- `Submission` and `ApprovalTask` tables — all submitted data and approval decisions
-- `AuditLog` table — compliance evidence
-- `User` and `Role` tables — access control configuration
-
-The Temporal database can be recreated (in-flight workflows would be lost). Keep the app database as the source of truth.
-
----
-
-## Upgrading
-
-1. Pull the new image or rebuild: `docker build -t formflow:latest .`
-2. Run migrations: `docker run --rm -e DATABASE_URL=… formflow:latest npx prisma migrate deploy`
-3. Perform a rolling restart: `docker compose up -d --no-deps web worker`
-
-Always run migrations before restarting the application containers.
+Application image rollback is safe only when the prior version understands the migrated database schema and Temporal workflow histories. Prefer forward-compatible migrations and Temporal workflow versioning. Never automatically reverse a migration that may discard submitted or audit data.

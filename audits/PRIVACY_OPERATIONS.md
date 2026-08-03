@@ -1,43 +1,56 @@
-# Privacy Operations
+# FormFlow privacy operations — interim manual runbook
 
-Date: 2026-05-27
+Status: interim only, updated 2026-08-03. This is an engineering handoff aid, not an approved institutional policy. It must be replaced or approved by the responsible data-protection and records-management owners before production.
 
-This document defines the minimum operational privacy process for running FormFlow in production until a fuller institutional policy supersedes it.
+## Current data classes
 
-## Data Classes
+- `User`, `Role`, `OrgUnit`, `OrgMembership`, `Delegation`: identity, authorization, and organization routing.
+- `Form`, `FormVersion`, `Workflow`: form/process definitions and historical snapshots.
+- `Submission`: form answers, submitter, locale, form/workflow snapshots, status, parent/child links.
+- `ApprovalTask`: assignee, stage, decision, note, due/decision times.
+- `Notification`: in-app message and email-trigger content.
+- `AuditLog`: authentication, access justification, and selected mutation/signal events.
+- `LoginRateLimitBucket`: temporary authentication-throttle state.
+- Temporal persistence: workflow histories, signals, activity results, schedules.
+- Infrastructure artifacts: logs, backups, Playwright/test data, email-provider metadata.
 
-- `Submission`: end-user form answers, workflow snapshot, parent-child linkage, and status history.
-- `ApprovalTask`: assignee, due date, decision note, and timestamps.
-- `Notification`: in-app delivery history and outbound email trigger content.
-- `AuditLog`: actor, action, resource, metadata, and access justifications.
-- `OrgUnit` / `OrgMembership`: LDAP-derived organizational routing context.
+## What the software currently implements
 
-## Retention Baseline
+- Optional `retainUntil`, `purgeAt`, and/or `deletedAt` columns on submissions/tasks/notifications/audit logs.
+- `npm run retention:report` counts due markers.
+- `npm run retention:purge` permanently deletes due notifications, tasks, and submissions; audit logs are report-only.
+- Sensitive record reads use short-lived justified grants and audit entries.
+- Audit CSV exports only one current 50-row cursor page and does not update `exportedForDsarAt`.
 
-- `Submission` and `ApprovalTask`: retain according to the owning university process and record-keeping rules for the specific form. Each published production form should have an assigned retention owner before launch and populate `retainUntil` / `purgeAt` before scheduled cleanup.
-- `Notification`: treat as operational data. Set `purgeAt` when no longer needed for user support or incident reconstruction.
-- `AuditLog`: retain long enough to investigate sensitive-access events, permission changes, and workflow incidents. Use `retainUntil` and `exportedForDsarAt` for review tracking. Do not delete ad hoc.
-- `OrgUnit` / `OrgMembership`: refresh from source of truth and remove stale memberships during sync.
+What it does **not** implement: a retention policy on forms, automatic marker assignment, scheduler, legal holds, DSAR search/export/delete UI, backup deletion, Temporal-history cleanup, approval workflow for purge, or verified erasure evidence.
 
-## DSAR / Case Handling
+## Critical purge behavior
 
-1. Identify the relevant form and legal basis before changing or exporting any data.
-2. Export the relevant submission, workflow, and audit context from the database for review, and set `AuditLog.exportedForDsarAt` on the exported evidence set.
-3. Check whether deletion is legally permitted or whether the record must instead be restricted or archived.
-4. If deletion is approved, set `deletedAt` and `purgeAt` on the affected submissions, set `purgeAt` on dependent notifications or approval tasks as needed, and record the action in `AuditLog`.
-5. Run `npm run retention:report` and attach the output to the privacy case as evidence of the queued retention state.
-6. After the approved purge window has elapsed, run `npm run retention:purge`, capture the JSON result, and store it with the case record.
-7. Record the request outcome, approver, and completion date in the institution's case-management channel.
+The script deletes a submission when `purgeAt <= now` **or whenever `deletedAt` is non-null**. Therefore, setting `deletedAt` queues it for deletion on the very next purge even if a later `purgeAt` was intended. Do not follow older instructions that set `deletedAt` before a waiting window.
 
-## Sensitive Access
+Deletion order is notifications, approval tasks, then submissions. It does not discover related notifications automatically, clean up parent/child trees, terminate/delete Temporal histories, or touch backups. Referential constraints and current production data must be tested before every first use/version change.
 
-- Sensitive submission access requires an explicit justification in the application.
-- Justifications must be treated as audit data and must not be moved into URLs, tickets, or email threads unless required for an investigation.
+## Interim request procedure
 
-## Launch Checklist
+Until guarded tooling exists:
 
-- Assign a retention owner for every production form.
-- Publish the final privacy notice, imprint, and accessibility statement.
-- Confirm the support mailbox for privacy and access requests.
-- Confirm backup, restore, and secure deletion procedures with infrastructure owners.
-- Decide who is authorized to set `retainUntil`, `purgeAt`, and `exportedForDsarAt`, and document that approval path before launch.
+1. Open an institutional privacy/records case; verify requester identity and authority outside FormFlow.
+2. Record scope, form/process owner, applicable policy/legal hold, requested action, and approving officials.
+3. Work in a restricted operator environment; take no ad-hoc copy into tickets/email.
+4. Search across identity, submissions (including values/references), tasks/notes, notifications, audit logs, Temporal histories, application logs, email provider, and backups as required by the approved scope.
+5. Export encrypted/access-controlled evidence using reviewed scripts/queries; record schema version and query. The built-in audit CSV is insufficient for a complete export.
+6. For correction/restriction/erasure, create a reviewed change plan covering linked and downstream records. Preserve evidence that policy requires, but minimize unnecessary content.
+7. Before purge, run `npm run retention:report`, database-specific dry-run queries, referential checks, and a backup/restore check. Do not set `deletedAt` until immediate deletion on the next purge is approved.
+8. Execute approved changes with two-person review where possible. Capture counts/IDs (not field contents), operator, approver, time, script version, and output.
+9. Re-run searches and reconcile PostgreSQL, Temporal, logs, provider metadata, and backup expiry.
+10. Close the institutional case with the outcome and any retained/legal-hold explanation.
+
+Direct production SQL is high risk. Use read-only transactions for discovery and peer-reviewed, narrowly scoped scripts for writes. Never bulk-edit/purge by an unverified identifier.
+
+## Sensitive access review
+
+Review `sensitive.access.granted`, `sensitive.accessed`, and `sensitive.list_accessed` together. Grant creation alone does not prove data was viewed; detail/list access records do. The application audit is not tamper-evident and does not contain every Temporal state transition, so correlate with infrastructure/Temporal logs when investigating.
+
+## Required replacement work
+
+See the handoff audit P0-5. At minimum implement versioned per-form retention rules, automatic dates, legal hold/restriction, subject search/export, approved correction/erasure, dry-run and scheduled purge, Temporal/backup cleanup, immutable evidence where required, and end-to-end tests.

@@ -1,370 +1,173 @@
-# FormFlow — Developer Guide
+# FormFlow developer guide
 
-## Prerequisites
+## Supported development baseline
 
-| Tool | Version | Notes |
-|---|---|---|
-| Node.js | 20+ | Required for running tests outside Docker |
-| Docker | 24+ | Required for the full development stack |
-| Docker Compose | v2 | `docker compose` (not `docker-compose`) |
-| npm | 10+ | Bundled with Node.js 20 |
+Use Node.js 24, npm 10+, Docker 24+ and Docker Compose v2. CI and the Dockerfile use Node 24. Node 22 currently builds the project, but it is not the declared CI/runtime baseline.
 
-## Local Setup
-
-### 1. Clone and install
+## Setup
 
 ```bash
-git clone <repo-url>
+git clone <repository-url>
 cd formflow
-npm install
-```
-
-### 2. Configure environment
-
-```bash
 cp .env.example .env
-```
-
-The defaults in `.env.example` work for local development with Docker. You do not need to change anything to get the app running locally without LDAP.
-
-### 3. Start the stack
-
-```bash
+npm install
 docker compose up --build
 ```
 
-Wait for all containers to report healthy. The first run takes 2–4 minutes because it builds the Docker image and runs Prisma migrations.
+The application is available at <http://localhost:3000>; Temporal UI is at <http://localhost:8080>. `init` must finish before `web` and `worker` start.
 
-The app is available at [http://localhost:3000](http://localhost:3000).
-
-**Linux with Cisco AnyConnect (Cisco Secure Client):** Cisco AnyConnect injects iptables rules into the FORWARD chain with a catch-all DROP that blocks outbound traffic from Docker bridge-networked containers before NAT runs. This prevents containers from reaching VPN-accessible hosts such as the university LDAP server. Use the override file instead:
+For live Next.js source mounting, add the development override:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.linux-vpn.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-This is only needed on Linux when the VPN is active. Windows and macOS are not affected.
+For the Linux/Cisco Secure Client LDAP workaround, use `docker-compose.linux-vpn.yml` instead. It places `web`, `init`, and `worker` on the host network and is not appropriate for Windows/macOS.
 
-### 4. Sign in
+## Environment variables
 
-Default seed accounts (local only — only created when `ALLOW_DEMO_USERS` is set or when the database is empty during `npm run prisma:init`):
+`.env.example` intentionally leaves LDAP, email, and DeepL disabled. Compose overrides host addresses with service names.
 
-| Username | Password | Role |
+### Core and secrets
+
+| Variable | Development default | Meaning |
 |---|---|---|
-| `admin` | `admin` | admin |
-| `approver` | `approver` | approver |
-| `submitter` | `submitter` | submitter |
-
----
-
-## Environment Variables
-
-All variables live in `.env`. The `web` and `worker` containers load `.env` via Docker Compose's `env_file` directive, with some values overridden per-service (e.g. `DATABASE_URL` uses Docker service names).
-
-### Core
-
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | `postgresql://formflow:formflow@localhost:5432/formflow` | Prisma connection string |
-| `NEXTAUTH_URL` | `http://localhost:3000` | Canonical application URL (used for CSRF origin checks and cookies) |
-| `NEXTAUTH_SECRET` | *(zeroes in example)* | Secret for signing JWTs and sensitive-access cookies. **Must be a random 64-hex-character string in production.** |
-| `APP_URL` | `http://localhost:3000` | Alternative to `NEXTAUTH_URL` for CSRF origin validation |
-| `TEMPORAL_ADDRESS` | `localhost:7233` | Temporal gRPC endpoint |
+| `DATABASE_URL` | local `formflow` PostgreSQL | Prisma database URL |
+| `NEXTAUTH_URL` | `http://localhost:3000` | Canonical authentication/app URL |
+| `APP_URL` | same local URL | Fallback for mutation-origin checks and email links |
+| `NEXTAUTH_SECRET` | known zero value | JWT/sensitive-access signing secret; replace outside local development |
+| `TEMPORAL_ADDRESS` | `localhost:7233` | Temporal frontend |
 | `TEMPORAL_NAMESPACE` | `default` | Temporal namespace |
+| `LOG_LEVEL` | `info` in code | Pino log level |
 
-### Field Encryption
+### Field encryption
 
-| Variable | Description |
+| Variable | Meaning |
 |---|---|
-| `FIELD_ENCRYPTION_KEY` | 64-character hex string (32 bytes). Used as key ID `default`. Required if any form has sensitive fields. |
-| `FIELD_ENCRYPTION_KEYS` | Comma-separated `id=hexkey` pairs for multi-key rotation, e.g. `default=aabbcc…,rotated-2026-06=ddeeff…`. Takes precedence over `FIELD_ENCRYPTION_KEY`. |
-| `FIELD_ENCRYPTION_KEY_ID` | Optional active key ID for new writes. When omitted, the first `FIELD_ENCRYPTION_KEYS` entry is used, or `default` for single-key mode. |
+| `FIELD_ENCRYPTION_KEY` | One 64-hex-character AES key stored as ID `default` |
+| `FIELD_ENCRYPTION_KEYS` | Comma-separated `id=64-hex-key` entries; used for multi-key reads |
+| `FIELD_ENCRYPTION_KEY_ID` | Active ID for new writes; otherwise the first multi-key entry or `default` |
 
-Key rotation: add a new key to `FIELD_ENCRYPTION_KEYS` and set `FIELD_ENCRYPTION_KEY_ID` to the new key ID. Existing encrypted values are decrypted with whichever key was active at encryption time (stored in the `keyId` field). Malformed `FIELD_ENCRYPTION_KEYS` entries are rejected at runtime instead of being skipped.
+Keep old keys configured while any database value references them. The existing `scripts/rotate-encryption-key.ts` is not safe for current nested data and must be fixed/tested before use.
 
-### Authentication Hardening
+### Authentication hardening
 
-| Variable | Default | Description |
-|---|---|---|
-| `AUTH_MAX_FAILED_ATTEMPTS` | `5` | Failed logins before account lockout |
-| `AUTH_FAILED_LOGIN_WINDOW_MINUTES` | `15` | Window for counting failed attempts |
-| `AUTH_LOCKOUT_DURATION_MINUTES` | `15` | How long an account stays locked |
-| `AUTH_RATE_LIMIT_WINDOW_SECONDS` | `60` | Rate-limit window per login/IP |
-| `AUTH_RATE_LIMIT_MAX_ATTEMPTS` | `10` | Max attempts within the rate-limit window |
+| Variable | Default |
+|---|---|
+| `AUTH_MAX_FAILED_ATTEMPTS` | `5` |
+| `AUTH_FAILED_LOGIN_WINDOW_MINUTES` | `15` |
+| `AUTH_LOCKOUT_DURATION_MINUTES` | `15` |
+| `AUTH_RATE_LIMIT_WINDOW_SECONDS` | `60` |
+| `AUTH_RATE_LIMIT_MAX_ATTEMPTS` | `10` |
 
-### Email
+The per-login and per-IP short-window counters are stored in PostgreSQL. Client IP extraction trusts the first `X-Forwarded-For` value, so the reverse proxy must replace/sanitize forwarding headers.
 
-| Variable | Default | Description |
-|---|---|---|
-| `RESEND_API_KEY` | *(empty)* | Resend API key. Email is disabled when empty. |
-| `DISABLE_EMAIL_DELIVERY` | `true` | Set to `false` to enable email sending |
-| `EMAIL_FROM_ADDRESS` | *(empty)* | Required whenever `RESEND_API_KEY` is set and `DISABLE_EMAIL_DELIVERY` is not `true`. Use a real deliverable institutional address. |
+### LDAP and org sync
 
-### LDAP
+| Variable | Format/purpose |
+|---|---|
+| `LDAP_URLS` | Comma-separated LDAP URLs |
+| `LDAP_BASE_DNS` | Pipe-separated base DNs; commas remain part of each DN |
+| `LDAP_BIND_DN`, `LDAP_BIND_PASSWORD` | Optional search service account |
+| `LDAP_TIMEOUT_MS` | Client timeout; code fallback is 5000 ms, example uses 8000 ms |
+| `LDAP_FALLBACK_EMAIL_DOMAIN` | Domain when an entry has no `mail` |
+| `LDAP_ADMIN_UIDS`, `LDAP_APPROVER_UIDS`, `LDAP_COMPLIANCE_UIDS` | Comma-separated privileged UID allowlists |
+| `LDAP_ROLE_ATTRIBUTE` | Optional multivalued role source attribute |
+| `LDAP_ROLE_ATTRIBUTE_MAP` | Comma-separated `source-value=role` mappings |
+| `LDAP_SYNC_FILTER` | Directory sync filter, default `(uid=*)` |
+| `ORG_SYNC_INTERVAL_MINUTES` | Worker schedule interval, default `60` |
 
-| Variable | Example | Description |
-|---|---|---|
-| `LDAP_URLS` | `ldap://141.54.29.3:389` | Comma-separated LDAP server URLs |
-| `LDAP_BASE_DNS` | `o=uni` | Pipe-separated (`\|`) search base DNs |
-| `LDAP_BIND_DN` | *(empty)* | Service account DN for search; leave blank for anonymous |
-| `LDAP_BIND_PASSWORD` | *(empty)* | Service account password |
-| `LDAP_TIMEOUT_MS` | `8000` | LDAP operation timeout |
-| `LDAP_FALLBACK_EMAIL_DOMAIN` | `uni-weimar.de` | Domain appended to `uid` if the LDAP entry has no `mail` attribute |
-| `LDAP_ADMIN_UIDS` | `sowa2176` | Comma-separated UIDs that receive the `admin` role |
-| `LDAP_APPROVER_UIDS` | *(empty)* | Comma-separated UIDs that receive the `approver` role |
-| `LDAP_COMPLIANCE_UIDS` | *(empty)* | Comma-separated UIDs that receive the `compliance` role |
-| `LDAP_ROLE_ATTRIBUTE` | `eduPersonAffiliation` | LDAP attribute to map to roles |
-| `LDAP_ROLE_ATTRIBUTE_MAP` | `Mitarbeiter=approver` | Comma-separated `ldap-value=role` pairs |
-| `LDAP_SYNC_FILTER` | `(uid=*)` | LDAP filter for org sync |
+Legacy aliases `LDAP_URL` and `LDAP_BASE_DN` are accepted. Review the org-sync blocker before starting the worker or pressing manual sync without real LDAP configuration.
 
-### Seeding
+### Optional integrations
 
-| Variable | Default | Description |
-|---|---|---|
-| `ALLOW_DEMO_USERS` | *(empty)* | Set to `true` to allow the seed to run in production. In all non-production environments demo users are always seeded. |
+| Variable | Meaning |
+|---|---|
+| `RESEND_API_KEY` | Creates the Resend client when present |
+| `DISABLE_EMAIL_DELIVERY` | Email sends only when this is not `true` |
+| `EMAIL_FROM_ADDRESS` | Required when delivery is enabled |
+| `DEEPL_API_KEY` | Enables German-to-English draft form translation through DeepL Free API |
+| `ALLOW_DEMO_USERS` | Allows the demo seed when `NODE_ENV=production`; unsafe for real production |
+| `PRISMA_AUTO_REPAIR_SCHEMA` | Enables `prisma db push --accept-data-loss` after migration drift; development only |
 
-### Temporal Worker
+## Database and seed
 
-| Variable | Default | Description |
-|---|---|---|
-| `ORG_SYNC_INTERVAL_MINUTES` | `60` | How often the org sync schedule fires |
-
----
-
-## Database Operations
-
-This project uses **Prisma 7**. The connection URL lives in `prisma.config.js`, not in `schema.prisma`.
-
-### Run migrations (development)
+Prisma 7 reads `DATABASE_URL` through `prisma.config.js`.
 
 ```bash
-npx prisma migrate dev --name "describe_your_change"
+npm run prisma:generate
+npm run prisma:migrate
+npx prisma migrate deploy
+npm run prisma:studio
 ```
 
-### Apply migrations (production / CI)
+`npm run prisma:init` performs `migrate deploy`, optionally repairs missing local tables, and always invokes `prisma db seed`. The seed creates four built-in roles, three known-password demo accounts, and a basic workflow. It throws in production unless `ALLOW_DEMO_USERS=true`; enabling that flag creates the demo accounts. Split role/bootstrap data from demo data before production.
+
+The forms in `forms/` are examples only and are not imported by the seed.
+
+## Quality checks
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+npm audit --omit=dev
+```
+
+At the 2026-08-03 handoff, lint, typecheck, and build pass. The production dependency audit does not pass; see the handoff audit.
+
+### Integration tests
+
+The 65 Vitest integration cases require a reachable, migrated PostgreSQL database. Most route tests mock sessions and Temporal, while the health test checks Temporal behavior through mocks. Run:
 
 ```bash
 npx prisma migrate deploy
-```
-
-### Reset the database (destructive — local only)
-
-```bash
-npx prisma migrate reset
-```
-
-This drops and recreates the database, runs all migrations, and reruns the seed.
-
-### Open Prisma Studio
-
-```bash
-npx prisma studio
-```
-
-Opens a visual browser at [http://localhost:5555](http://localhost:5555).
-
-### Seed script
-
-The seed is in `prisma/seed.ts`. It creates:
-- The four system roles (`admin`, `approver`, `submitter`, `compliance`)
-- Three demo users (`admin`, `approver`, `submitter`) if the environment is not production
-- One hardcoded "Basic approval" workflow assigned to the approver demo user
-
-Forms in `forms/` are **not** imported by the seed. Load them manually via the admin UI.
-
-Re-run seed without resetting:
-
-```bash
-npx ts-node prisma/seed.ts
-```
-
-### Retention operations
-
-Generate a report of records already marked for purge or retention review:
-
-```bash
-npm run retention:report
-```
-
-Delete records whose `purgeAt` has passed:
-
-```bash
-npm run retention:purge
-```
-
-The purge script removes eligible `Notification`, `ApprovalTask`, and `Submission` rows. `AuditLog` rows are only reported and must be reviewed manually before deletion.
-
----
-
-## Running the Temporal Worker Locally
-
-Start the full Docker stack as usual — it runs the worker in its own container. If you want to run the worker on your host machine instead (e.g. for debugging):
-
-```bash
-# Stop the Docker worker
-docker compose stop worker
-
-# Run locally
-npm run worker
-```
-
-The worker connects to Temporal at `TEMPORAL_ADDRESS` (default `localhost:7233`).
-
----
-
-## Testing
-
-The project has two test suites:
-
-### Integration Tests (Vitest)
-
-Tests run against the running Docker stack (PostgreSQL + Temporal must be up).
-
-```bash
 npm run test:integration
 ```
 
-Coverage areas:
-- Auth routes (`auth.test.ts`)
-- Form routes (`forms.route.test.ts`)
-- Submission routes (`submissions.route.test.ts`, `submission-detail.route.test.ts`)
-- Approval routes (`approval-routes.test.ts`)
-- Workflow routes (`workflows.route.test.ts`)
-- User management (`user-management.route.test.ts`)
-- Notifications (`notification-activities.test.ts`)
-- LDAP config parsing (`ldap-config.test.ts`)
-- Request guard / CSRF (`request-guard.test.ts`)
-- Form.io hardening (`formio-hardening.test.ts`)
-- Health endpoint (`health.route.test.ts`)
-- Form translations (`form-translations.test.ts`)
+Coverage includes authentication hardening, CSRF, forms, form access, Form.io hardening, translations, encryption config, submissions, break-glass reads, approval routes, workflows, roles, users/delegations, notifications, LDAP config, and health.
 
-### E2E Tests (Playwright)
+### Browser tests
 
-Browser-level tests against the full running stack.
+Playwright requires the full stack:
 
 ```bash
-# Install browsers (first time)
 npm run test:e2e:install
-
-# Run tests
 npm run test:e2e
 ```
 
-The E2E test (`tests/e2e/formflow.spec.ts`) walks through the full multi-role journey:
-1. Admin creates a form and workflow
-2. Submitter fills and submits the form
-3. Approver reviews and approves
-4. Submitter sees the approved status
-
-### Full Verification Suite
+Five runtime cases cover publish/submit/approve, revision/resubmission, rejection/route protection, and builder rendering in both locales. CI currently runs only the `@smoke` publish/submit/approve case.
 
 ```bash
-docker compose up -d --build
-npm run test:e2e:install
-npm run verify:stack   # Waits for the stack, then runs integration + E2E
+npm run verify:stack   # wait for stack, integration + all browser tests
+npm run verify:smoke   # lint, build, integration + @smoke browser test
 ```
 
-`verify:smoke` runs a quick health check + a minimal API check without the full browser suite.
+## Common changes
 
----
+### Prisma schema
 
-## Common Development Tasks
+Edit `prisma/schema.prisma`, create a migration with `npx prisma migrate dev --name <name>`, regenerate the client, and add an integration test. Never use `db push --accept-data-loss` against production.
 
-### Add a new form field to the schema
+### API route
 
-1. Open the admin form builder at `/de/admin/forms/[id]/builder`
-2. Drag and drop the new field
-3. If the field contains personal data, mark it as `encrypted` in the field settings
-4. Save — the form version increments automatically on next publish
+Every handler should catch with `apiErrorResponse`. Use a page/API authorization helper and call `assertMutationRequest(req)` before any mutation. Validate body and query input with Zod; several older filters still cast query strings directly and are candidates for cleanup.
 
-### Create a new API route
+### Form.io support
 
-1. Create the file at `src/app/api/[route]/route.ts`
-2. Import and call `requireUser()` or `requireRole([…])` at the top of each handler
-3. For mutating handlers, call `assertMutationRequest(req)` before any other logic
-4. Return errors via `apiErrorResponse(error)` — it handles both `ApiError` and unexpected errors
+Adding a component requires coordinated changes to the allowlist/validation in `formio-schema.ts`, data normalization in `formio-data.ts`, rendering/builder behavior, translation extraction where applicable, and tests. Do not simply enable Form.io executable properties.
 
-Example skeleton:
+### Workflow stage
 
-```typescript
-import { requireRole } from "@/lib/permissions";
-import { assertMutationRequest } from "@/lib/request-guard";
-import { apiErrorResponse, ApiError } from "@/lib/errors";
+Update `src/domain/workflow.ts`, Zod validation, server-side reference validation, the workflow designer, Temporal workflow behavior, and integration/browser tests. Temporal workflow changes must remain deterministic and should be versioned for already-running histories.
 
-export async function GET() {
-  try {
-    await requireRole(["admin"]);
-    // … your logic
-    return Response.json({ data: "…" });
-  } catch (error) {
-    return apiErrorResponse(error);
-  }
-}
+### Translations
 
-export async function POST(req: Request) {
-  try {
-    assertMutationRequest(req);
-    await requireRole(["admin"]);
-    // … your logic
-    return Response.json({ created: true }, { status: 201 });
-  } catch (error) {
-    return apiErrorResponse(error);
-  }
-}
-```
+Application strings live in `src/lib/i18n/dictionaries.ts`; both locales must satisfy the `Dictionary` type. Temporal notification strings and some legacy/shared UI strings are still hard-coded and should be moved to an explicit localization strategy.
 
-### Add a new workflow stage type
+## Repository hygiene
 
-1. Add the type to `WorkflowStageType` in `src/domain/workflow.ts`
-2. Add a Zod schema branch in `src/lib/validation/workflows.ts`
-3. Handle the new stage in `src/temporal/workflows/approvalWorkflow.ts`
-4. Add UI handling in the workflow builder component
-
-### Change the i18n dictionaries
-
-All translation strings are in `src/lib/i18n/dictionaries.ts`. Both `de` and `en` objects must have identical key structures — TypeScript enforces this via the `Dictionary` type.
-
-### Regenerate Prisma client after schema changes
-
-```bash
-npx prisma generate
-```
-
-This happens automatically during `npm install` via the `postinstall` script.
-
----
-
-## Project Structure
-
-```
-formflow/
-├── docs/                   # This documentation
-├── forms/                  # Form definition JSON files
-├── audits/                 # LLM-generated code and security audits
-├── prisma/
-│   ├── schema.prisma       # Database schema
-│   ├── seed.ts             # Seed script
-│   └── migrations/         # Migration history
-├── src/
-│   ├── app/                # Next.js App Router
-│   │   ├── [lang]/         # Locale-aware pages
-│   │   ├── api/            # REST API routes
-│   │   └── forms/[slug]/   # Public form submission pages
-│   ├── components/         # React components
-│   │   ├── form-builder/   # Form.io designer wrapper
-│   │   ├── form-renderer/  # Form.io renderer wrapper
-│   │   ├── submissions/    # Break-glass gate, submission views
-│   │   └── ui/             # Bauhaus design system components
-│   ├── domain/             # TypeScript domain types
-│   ├── jobs/               # LDAP org sync adapters
-│   ├── lib/                # Server-side utilities and business logic
-│   │   ├── i18n/           # Locale config, dictionaries, routing
-│   │   └── validation/     # Zod schemas for all input
-│   └── temporal/           # Temporal workflow engine
-│       ├── activities/     # Temporal activities
-│       └── workflows/      # Temporal workflow definitions
-└── tests/
-    ├── e2e/                # Playwright browser tests
-    ├── integration/        # Vitest API/DB integration tests
-    └── support/            # Shared test fixtures and helpers
-```
+- Keep `.env`, Playwright artifacts, `.next`, and generated Prisma output out of commits.
+- `test-results/.last-run.json` is currently tracked; consider untracking all generated test results.
+- `@formio/react` is used by the renderer and `@formio/js` by the builder. The separate legacy `formiojs` dependency appears unused and should be verified/removed during dependency remediation.
+- Dated documents in `audits/` are historical; add new findings to the current handoff audit or a new dated audit rather than editing history.

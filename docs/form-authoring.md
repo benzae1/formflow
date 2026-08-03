@@ -1,214 +1,134 @@
-# FormFlow — Form Authoring Guide
+# Form authoring guide
 
-Forms in FormFlow are defined using [Form.io](https://formio.io/), a JSON-based form schema standard. The admin panel includes a drag-and-drop form builder that produces this JSON automatically. You can also import forms directly by uploading or pasting JSON.
+FormFlow uses a hardened subset of Form.io. Administrators create metadata under `/<locale>/admin/forms` and edit the schema at `/<locale>/admin/forms/<id>/builder`. There is no JSON-import action or form-delete endpoint in the current UI/API; example JSON must be recreated through the builder or posted through an authenticated, CSRF-protected admin API client after validation.
 
----
+## Authoring lifecycle
 
-## Creating a Form
+1. Create a draft with a unique lowercase slug.
+2. Open the builder and design the German base form.
+3. Set form sensitivity and allowed roles.
+4. Set field encryption/read rules.
+5. Attach a validated workflow.
+6. Create/review the English translation if required.
+7. preview and test in both locales with every relevant role;
+8. publish.
 
-1. Sign in as an admin and navigate to `/de/admin/forms`
-2. Click **New form**
-3. Give the form a title and a URL slug (e.g. `emailantrag`)
-4. Choose a sensitivity level (see below)
-5. Use the form builder to add fields
-6. Attach a workflow
-7. Click **Publish** when ready
+Published user URLs are `/de/forms/<slug>` and `/en/forms/<slug>`. Unlocalized `/forms/<slug>` is redirected to German by the current middleware.
 
-Once published, the form is available at `/forms/[slug]`.
+## Form-level access and sensitivity
 
----
+Empty allowed roles mean every authenticated user can open/submit a published form. A non-empty list requires at least one matching role; admins bypass this form gate. Removing a user's access after a draft/revision was created also prevents that user from submitting/resubmitting it.
 
-## Form Sensitivity Levels
+Sensitivity controls administrative visibility:
 
-Every form has a sensitivity classification that controls how submissions are accessed.
+| Value | Current behavior |
+|---|---|
+| `standard` | Included in admin/compliance lists by default |
+| `pii` | Hidden from default global list; sensitive list grant required to include/filter it |
+| `sensitive` | Same list gate as PII, plus a per-submission ten-minute grant for detail reads |
 
-| Level | Description | Access control |
-|---|---|---|
-| `standard` | No special personal data | Normal role-based access |
-| `pii` | Contains identifiable personal data (name, address, matriculation number, etc.) | Break-glass justification required to view submission list with this filter |
-| `sensitive` | Contains special-category data (health, disciplinary, etc.) | Break-glass justification required for every submission detail access |
+Owners and assigned approvers use record visibility rules; field read rules still apply. Classify based on the most sensitive possible content and obtain institutional guidance.
 
-Break-glass access is logged to the audit trail with the user's stated reason. The justification must be at least 10 characters and is stored in a short-lived (10-minute) signed cookie.
+## Supported components
 
-Choose the sensitivity level based on the most sensitive data the form can contain, not on what most submissions will contain.
+The server allowlist currently accepts:
 
----
+`button`, `checkbox`, `columns`, `container`, `content`, `datagrid`, `day`, `editgrid`, `email`, `fieldset`, `number`, `panel`, `phoneNumber`, `radio`, `select`, `selectboxes`, `table`, `textarea`, `textfield`, and `well`.
 
-## Form.io Schema
+Do not rely on components documented by generic Form.io material but absent from this list (for example file upload, signature, datetime, survey, wizard/PDF display). The schema must use `display: "form"` and include a submit button.
 
-FormFlow stores the Form.io schema as JSON in the `Form.schema` column. The schema produced by the form builder follows the [Form.io specification](https://help.form.io/developers/form-json). Key fields:
+The validator also enforces:
 
-```json
-{
-  "components": [
-    {
-      "type": "textfield",
-      "key": "vorname",
-      "label": "Vorname",
-      "validate": { "required": true }
-    },
-    {
-      "type": "textfield",
-      "key": "matrikelnummer",
-      "label": "Matrikelnummer",
-      "properties": { "encrypted": "true" }
-    }
-  ]
-}
-```
+- unique keys that start with a letter and contain only letters, digits, or underscores;
+- local `values`/`json` select data sources;
+- no meaningful `calculateValue`, `customConditional`, `customDefaultValue`, `customValidation`, or `logic`;
+- no script tags, inline event handlers, or `javascript:` in content HTML;
+- only supported custom properties.
 
----
+## Field security settings
 
-## Marking Sensitive Fields for Encryption
-
-Individual form fields can be encrypted at rest, independently of the form's overall sensitivity level. This is useful for fields like matriculation numbers, health information, or financial data even on otherwise standard-sensitivity forms.
-
-To mark a field as encrypted:
-
-1. In the form builder, select the field
-2. Open **Advanced** → **Custom Properties**
-3. Add the property `encrypted` with value `"true"`
-
-At submission time, `encryptSensitiveSubmissionData()` replaces the field value with an AES-256-GCM encrypted envelope. The value is transparently decrypted when displayed in the submission detail view to users with the appropriate access.
-
-Encrypted field values in the database look like:
+Use the builder's **Field access settings** panel. It writes these string properties:
 
 ```json
 {
-  "__encrypted": true,
-  "iv": "base64-encoded-iv",
-  "tag": "base64-encoded-auth-tag",
-  "data": "base64-encoded-ciphertext",
-  "keyId": "key-1"
-}
-```
-
-### Which fields should be encrypted?
-
-Encrypt fields that contain data you would not want exposed if the database were compromised:
-
-- Matriculation/student ID numbers
-- National identification numbers
-- Medical or health information
-- Financial account details
-- Disciplinary information
-
-Fields that are already non-sensitive even in isolation (e.g. a free-text "comments" field) do not need encryption. Over-encrypting increases CPU cost and makes debugging harder.
-
----
-
-## Form Translations
-
-FormFlow supports bilingual (German/English) forms. If a form has a `translations` field, the form builder will display the translated labels when the user's locale is `en`.
-
-The `translations` structure is a JSON object mapping locale codes to alternative field labels:
-
-```json
-{
-  "en": {
-    "vorname": { "label": "First name" },
-    "matrikelnummer": { "label": "Student ID number" }
+  "type": "textfield",
+  "key": "studentNumber",
+  "label": "Matrikelnummer",
+  "properties": {
+    "sensitive": "true",
+    "readRoles": "admin, compliance",
+    "ownerCanRead": "true"
   }
 }
 ```
 
-The DeepL-backed translation service (`src/lib/form-translation-service.ts`) can generate a draft English translation via `POST /api/forms/[id]/translate-draft`. This requires a `DEEPL_API_KEY` environment variable to be configured; if not set the endpoint returns `409 TRANSLATION_UNAVAILABLE`. The output should always be reviewed by a human before publishing.
+- `sensitive: "true"` encrypts the stored value recursively, including nested fields in supported containers/grids.
+- `readRoles` is a comma-separated list allowed to receive the value. Empty means everyone can read it.
+- `ownerCanRead` defaults to true and lets the owner bypass a non-empty role list. Set it to `"false"` together with a restrictive `readRoles` list to hide the stored value from an owner who lacks those roles.
 
----
+The old `encrypted` custom property is not supported. Encryption is independent of the form's `pii`/`sensitive` classification: one protects selected database values, the other controls record access.
 
-## Form Versioning
+The current AES-256-GCM envelope is:
 
-Every time a published form's schema is updated and saved, the system:
-
-1. Creates a `FormVersion` snapshot of the previous schema
-2. Increments the form's `version` integer
-
-**Submissions capture a snapshot of the schema at time of submission** (`formSchemaSnapshot`). This means:
-- Historical submissions always render correctly, even if the form has changed since
-- You can safely add, remove, or relabel fields on published forms without breaking existing submissions
-- Approval workflows also snapshot the workflow definition for the same reason
-
----
-
-## Example Form: E-Mail-Antrag (`emailantrag.json`)
-
-The `forms/emailantrag.json` file is a complete example of a German university form for requesting a university email account. It demonstrates:
-
-- Multi-section layout using panels
-- Required field validation
-- Dropdown select fields
-- Checkbox fields with conditional logic
-- Signature and date fields
-- German labels with typical university form conventions
-
-### Structure overview
-
-```
-Panel: Persönliche Angaben (Personal details)
-  ├─ Vorname (First name)           [textfield, required]
-  ├─ Nachname (Last name)           [textfield, required]
-  ├─ Matrikelnummer                 [textfield, required, encrypted]
-  ├─ E-Mail (existing)              [email]
-  └─ Studiengang (Programme)        [select]
-
-Panel: Antrag (Request)
-  ├─ Art des Antrags (Request type) [select]
-  ├─ Begründung (Justification)     [textarea]
-  └─ Bestätigung (Confirmation)     [checkbox, required]
-
-Panel: Unterschrift (Signature)
-  ├─ Ort und Datum (Place + Date)   [textfield]
-  └─ Unterschrift (Signature)       [signature]
+```json
+{
+  "__encrypted": true,
+  "keyId": "default",
+  "iv": "hex",
+  "tag": "hex",
+  "value": "hex"
+}
 ```
 
-### Loading this form into a development instance
+Never publish encrypted fields until production key storage, backup, recovery, and rotation have been tested.
 
-The seed script does not import forms automatically. To load the E-Mail-Antrag form, sign in as admin and use **Admin → Forms → New form → Import JSON**, then paste the contents of `forms/emailantrag.json`. Attach a workflow and publish it to make it available at `/forms/emailantrag`.
+## Validation and submitted data
 
-### Using this form as a template
+Form.io's client validation improves UX, but the API also normalizes data from the saved localized schema. Unknown fields and incompatible shapes/types are rejected. Button state is discarded. Required/date/range/value checks are applied for the supported data types.
 
-To base a new form on `emailantrag.json`:
+Test nested containers, data grids, select boxes, numeric/boolean option values, optional empty values, and both locales. The persisted schema snapshot is the authority for historical rendering and field access.
 
-1. Copy the file: `cp forms/emailantrag.json forms/my-new-form.json`
-2. Edit the JSON to change the title, slug, and components
-3. Restart the stack or re-run the seed: `docker compose restart init`
-4. The new form appears in the admin panel and at `/forms/my-new-form`
+## German/English form content
 
-Alternatively, import the JSON through the admin UI: Admin → Forms → New form → Import JSON.
+German is the base `Form.title` and `Form.schema`. English content is stored as a full localized object:
 
----
+```json
+{
+  "en": {
+    "title": "Travel request",
+    "schema": { "display": "form", "components": [] },
+    "reviewStatus": "reviewed",
+    "generatedAt": "2026-08-03T10:00:00.000Z"
+  }
+}
+```
 
-## Form.io Component Reference
+With `DEEPL_API_KEY`, the builder can generate an English draft from translatable schema strings. It uses DeepL's free API endpoint and sets `needs_review`. Check labels, descriptions, choices, validation messages, policy terms, accessibility, and layout manually. If English is absent, the German form is used as fallback.
 
-The most commonly used Form.io component types in this project:
+## Versions and snapshots
 
-| Component type | Description | Notes |
-|---|---|---|
-| `textfield` | Single-line text input | Use `validate.required: true` for required fields |
-| `textarea` | Multi-line text input | Good for justification and comments |
-| `email` | Email address input | Validates format client-side |
-| `number` | Numeric input | Use `validate.min` / `validate.max` for range limits |
-| `select` | Dropdown | Values defined in `data.values` array |
-| `radio` | Radio button group | Values defined in `values` array |
-| `checkbox` | Single checkbox | Returns boolean |
-| `datetime` | Date/time picker | Returns ISO string |
-| `signature` | Signature pad | Returns base64 image — do not encrypt (too large) |
-| `panel` | Grouping container | Has `title` and `components` array |
-| `columns` | Multi-column layout | Use `columns` array with `width` percentages |
-| `htmlelement` | Static HTML display | Use for instructions or section headings |
-| `survey` | Grid of questions | Multiple rows, shared set of columns |
+Creation writes `FormVersion` 1. While a form is already published, changing its title, schema, or translations increments the form version and writes a snapshot. Publishing a draft without changing those fields does not by itself create another version.
 
----
+Each submission stores the localized schema at submission/draft creation, form version, locale, and workflow definition/version. A draft submitted later refreshes its snapshot from the then-current form/workflow. Historical views prefer the submission snapshot.
 
-## Publishing Checklist
+There is no UI to compare or restore `FormVersion` records; that is a future usability/operations improvement.
 
-Before publishing a form for production use:
+## Parent and triggered forms
 
-- [ ] All required fields have `validate.required: true`
-- [ ] Fields containing personal data are marked `encrypted: true` in custom properties (if warranted)
-- [ ] Sensitivity level matches the most sensitive data the form can collect
-- [ ] A workflow is attached (forms cannot be submitted without a workflow)
-- [ ] The workflow has been published-validated (happens automatically on form publish)
-- [ ] Both German and English labels are correct (check the translations JSON)
-- [ ] The form has been test-submitted in a staging environment
-- [ ] The legal/privacy page mentions this form's data processing (update `legal-copy.ts`)
+Forms can store `parentFormId`, and workflows can use `trigger-form` with `childFormId`. The latter creates an empty draft child submission linked to the parent submission and notifies the original submitter. It does not automatically submit or run the child workflow.
+
+The current server verifies that the referenced child form exists, not that it is published or accessible to the submitter. Test the complete follow-up journey before use.
+
+## Publication checklist
+
+- [ ] Correct sensitivity classification and institutional processing purpose
+- [ ] Allowed roles are minimal and tested
+- [ ] Supported components only; stable unique field keys
+- [ ] Server and client validation tested with invalid/boundary data
+- [ ] Sensitive/read-role/owner rules reviewed per field
+- [ ] Encryption keys and recovery process proven
+- [ ] Runnable workflow with active/resolvable targets
+- [ ] German and English content reviewed by responsible owners
+- [ ] Owner, approver, admin, compliance, and unauthorized journeys tested
+- [ ] Retention owner/period and DSAR owner assigned outside the current UI
+- [ ] Accessibility and privacy review completed

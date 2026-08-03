@@ -1,150 +1,83 @@
-# FormFlow — Roles and Permissions
+# Roles and permissions
 
-## Roles
+Users can hold multiple roles. Authorization is additive except where a route requires ownership/assignment. The four built-in role names are protected from rename/delete; administrators can create custom lowercase roles for form access, field read rules, and workflow routing.
 
-FormFlow uses four application roles. A user can hold multiple roles simultaneously.
+## Built-in roles
 
-| Role | Description |
+| Role | Current purpose |
 |---|---|
-| `submitter` | Can fill in and submit forms; can view their own submissions |
-| `approver` | Can action approval tasks assigned to them; can view submissions in their task queue |
-| `admin` | Full administrative access: manage forms, workflows, users, org units, and see all submissions |
-| `compliance` | Read-only access to the global submission console and audit log; cannot modify anything |
+| `submitter` | Default LDAP/local seed role; normal owner experience |
+| `approver` | Inbox and action on tasks assigned to the user; optional team visibility |
+| `admin` | Forms, workflows, roles/users, org sync, dashboards, global submissions, audit |
+| `compliance` | Read-oriented dashboard, global submissions, audit log |
 
-Every LDAP user automatically receives `submitter` on first login. Elevated roles are assigned by an admin in the user management panel, or pre-configured via LDAP UID allowlists and attribute maps.
+The submission API technically accepts any authenticated user who has form-level access; it does not require the literal `submitter` role. Use allowed roles to express audience restrictions.
 
----
+## Permission matrix
 
-## Permission Matrix
+| Capability | Submitter/other authenticated | Approver | Admin | Compliance |
+|---|---:|---:|---:|---:|
+| Open allowed published form | Yes | Yes | Yes (bypass allowed-role gate) | Yes if allowed |
+| Create/save/submit own case | Yes if form allowed | Yes if form allowed | Yes | Yes if form allowed |
+| View own cases | Yes | Yes | Yes | Yes (as owner) |
+| View assigned cases | No | Yes | Only if assigned or global visibility | Only via global visibility |
+| Team-scope case visibility | No | If `teamScope=true` | Not needed | No |
+| Act on approval task | Only if directly assigned | Only if directly assigned | Only if directly assigned | Only if directly assigned |
+| Global standard submission view | No | No (unless assigned/team/owner) | Yes | Yes |
+| Global PII/sensitive list | No | No global privilege | Yes with list grant | Yes with list grant |
+| Sensitive detail | If otherwise visible, with per-record grant | Same | Same | Same |
+| Manage forms/workflows | No | No | Yes | No |
+| Manage roles/user role sets | No | No | Yes | No |
+| View/CSV audit log | No | No | Yes | Yes |
+| View org/admin sync | No | No | Yes | No |
+| Create own delegation | No | Yes | Yes | No |
+| Create delegation for another approver | No | No | Yes | No |
 
-### Forms
+Approval decision routes deliberately check task ownership, not role names. A user assigned by a direct/role/group/org target can act even if they later lack `approver`; conversely, an admin cannot override somebody else's pending task through these endpoints.
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| View published forms | ✓ | ✓ | ✓ | ✓ |
-| Submit a form | ✓ | ✓ | ✓ | — |
-| Create/edit/delete forms | — | — | ✓ | — |
-| Publish / archive a form | — | — | ✓ | — |
-| View draft forms | — | — | ✓ | — |
+## Form and field access
 
-### Submissions
+Form `allowedRoles` is a many-to-many relation. Empty means any authenticated user; otherwise at least one role must match. Admin always passes. The public-looking form route still requires authentication.
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| View own submissions | ✓ | ✓ | ✓ | — |
-| View assigned approval tasks | — | ✓ | ✓ | — |
-| View all standard submissions | — | ✓¹ | ✓ | ✓ |
-| View PII/sensitive submissions | — | ✓¹² | ✓² | ✓² |
-| Approve/reject/request revision | — | ✓³ | ✓ | — |
-| Edit own draft/revision | ✓ | ✓ | ✓ | — |
+Per field:
 
-¹ Approvers see submissions in their task queue and (if `teamScope` is enabled for their account) all submissions from their org unit.  
-² Requires break-glass justification (logged to audit trail).  
-³ Only on tasks specifically assigned to them.
+- empty `properties.readRoles` means everyone may read the value and makes `ownerCanRead` irrelevant;
+- with a non-empty list, matching roles may read the value;
+- the owner may additionally bypass that non-empty list unless `properties.ownerCanRead` is `"false"`;
+- values are removed from the response when the caller fails the rule, even after decryption.
 
-### Workflows
+Field rules should use existing role names. Safe role deletion/rename checks search these schema references.
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| View workflows | — | — | ✓ | — |
-| Create/edit/delete workflows | — | — | ✓ | — |
+## Submission visibility
 
-### Users
+Record visibility is applied in Prisma queries:
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| View user list | — | — | ✓ | — |
-| Create/edit/deactivate users | — | — | ✓ | — |
-| Change role assignments | — | — | ✓ | — |
+- normal users: own submissions;
+- approvers: own plus any historical/current task assigned to them; optional `teamScope` adds submissions whose owners share an org-unit ID;
+- admin/compliance: all records when explicitly including sensitive categories, otherwise only `standard`.
 
-### Audit Log
+The list grant is currently enforced specifically for admin/compliance requests that ask for PII/sensitive data. Approvers using assignment/team scope are not given global access, but their list path is not subjected to that admin-list grant. A `sensitive` detail always needs a per-record grant for any role. A `pii` detail currently does not.
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| View audit log | — | — | ✓ | ✓ |
-| Export audit log as CSV | — | — | ✓ | ✓ |
+## Break-glass grant
 
-### Org Units
+The UI posts a reason of at least ten characters to `/api/sensitive-access`. The server audits grant creation and sets a signed HttpOnly cookie for ten minutes. The API later validates actor, scope, signature, and expiry, and audits actual detail/list access.
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| View org tree | — | — | ✓ | — |
-| Trigger LDAP org sync | — | — | ✓ | — |
+This is an accountability control, not an emergency privilege escalation: the user must already have record visibility. It does not grant access to an otherwise invisible submission.
 
-### Delegations
+## Team scope
 
-| Action | submitter | approver | admin | compliance |
-|---|---|---|---|---|
-| Create delegation for self | — | ✓ | ✓ | — |
-| View own delegations | — | ✓ | ✓ | — |
-| Delete own delegations | — | ✓ | ✓ | — |
+An admin can set `teamScope` on an approver. Visibility is based on shared `OrgMembership.orgUnitId`, not the full descendants of a manager's organizational tree. It grants visibility only; task actions still require assignment. Treat it as broad data access and review it periodically.
 
----
+## Role and account administration
 
-## Break-Glass Access
+The admin users page lists directory/local users, edits complete role sets and team scope, manages custom roles, and shows delegation controls. It does not create local users, set passwords, deactivate/reactivate accounts, or reassign open tasks.
 
-Submissions on forms with `sensitivity: pii` or `sensitivity: sensitive` require the accessing user to provide a written justification before viewing the record. This applies regardless of role.
+Role updates increment `sessionVersion`, revoking all existing sessions. Editing one's own roles therefore signs out the current admin on the next session validation; this is expected security behavior but the UI should warn/handle it more clearly.
 
-The access flow:
-1. User navigates to a sensitive submission detail page
-2. They are intercepted by the break-glass gate before seeing any data
-3. They enter a reason (minimum 10 characters)
-4. The reason is POSTed to `POST /api/sensitive-access`
-5. A short-lived (10-minute) HMAC-signed cookie is issued
-6. The submission page loads and the access is written to `AuditLog`
+LDAP login can replace the user's roles based on allowlists/attribute mapping. Manual assignments to LDAP users may therefore be overwritten on their next login. Define one authoritative role-governance policy.
 
-The same signed cookie is required for API reads of sensitive submissions and for admin/compliance list views that include `pii` or `sensitive` records.
+Account deactivation is driven by organization reconciliation for identities missing from a non-empty sync result. Pending tasks are not automatically reassigned; admins only receive a notification. This is a handoff blocker/high-priority workflow gap.
 
-The audit log entry records the actor, timestamp, submission ID, sensitivity level, and the stated reason. These entries cannot be deleted through the application.
+## Delegation limits
 
----
-
-## Approver Team Scope
-
-An approver account can have `teamScope: true` set by an admin. When enabled:
-
-- The approver can see all submissions from their org unit in the submission list, not just their own assigned tasks
-- This is intended for team leads who need visibility across their team's submissions
-
-Team scope does not grant the ability to approve tasks not assigned to the user — only visibility.
-
----
-
-## Role Assignment
-
-### Via the admin panel
-
-1. Navigate to `/de/admin/users`
-2. Select a user
-3. Check/uncheck roles as needed
-4. Save
-
-Role changes immediately increment the user's `sessionVersion`, invalidating any existing JWT tokens. The user will be logged out on their next request.
-
-### Via LDAP UID allowlists (`.env`)
-
-```bash
-LDAP_ADMIN_UIDS="uid1,uid2"
-LDAP_APPROVER_UIDS="uid3,uid4"
-LDAP_COMPLIANCE_UIDS="uid5"
-```
-
-These are applied at every LDAP login. UIDs not in the list will have the corresponding role removed. This means if you remove a UID from the list, the user loses the role on their next login.
-
-### Via LDAP attribute mapping (`.env`)
-
-```bash
-LDAP_ROLE_ATTRIBUTE="eduPersonAffiliation"
-LDAP_ROLE_ATTRIBUTE_MAP="Mitarbeiter=approver,Student=submitter"
-```
-
-The LDAP attribute value is matched against the map at login time. Multiple values in the attribute are each checked against the map.
-
----
-
-## Security Implementation Notes
-
-- Role checks on API routes use `requireRole(["admin", "compliance"])` from `src/lib/permissions.ts`
-- Role checks on page routes use `requirePageRole(["admin"])` from `src/lib/page-auth.ts`
-- Submission visibility is enforced at the database query level via `src/lib/submission-visibility.ts` — users cannot access records they are not permitted to see, even by guessing IDs
-- The `compliance` role has read access equivalent to `admin` for submissions and audit logs, but cannot make any changes — this is enforced per-endpoint, not at the middleware level
+Both approver and delegate must be active and have `approver` or `admin`. Windows cannot overlap for the same approver. The current workflow consults delegation only when a task becomes overdue, not when the task is first assigned. The user-management UI supplies the listing; there is no GET delegations API.

@@ -1,327 +1,142 @@
-# FormFlow — Workflow Authoring Guide
+# Workflow authoring guide
 
-A **workflow** is a JSON array of stages that controls what happens after a form is submitted. The workflow runs inside Temporal, which means it is durable — it survives process restarts and can wait for human decisions for days or weeks.
+Administrators edit workflows at `/<locale>/admin/workflows`. A definition is an ordered JSON array stored in PostgreSQL and snapshotted onto each submitted case. Temporal executes the snapshot durably.
 
-Workflows are created in the admin panel at `/de/admin/workflows` and then attached to a form before it is published.
+## Stage shape
 
----
-
-## Workflow Definition Schema
-
-A workflow definition is an array of `WorkflowStage` objects:
-
-```typescript
-type WorkflowDefinition = WorkflowStage[];
-
+```ts
 type WorkflowStage = {
-  id: string;                          // Unique identifier within the workflow
-  name: string;                        // Display name shown to users
+  id: string;
+  name: string;
   type: "approval" | "notification" | "trigger-form" | "condition";
-  assignTo?: RoutingTarget | RoutingTarget[];  // Who receives the task (approval stages)
-  childFormId?: string;                // Form to trigger (trigger-form stages)
-  conditions?: RoutingCondition[];     // Expressions to evaluate (condition stages)
-  sla?: {
-    hours: number;                     // Hours until the task is overdue
-    reminderAt: number[];              // Hours before SLA breach to send reminders, e.g. [24, 2]
-  };
-  onApprove?: "next-stage" | "close"; // What happens when approved
-  onReject?: "close" | "return-to-submitter" | { goTo: string }; // What happens when rejected
+  assignTo?: RoutingTarget | RoutingTarget[];
+  childFormId?: string;
+  conditions?: Array<{ expression: string }>;
+  sla?: { hours: number; reminderAt: number[] };
+  onApprove?: "next-stage" | "close";
+  onReject?: "close" | "return-to-submitter" | { goTo: string };
 };
 ```
 
-Stages are executed in array order. The workflow ends when it reaches the last stage or when a stage produces a `close` outcome.
+IDs should be non-empty, stable, unique slugs even though the current Zod schema does not enforce all three constraints. `name` should be meaningful to operators. Empty workflow arrays pass the create schema but cannot be attached as a runnable published workflow.
 
----
-
-## Stage Types
-
-### `approval`
-
-Creates an `ApprovalTask` and waits for the assigned approver to act. The approver can approve, reject, or request a revision.
-
-**Required fields:** `id`, `name`, `type`, `assignTo`
-
-**Optional fields:** `sla`, `onApprove`, `onReject`
+## Approval stage
 
 ```json
 {
-  "id": "stage-1",
-  "name": "Department Review",
+  "id": "department-review",
+  "name": "Department review",
   "type": "approval",
   "assignTo": { "type": "role", "value": "approver" },
-  "sla": {
-    "hours": 72,
-    "reminderAt": [48, 24, 2]
-  },
+  "sla": { "hours": 72, "reminderAt": [24, 48] },
   "onApprove": "next-stage",
   "onReject": "return-to-submitter"
 }
 ```
 
-If `onApprove` is omitted, it defaults to `"next-stage"` (or `"close"` if this is the last stage).
-If `onReject` is omitted, it defaults to `"close"`.
+The worker creates one pending task per resolved assignee. If several tasks exist, the first valid approve/reject/revision decision wins and the others are cancelled. This is **one-of-many approval**, not unanimous approval.
 
-### `notification`
+`onApprove: "close"` ends successfully with submission status `approved`. If omitted, approval continues; the final stage also ends as `approved`. `onReject` defaults effectively to rejection/termination.
 
-Sends an in-app notification (and optionally an email) without waiting for a human response. Execution continues immediately to the next stage.
+A revision decision completes/cancels current tasks, changes status to `needs_revision`, waits for explicit resubmission, then repeats the same stage with new tasks.
 
-**Required fields:** `id`, `name`, `type`, `assignTo`
+## Notification stage
 
 ```json
 {
-  "id": "notify-admin",
-  "name": "Notify Administrator",
+  "id": "notify-office",
+  "name": "Notify office",
   "type": "notification",
   "assignTo": { "type": "role", "value": "admin" }
 }
 ```
 
-### `trigger-form`
+Resolved users receive in-app messages and, when configured, email. The stage does not wait. If no users resolve at runtime, it silently continues without a notification; authoring validation should not be treated as a guarantee for every future case.
 
-Starts a new submission of a linked child form. The child form goes through its own workflow independently. The parent workflow continues immediately (trigger-and-forget).
+## Condition stage
 
-**Required fields:** `id`, `name`, `type`, `childFormId`
-
-```json
-{
-  "id": "trigger-it-ticket",
-  "name": "Create IT Ticket",
-  "type": "trigger-form",
-  "childFormId": "uuid-of-it-request-form"
-}
-```
-
-### `condition`
-
-Evaluates one or more boolean expressions against the submission data. Routes to the next stage based on the result. If no condition matches, the workflow closes.
-
-**Required fields:** `id`, `name`, `type`, `conditions`
+Conditions use [`expr-eval`](https://github.com/silentmatt/expr-eval), not JavaScript. Allowed variable prefixes are `data.`, `form.`, and `submitter.`; expression length is limited to 500 characters.
 
 ```json
 {
-  "id": "check-department",
-  "name": "Route by Department",
+  "id": "large-request",
+  "name": "Large request?",
   "type": "condition",
-  "conditions": [
-    { "expression": "data.department === 'informatik'" }
-  ]
+  "conditions": [{ "expression": "data.amount >= 1000" }],
+  "onReject": { "goTo": "normal-review" }
 }
 ```
 
-Condition expressions are evaluated with the submission `data` object in scope. The expression must return a boolean.
+All expressions are combined with logical AND. If all evaluate truthy, execution continues to the next array stage. If any is false—or evaluation fails because data is missing/wrongly typed—the stage follows `onReject`:
 
----
+- `return-to-submitter`: wait for correction, then evaluate the condition again;
+- `{ "goTo": "stage-id" }`: jump to that stage;
+- `close`: set `rejected` and end;
+- omitted: continue to the next stage.
 
-## Routing Targets (`assignTo`)
+Avoid JavaScript syntax/functions such as `===` or `Number(...)`. Test each expression with representative and missing values.
 
-The `assignTo` field controls who receives an approval task or notification.
-
-### Role target
-
-Assigns to all users with a specific role.
-
-```json
-{ "type": "role", "value": "approver" }
-```
-
-### User target
-
-Assigns to a specific user by their database UUID.
-
-```json
-{ "type": "user", "value": "user-uuid" }
-```
-
-### Org target
-
-Assigns based on the submitter's position in the org unit tree. Requires the org sync to have populated `OrgMembership` records.
-
-```json
-{ "type": "org", "value": "submitter.manager" }
-```
-
-| Org value | Resolves to |
-|---|---|
-| `submitter.manager` | The user flagged as `isManager` in the submitter's org unit |
-| `submitter.skip-level` | The manager of the submitter's manager |
-| `department.head` | The top-level manager in the submitter's department tree |
-
-### Group target
-
-Assigns to members of a named org unit (matched by `externalId`).
-
-```json
-{ "type": "group", "value": "ou=informatik,o=uni" }
-```
-
-### Multiple targets
-
-Pass an array to assign to multiple targets simultaneously (all receive the task):
+## Trigger-form stage
 
 ```json
 {
-  "assignTo": [
-    { "type": "role", "value": "approver" },
-    { "type": "user", "value": "user-uuid" }
-  ]
+  "id": "collect-follow-up",
+  "name": "Collect follow-up form",
+  "type": "trigger-form",
+  "childFormId": "form-uuid"
 }
 ```
 
----
+This creates an empty **draft** child submission for the original submitter, links it to the parent, notifies the user, and immediately continues the parent workflow. It does not wait for completion and does not start the child's workflow. Current validation requires the form to exist but does not require publication or user access.
 
-## SLA and Reminders
+## Routing targets
 
-The `sla` field sets a deadline for approval stages.
+| Type | Value | Runtime resolution |
+|---|---|---|
+| `role` | Role name | All active users with that role |
+| `user` | User UUID | That exact user; must be active when workflow is saved |
+| `group` | **OrgUnit database UUID** | All memberships in that unit |
+| `org` | `submitter.manager` | Other manager membership in submitter's unit |
+| `org` | `submitter.skip-level` | Manager in the unit's parent |
+| `org` | `department.head` | Head/manager in submitter's department unit or parent |
 
-```json
-"sla": {
-  "hours": 72,
-  "reminderAt": [48, 24, 2]
-}
-```
+Multiple targets are unioned and duplicate user IDs removed. The group value is not LDAP DN/external ID, despite older documentation.
 
-- `hours` — the task is marked overdue after this many hours
-- `reminderAt` — array of hours *before* the SLA deadline at which reminder notifications are sent
+Save-time org validation only proves that some current directory configuration can resolve the requested target. It cannot guarantee that every future submitter has the necessary membership/hierarchy. If an approval stage resolves zero users at runtime, the Temporal workflow fails and the case remains operationally stuck until repaired.
 
-When an SLA breach occurs, the workflow checks for an active delegation (`Delegation` table) and may reassign the task to the delegate.
+## SLA, reminders, and delegation
 
----
+`sla.hours` sets `dueAt` and schedules the overdue action that many hours after task creation. Each `reminderAt` value is also interpreted as hours **after stage start**, not hours before the deadline. Keep reminder values positive and below `sla.hours`; the validator does not enforce ordering/range.
 
-## Rejection Routing
+When the stage resolves, its timer scope is cancelled. At the overdue point, an active delegation may reassign the task; otherwise the assignee and admins are notified. Current code does not apply delegation at initial task creation, despite what older documentation said.
 
-The `onReject` field controls what happens when an approver rejects:
+## Rejection routing
 
-| Value | Behaviour |
+| Setting | Result |
 |---|---|
-| `"close"` | Submission moves to `rejected` status and the workflow ends |
-| `"return-to-submitter"` | Submission moves to `needs_revision`; submitter can edit and resubmit |
-| `{ "goTo": "stage-id" }` | Jump to a specific stage by ID (useful for conditional re-review) |
+| `close` or omitted | Current task rejected; submission `rejected`; workflow ends |
+| `return-to-submitter` | Revision loop at the same stage |
+| `{ "goTo": "id" }` | Continue at referenced stage |
 
----
+`goTo` references are checked. Avoid backward cycles without an explicit business escape condition; Temporal can otherwise keep the case alive indefinitely.
 
-## Example Workflows
+The schema contains a `closed` submission status, but the current approval workflow does not set it. Terminal successful/unsuccessful outcomes are `approved`/`rejected`.
 
-### Single-stage approval
+## Validation and versioning
 
-The simplest possible workflow: one approver, no SLA, rejection closes the case.
+Workflow create/update validates stage shape and all current database references. Update replaces the whole definition and increments `Workflow.version`. Already created submissions keep their workflow snapshot and are unaffected by later edits.
 
-```json
-[
-  {
-    "id": "review",
-    "name": "Approval",
-    "type": "approval",
-    "assignTo": { "type": "role", "value": "approver" },
-    "onApprove": "close",
-    "onReject": "close"
-  }
-]
-```
+Publishing/saving a form with a workflow validates that the workflow is non-empty/runnable again. There is no explicit workflow publish state and no delete endpoint.
 
-### Two-stage approval with revision path
+## Authoring checklist
 
-Department head reviews first; if approved, the admin does a final check. Rejection at either stage returns the submission to the submitter for revision.
-
-```json
-[
-  {
-    "id": "dept-review",
-    "name": "Department Head Review",
-    "type": "approval",
-    "assignTo": { "type": "org", "value": "submitter.manager" },
-    "sla": { "hours": 48, "reminderAt": [24, 2] },
-    "onApprove": "next-stage",
-    "onReject": "return-to-submitter"
-  },
-  {
-    "id": "admin-review",
-    "name": "Administrative Final Check",
-    "type": "approval",
-    "assignTo": { "type": "role", "value": "admin" },
-    "sla": { "hours": 24, "reminderAt": [12, 2] },
-    "onApprove": "close",
-    "onReject": "return-to-submitter"
-  }
-]
-```
-
-### Conditional routing by form data
-
-Route to different approvers based on the submitted data. In this example, a request for more than €1,000 requires the dean's approval; smaller amounts go to the department head.
-
-```json
-[
-  {
-    "id": "amount-check",
-    "name": "Check Request Amount",
-    "type": "condition",
-    "conditions": [
-      { "expression": "Number(data.amount) >= 1000" }
-    ]
-  },
-  {
-    "id": "dean-review",
-    "name": "Dean Approval (High Value)",
-    "type": "approval",
-    "assignTo": { "type": "user", "value": "dean-user-uuid" },
-    "onApprove": "close",
-    "onReject": "return-to-submitter"
-  },
-  {
-    "id": "dept-review",
-    "name": "Department Head Approval",
-    "type": "approval",
-    "assignTo": { "type": "org", "value": "department.head" },
-    "onApprove": "close",
-    "onReject": "return-to-submitter"
-  }
-]
-```
-
-### Approval with downstream form trigger
-
-After a leave request is approved, automatically create an IT access ticket using a linked child form.
-
-```json
-[
-  {
-    "id": "review",
-    "name": "Leave Request Review",
-    "type": "approval",
-    "assignTo": { "type": "org", "value": "submitter.manager" },
-    "onApprove": "next-stage",
-    "onReject": "close"
-  },
-  {
-    "id": "it-ticket",
-    "name": "Create System Access Update",
-    "type": "trigger-form",
-    "childFormId": "uuid-of-system-access-form"
-  }
-]
-```
-
----
-
-## Publishing Validation
-
-When a form is published (`POST /api/forms/[id]/publish`), the server validates every routing target in the attached workflow:
-
-- `role` targets — the role must exist in the database
-- `user` targets — the user must exist and be active
-- `group` targets — the org unit `externalId` must exist
-- `org` targets — no pre-validation (resolved dynamically at runtime from the submitter's org membership)
-- `childFormId` — the referenced form must exist and be published
-- `goTo` targets in `onReject` — the referenced stage ID must exist in the same workflow
-
-Publishing fails with `409 WORKFLOW_TARGET_INVALID` if any check fails. This prevents dead-end workflows from reaching submitters.
-
----
-
-## Workflow Versioning
-
-Workflows have a `version` integer that increments each time the workflow is updated. When a submission is created, the current workflow version and full definition are snapshotted onto the submission (`workflowVersion`, `workflowDefinition`). This means:
-
-- Already-running workflows are unaffected by workflow updates
-- The submission record permanently captures what rules applied to it
-- Auditors can review the exact workflow definition that governed any historical submission
+- [ ] Unique stable stage IDs and meaningful names
+- [ ] One-of-many semantics are acceptable for multi-target approvals
+- [ ] Direct users active; roles/groups populated
+- [ ] Every target resolves for each intended submitter cohort
+- [ ] Expressions use `expr-eval` syntax and handle missing data
+- [ ] `goTo` routes cannot create unintended infinite loops
+- [ ] Reminders are measured from stage start and precede overdue time
+- [ ] Delegation's current overdue-only behavior is acceptable
+- [ ] Triggered form is published, accessible, and monitored manually
+- [ ] Revision, rejection, timeout, worker restart, and duplicate-activity behavior tested in staging
